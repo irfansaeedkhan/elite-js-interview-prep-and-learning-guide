@@ -1,0 +1,6 @@
+{
+  "framework": "vitest",
+  "testMatch": ["**/*.test.ts", "**/*.test.tsx"],
+  "runner": "yarn test",
+  "e2e": null
+}

@@ -1,0 +1,118 @@
+---
+title: useRef, useMemo & useCallback
+slug: use-ref-memo-callback
+track: react
+subCategory: hooks
+order: 8
+estimatedMinutes: 40
+prerequisites:
+  - use-state-use-effect
+keyTakeaways:
+  - useRef holds mutable values without re-render; useMemo/useCallback cache values and functions between renders
+  - Know one interview-ready example
+  - State common pitfalls senior interviewers probe
+  - Connect useRef, useMemo & useCallback to real component design trade-offs
+masteryCriteria:
+  minQuestionsCorrect: 3
+  requireChallenge: false
+difficulty: hard
+interviewQuestions:
+  - id: useref-1
+    question: What is useRef, useMemo & useCallback in React?
+    answer: useRef holds mutable values without re-render; useMemo/useCallback cache values and functions between renders.
+    difficulty: easy
+    followUps:
+      - When would you use this in a production app?
+      - What breaks if you misuse it?
+  - id: useref-2
+    question: What is a common interview trap around useRef, useMemo & useCallback?
+    answer: Interviewers probe edge cases — state the rule, then walk through a short JSX example.
+    difficulty: medium
+    followUps:
+      - How would you debug a bug related to this?
+  - id: useref-3
+    question: How does useRef, useMemo & useCallback relate to other React concepts?
+    answer: It builds on earlier topics in this track — tie your answer to props, state, hooks, or rendering.
+    difficulty: medium
+    followUps:
+      - Which topic would you review if you got this wrong?
+  - id: useref-4
+    question: How would you explain useRef, useMemo & useCallback to a junior developer?
+    answer: Plain language, one analogy, and a tiny component — avoid jargon until they ask.
+    difficulty: easy
+    followUps:
+      - What follow-up would you ask to check understanding?
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+useRef holds mutable values without re-render; useMemo/useCallback cache values and functions between renders.
+
+In React interviews, start with a one-sentence definition, then show a minimal component. Senior rounds go deeper on re-renders, hooks rules, and performance trade-offs.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+<CodeExample title="Quick example" language="javascript">
+{`// useRef, useMemo & useCallback — see playground tab for a runnable version
+function Example() {
+  return null;
+}`}
+</CodeExample>
+
+<Callout type="tip">
+Explain useRef, useMemo & useCallback out loud in under 30 seconds, then open the Q&amp;A tab.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+<Callout type="interview">
+Pair your answer with **when not to use** this pattern — interviewers reward judgment, not memorization.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['useref-1', 'useref-2', 'useref-3', 'useref-4']} />
+
+<InterviewQuestionBlock id="useref-1" />
+<InterviewQuestionBlock id="useref-2" />
+<InterviewQuestionBlock id="useref-3" />
+<InterviewQuestionBlock id="useref-4" />
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground>
+
+<CodingChallenge
+  title="Explain useRef, useMemo & useCallback in code"
+  prompt="Write a minimal example that demonstrates the core idea of useRef, useMemo & useCallback."
+  hint="Keep it small — one component or hook is enough."
+  starterCode={`// useRef, useMemo & useCallback example
+console.log('Implement a minimal demo');`}
+  tests={[
+    { label: 'runs without error', code: 'console.assert(true);' },
+  ]}
+/>
+
+</TopicPlayground>
+
+</TopicTab>
+
+</TopicTabs>

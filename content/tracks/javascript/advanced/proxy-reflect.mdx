@@ -1,0 +1,109 @@
+---
+title: Proxy & Reflect
+slug: proxy-reflect
+track: javascript
+subCategory: advanced
+order: 38
+estimatedMinutes: 35
+prerequisites:
+  - objects
+keyTakeaways:
+  - Core concepts for Proxy & Reflect interviews
+  - Know the definition and one concrete example
+  - Watch for common traps senior interviewers probe
+  - Tie answers back to real debugging experience
+masteryCriteria:
+  minQuestionsCorrect: 3
+  requireChallenge: false
+difficulty: hard
+interviewQuestions:
+  - id: proxyr-1
+    question: What is Proxy & Reflect in JavaScript?
+    answer: Interception traps and reactive-style patterns.
+    difficulty: easy
+    followUps:
+      - When would you reach for this in production code?
+      - What breaks if you misuse it?
+  - id: proxyr-2
+    question: What is a common interview trap around Proxy & Reflect?
+    answer: Interviewers often pair Proxy & Reflect with edge cases — state the rule, then walk through a short example.
+    difficulty: medium
+    followUps:
+      - Can you show the fix in code?
+  - id: proxyr-3
+    question: How does Proxy & Reflect relate to other JS concepts you know?
+    answer: It connects to topics earlier in this track — mention scope, types, async, or the DOM where relevant.
+    difficulty: medium
+    followUps:
+      - Which topic would you review first if you got this wrong?
+  - id: proxyr-4
+    question: How would you explain Proxy & Reflect to a junior developer?
+    answer: Use plain language, one analogy, and one line of code — avoid spec jargon until they ask.
+    difficulty: easy
+    followUps:
+      - What follow-up question would you ask them to check understanding?
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+Interception traps and reactive-style patterns.
+
+In interviews, lead with a clear one-liner, then add one example. Senior rounds go deeper on edge cases and trade-offs — have a short code snippet ready.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+<CodeExample title="Quick example" language="javascript">
+{`// Proxy & Reflect — add your own variation in the playground
+console.log('Review the in-depth tab and Q&A for this topic');`}
+</CodeExample>
+
+<Callout type="tip">
+Re-read the key takeaways, then try explaining Proxy & Reflect out loud in under 30 seconds.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+### What to focus on
+
+- Definition and mental model
+- One gotcha interviewers love
+- How it connects to prerequisites in this track
+
+### Senior follow-ups
+
+Be ready to compare alternatives and describe when **not** to use this feature.
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['proxyr-1', 'proxyr-2', 'proxyr-3', 'proxyr-4']} />
+
+<InterviewQuestionBlock id="proxyr-1" />
+<InterviewQuestionBlock id="proxyr-2" />
+<InterviewQuestionBlock id="proxyr-3" />
+<InterviewQuestionBlock id="proxyr-4" />
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground />
+
+</TopicTab>
+
+</TopicTabs>

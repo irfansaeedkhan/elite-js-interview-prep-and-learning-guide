@@ -1,0 +1,49 @@
+---
+title: Middleware
+slug: middleware
+track: express
+subCategory: core
+order: 1
+status: preview
+estimatedMinutes: 30
+prerequisites:
+  - event-loop-and-libuv
+keyTakeaways:
+  - Middleware functions run in order with req, res, and next
+  - Error-handling middleware has four parameters (err, req, res, next)
+  - app.use mounts middleware for path prefixes
+  - Order of registration defines the request pipeline
+masteryCriteria:
+  minQuestionsCorrect: 2
+  requireChallenge: false
+difficulty: medium
+interviewQuestions:
+  - id: exp-1
+    question: What is Express middleware?
+    answer: A function with access to req, res, and next that runs during the request-response cycle. Call next() to pass control to the next handler.
+    difficulty: easy
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+**Express** is the classic Node HTTP framework. Middleware, routing, and REST design patterns are core backend interview topics.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<InterviewQuestionBlock id="exp-1" />
+
+</TopicTab>
+
+</TopicTabs>

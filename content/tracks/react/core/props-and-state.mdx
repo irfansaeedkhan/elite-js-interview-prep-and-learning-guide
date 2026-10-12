@@ -1,0 +1,118 @@
+---
+title: Props & State
+slug: props-and-state
+track: react
+subCategory: core
+order: 2
+estimatedMinutes: 30
+prerequisites:
+  - components-and-jsx
+keyTakeaways:
+  - Props are read-only inputs from parents; state is internal data a component owns and updates with setState or hooks
+  - Know one interview-ready example
+  - State common pitfalls senior interviewers probe
+  - Connect Props & State to real component design trade-offs
+masteryCriteria:
+  minQuestionsCorrect: 3
+  requireChallenge: false
+difficulty: easy
+interviewQuestions:
+  - id: propsa-1
+    question: What is Props & State in React?
+    answer: Props are read-only inputs from parents; state is internal data a component owns and updates with setState or hooks.
+    difficulty: easy
+    followUps:
+      - When would you use this in a production app?
+      - What breaks if you misuse it?
+  - id: propsa-2
+    question: What is a common interview trap around Props & State?
+    answer: Interviewers probe edge cases — state the rule, then walk through a short JSX example.
+    difficulty: medium
+    followUps:
+      - How would you debug a bug related to this?
+  - id: propsa-3
+    question: How does Props & State relate to other React concepts?
+    answer: It builds on earlier topics in this track — tie your answer to props, state, hooks, or rendering.
+    difficulty: medium
+    followUps:
+      - Which topic would you review if you got this wrong?
+  - id: propsa-4
+    question: How would you explain Props & State to a junior developer?
+    answer: Plain language, one analogy, and a tiny component — avoid jargon until they ask.
+    difficulty: easy
+    followUps:
+      - What follow-up would you ask to check understanding?
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+Props are read-only inputs from parents; state is internal data a component owns and updates with setState or hooks.
+
+In React interviews, start with a one-sentence definition, then show a minimal component. Senior rounds go deeper on re-renders, hooks rules, and performance trade-offs.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+<CodeExample title="Quick example" language="javascript">
+{`// Props & State — see playground tab for a runnable version
+function Example() {
+  return null;
+}`}
+</CodeExample>
+
+<Callout type="tip">
+Explain Props & State out loud in under 30 seconds, then open the Q&amp;A tab.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+<Callout type="interview">
+Pair your answer with **when not to use** this pattern — interviewers reward judgment, not memorization.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['propsa-1', 'propsa-2', 'propsa-3', 'propsa-4']} />
+
+<InterviewQuestionBlock id="propsa-1" />
+<InterviewQuestionBlock id="propsa-2" />
+<InterviewQuestionBlock id="propsa-3" />
+<InterviewQuestionBlock id="propsa-4" />
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground>
+
+<CodingChallenge
+  title="Explain Props & State in code"
+  prompt="Write a minimal example that demonstrates the core idea of Props & State."
+  hint="Keep it small — one component or hook is enough."
+  starterCode={`// Props & State example
+console.log('Implement a minimal demo');`}
+  tests={[
+    { label: 'runs without error', code: 'console.assert(true);' },
+  ]}
+/>
+
+</TopicPlayground>
+
+</TopicTab>
+
+</TopicTabs>

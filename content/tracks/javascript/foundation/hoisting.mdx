@@ -1,0 +1,116 @@
+---
+title: Hoisting
+slug: hoisting
+track: javascript
+subCategory: foundation
+order: 5
+estimatedMinutes: 25
+keyTakeaways:
+  - var declarations are hoisted and initialized as undefined
+  - let and const are hoisted but stay in the temporal dead zone until initialized
+  - Function declarations are fully hoisted; function expressions are not
+  - Hoisting is about compile-time memory allocation, not moving code visually
+masteryCriteria:
+  minQuestionsCorrect: 3
+  requireChallenge: false
+difficulty: medium
+interviewQuestions:
+  - id: hoist-1
+    question: What is hoisting in JavaScript?
+    answer: During compilation, declarations are registered in memory before execution. var becomes undefined; let and const enter the TDZ until their line runs.
+    difficulty: easy
+  - id: hoist-2
+    question: What happens if you access a let variable before its declaration?
+    answer: ReferenceError — the variable is in the temporal dead zone until the declaration line executes.
+    difficulty: medium
+  - id: hoist-3
+    question: Are function declarations hoisted?
+    answer: Yes. The entire function body is available before the declaration line in the same scope.
+    difficulty: easy
+  - id: hoist-4
+    question: What is the output? console.log(x); var x = 5;
+    answer: undefined. var x is hoisted and initialized to undefined before the log runs.
+    difficulty: medium
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+**Hoisting** is JavaScript's behavior of processing declarations during the **compilation phase** before running code line by line. It explains why you can sometimes call a function before its declaration — and why `let` before declaration throws.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+<CodeExample title="var vs let" language="javascript">
+{`console.log(a); // undefined
+var a = 1;
+
+try {
+  console.log(b);
+} catch (e) {
+  console.log(e.name); // ReferenceError
+}
+let b = 2;`}
+</CodeExample>
+
+<CodeExample title="Function declaration hoisting" language="javascript">
+{`greet(); // works
+
+function greet() {
+  console.log('Hello');
+}`}
+</CodeExample>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+<Callout type="gotcha">
+`const fn = function() {}` is **not** hoisted as a callable function — only the `fn` binding is hoisted if declared with var (as undefined).
+</Callout>
+
+### Temporal Dead Zone (TDZ)
+
+From scope entry until `let`/`const` initialization, the binding exists but cannot be accessed.
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['hoist-1', 'hoist-2', 'hoist-3', 'hoist-4']} />
+
+<InterviewQuestionBlock id="hoist-1" />
+<InterviewQuestionBlock id="hoist-2" />
+<InterviewQuestionBlock id="hoist-3" />
+<InterviewQuestionBlock id="hoist-4" />
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground>
+
+<OutputPrediction
+  title="var hoisting"
+  expected="undefined, 5"
+  explanation="var x is hoisted and initialized to undefined before the first log. After x = 5, the second log prints 5."
+  code={`console.log(x);
+var x = 5;
+console.log(x);`}
+/>
+
+</TopicPlayground>
+
+</TopicTab>
+
+</TopicTabs>

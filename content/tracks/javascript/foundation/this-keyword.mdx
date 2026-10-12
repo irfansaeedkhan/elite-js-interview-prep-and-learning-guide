@@ -1,0 +1,126 @@
+---
+title: The this Keyword
+slug: this-keyword
+track: javascript
+subCategory: foundation
+order: 7
+estimatedMinutes: 35
+prerequisites:
+  - closures
+keyTakeaways:
+  - this is determined by how a function is called, not where it is defined
+  - Method call — this is the object before the dot
+  - Arrow functions inherit this from the enclosing lexical scope
+  - call, apply, and bind explicitly set this
+masteryCriteria:
+  minQuestionsCorrect: 3
+  requireChallenge: false
+difficulty: hard
+interviewQuestions:
+  - id: this-1
+    question: How is this determined in JavaScript?
+    answer: By call site — as a method, plain function, constructor, call/apply/bind, or arrow (lexical). Not by where the function was written.
+    difficulty: medium
+  - id: this-2
+    question: What is this in an arrow function?
+    answer: Lexically inherited from the enclosing scope at definition time. It cannot be changed with call or bind.
+    difficulty: medium
+  - id: this-3
+    question: What happens when you detach a method? const log = obj.log; log();
+    answer: this is lost — in non-strict mode it may be the global object; in strict mode undefined. Fix with bind or arrow property.
+    difficulty: hard
+  - id: this-4
+    question: What is the difference between call and apply?
+    answer: Both invoke a function with a given this. call takes arguments individually; apply takes an array of arguments.
+    difficulty: easy
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+**`this`** is a runtime binding that refers to the **execution context** of a function call. It is one of the most misunderstood JavaScript topics — and one of the most tested.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+<CodeExample title="Method vs detached call" language="javascript">
+{`const user = {
+  name: 'Ada',
+  greet() {
+    console.log(this.name);
+  },
+};
+
+user.greet();           // Ada
+const fn = user.greet;
+fn();                   // undefined (strict) or global name`}
+</CodeExample>
+
+<CodeExample title="Arrow functions preserve lexical this" language="javascript">
+{`const timer = {
+  seconds: 0,
+  start() {
+    setInterval(() => {
+      this.seconds += 1;
+      console.log(this.seconds);
+    }, 1000);
+  },
+};`}
+</CodeExample>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+<Callout type="tip">
+In class methods and object literals, regular functions use dynamic `this`. Use arrow functions only when you **want** lexical `this`.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['this-1', 'this-2', 'this-3', 'this-4']} />
+
+<InterviewQuestionBlock id="this-1" />
+<InterviewQuestionBlock id="this-2" />
+<InterviewQuestionBlock id="this-3" />
+<InterviewQuestionBlock id="this-4" />
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground>
+
+<OutputPrediction
+  title="Detached method loses this"
+  expected="Ada, undefined"
+  explanation="user.greet() is a method call — this is user. Assigning to fn and calling fn() loses the receiver, so this is undefined in strict mode (or global in sloppy mode)."
+  code={`const user = {
+  name: 'Ada',
+  greet() {
+    console.log(this.name);
+  },
+};
+
+user.greet();
+const fn = user.greet;
+fn();`}
+/>
+
+</TopicPlayground>
+
+</TopicTab>
+
+</TopicTabs>

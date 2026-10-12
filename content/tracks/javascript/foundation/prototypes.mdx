@@ -1,0 +1,124 @@
+---
+title: Prototypes
+slug: prototypes
+track: javascript
+subCategory: foundation
+order: 8
+estimatedMinutes: 35
+prerequisites:
+  - objects
+keyTakeaways:
+  - Every object has an internal prototype link used for property lookup
+  - The prototype chain ends at null
+  - Constructor functions set prototype on new instances
+  - Classes are syntactic sugar over constructor plus prototype
+masteryCriteria:
+  minQuestionsCorrect: 3
+  requireChallenge: false
+difficulty: hard
+interviewQuestions:
+  - id: proto-1
+    question: What is the prototype chain?
+    answer: When a property is missing on an object, JavaScript looks up the internal prototype link, then that object's prototype, until null.
+    difficulty: medium
+  - id: proto-2
+    question: What is the difference between __proto__ and prototype?
+    answer: prototype is on constructor functions and becomes the internal prototype of instances. __proto__ is the instance's link to its prototype (legacy accessor).
+    difficulty: hard
+  - id: proto-3
+    question: How does class syntax relate to prototypes?
+    answer: class creates a constructor function and sets up prototype methods. new still creates objects linked to ClassName.prototype.
+    difficulty: medium
+  - id: proto-4
+    question: What does Object.create do?
+    answer: Creates a new object with the given object as its internal prototype.
+    difficulty: easy
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+JavaScript uses **prototypal inheritance**: objects delegate property lookups to another object via an internal link. There is no classical copying of class blueprints — objects **link** to shared prototypes.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+<CodeExample title="Prototype lookup" language="javascript">
+{`const animal = { eats: true };
+const rabbit = Object.create(animal);
+rabbit.jumps = true;
+
+console.log(rabbit.eats);  // true — found on prototype
+console.log(rabbit.jumps); // true — own property`}
+</CodeExample>
+
+<CodeExample title="Constructor pattern" language="javascript">
+{`function Person(name) {
+  this.name = name;
+}
+Person.prototype.greet = function () {
+  return \`Hi, \${this.name}\`;
+};
+
+const ada = new Person('Ada');
+console.log(ada.greet()); // Hi, Ada`}
+</CodeExample>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+<Callout type="gotcha">
+`hasOwnProperty` checks **own** keys only — not inherited prototype properties.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['proto-1', 'proto-2', 'proto-3', 'proto-4']} />
+
+<InterviewQuestionBlock id="proto-1" />
+<InterviewQuestionBlock id="proto-2" />
+<InterviewQuestionBlock id="proto-3" />
+<InterviewQuestionBlock id="proto-4" />
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground>
+
+<CodingChallenge
+  title="Prototype lookup with Object.create"
+  prompt="Create rabbit so it inherits eats from animal without copying the property."
+  starterCode={`const animal = { eats: true };
+
+const rabbit = {
+  jumps: true,
+  // link rabbit to animal here
+};
+
+console.log(rabbit.eats);`}
+  tests={[
+    { label: 'rabbit.eats is true', code: 'console.assert(rabbit.eats === true);' },
+    { label: 'eats lives on animal', code: "console.assert(animal.hasOwnProperty('eats'));" },
+  ]}
+  hint="Use Object.create(animal) or set rabbit.__proto__ in learning only — prefer Object.create"
+/>
+
+</TopicPlayground>
+
+</TopicTab>
+
+</TopicTabs>

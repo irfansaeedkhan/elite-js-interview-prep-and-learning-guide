@@ -1,0 +1,7 @@
+{
+  "title": "React Ecosystem",
+  "slug": "react-ecosystem",
+  "description": "TanStack Query, Redux, Zod, forms, and production React libraries.",
+  "order": 3,
+  "icon": "Package"
+}

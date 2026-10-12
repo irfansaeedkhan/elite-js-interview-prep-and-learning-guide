@@ -1,0 +1,7 @@
+{
+  "title": "Hono",
+  "slug": "hono",
+  "description": "Edge-first routing, middleware, and lightweight HTTP APIs.",
+  "order": 7,
+  "icon": "Zap"
+}

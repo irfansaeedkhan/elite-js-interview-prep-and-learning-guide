@@ -1,0 +1,64 @@
+---
+title: TanStack Query
+slug: tanstack-query
+track: react-ecosystem
+subCategory: data-fetching
+order: 1
+status: preview
+estimatedMinutes: 35
+prerequisites:
+  - components-and-jsx
+keyTakeaways:
+  - Server state is async, shared, and needs caching — different from UI state
+  - useQuery handles fetch, cache, stale time, and background refetch
+  - Query keys identify cached data; invalidation triggers refetch
+  - Redux is for client state; TanStack Query is for server/async state
+masteryCriteria:
+  minQuestionsCorrect: 3
+  requireChallenge: false
+difficulty: medium
+interviewQuestions:
+  - id: rq-1
+    question: When would you choose TanStack Query over Redux?
+    answer: When state comes from the server and you need caching, deduplication, background refetch, and stale-while-revalidate — not global UI state.
+    difficulty: medium
+  - id: rq-2
+    question: What is a query key?
+    answer: A serializable array that uniquely identifies cached query data. Changing the key creates a separate cache entry.
+    difficulty: easy
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+The **React Ecosystem** track covers libraries used alongside React in production — separate from core React so hooks and rendering stay focused.
+
+**TanStack Query** (React Query) is the first planned topic in **Data Fetching**. Upcoming subcategories include state management (Redux, Zustand), validation (Zod), and forms.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+<Callout type="tip">
+Planned order in this track — Data Fetching → State Management → Validation → Forms.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<InterviewQuestionBlock id="rq-1" />
+<InterviewQuestionBlock id="rq-2" />
+
+</TopicTab>
+
+</TopicTabs>

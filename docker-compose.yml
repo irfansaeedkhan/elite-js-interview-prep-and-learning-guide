@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: elite-learn-postgres
+    restart: unless-stopped
+    ports:
+      - '5433:5432'
+    environment:
+      POSTGRES_USER: elite
+      POSTGRES_PASSWORD: elite_dev_password
+      POSTGRES_DB: elite_learn
+    volumes:
+      - elite_learn_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U elite -d elite_learn']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  elite_learn_pgdata:

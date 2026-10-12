@@ -1,0 +1,109 @@
+---
+title: Error Handling
+slug: error-handling
+track: javascript
+subCategory: foundation
+order: 23
+estimatedMinutes: 25
+prerequisites:
+  - functions
+keyTakeaways:
+  - Core concepts for Error Handling interviews
+  - Know the definition and one concrete example
+  - Watch for common traps senior interviewers probe
+  - Tie answers back to real debugging experience
+masteryCriteria:
+  minQuestionsCorrect: 3
+  requireChallenge: false
+difficulty: medium
+interviewQuestions:
+  - id: errorh-1
+    question: What is Error Handling in JavaScript?
+    answer: try/catch/finally, Error types, and throwing vs rejecting.
+    difficulty: easy
+    followUps:
+      - When would you reach for this in production code?
+      - What breaks if you misuse it?
+  - id: errorh-2
+    question: What is a common interview trap around Error Handling?
+    answer: Interviewers often pair Error Handling with edge cases — state the rule, then walk through a short example.
+    difficulty: medium
+    followUps:
+      - Can you show the fix in code?
+  - id: errorh-3
+    question: How does Error Handling relate to other JS concepts you know?
+    answer: It connects to topics earlier in this track — mention scope, types, async, or the DOM where relevant.
+    difficulty: medium
+    followUps:
+      - Which topic would you review first if you got this wrong?
+  - id: errorh-4
+    question: How would you explain Error Handling to a junior developer?
+    answer: Use plain language, one analogy, and one line of code — avoid spec jargon until they ask.
+    difficulty: easy
+    followUps:
+      - What follow-up question would you ask them to check understanding?
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+try/catch/finally, Error types, and throwing vs rejecting.
+
+In interviews, lead with a clear one-liner, then add one example. Senior rounds go deeper on edge cases and trade-offs — have a short code snippet ready.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+<CodeExample title="Quick example" language="javascript">
+{`// Error Handling — add your own variation in the playground
+console.log('Review the in-depth tab and Q&A for this topic');`}
+</CodeExample>
+
+<Callout type="tip">
+Re-read the key takeaways, then try explaining Error Handling out loud in under 30 seconds.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+### What to focus on
+
+- Definition and mental model
+- One gotcha interviewers love
+- How it connects to prerequisites in this track
+
+### Senior follow-ups
+
+Be ready to compare alternatives and describe when **not** to use this feature.
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['errorh-1', 'errorh-2', 'errorh-3', 'errorh-4']} />
+
+<InterviewQuestionBlock id="errorh-1" />
+<InterviewQuestionBlock id="errorh-2" />
+<InterviewQuestionBlock id="errorh-3" />
+<InterviewQuestionBlock id="errorh-4" />
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground />
+
+</TopicTab>
+
+</TopicTabs>

@@ -1,0 +1,126 @@
+---
+title: Promises
+slug: promises
+track: javascript
+subCategory: execution
+order: 10
+estimatedMinutes: 40
+prerequisites:
+  - event-loop
+keyTakeaways:
+  - A Promise represents a future value — pending, fulfilled, or rejected
+  - then callbacks are microtasks and run before the next macrotask
+  - Promise.all fails fast; Promise.allSettled waits for all
+  - async/await is syntactic sugar over Promises
+masteryCriteria:
+  minQuestionsCorrect: 4
+  requireChallenge: false
+difficulty: hard
+interviewQuestions:
+  - id: prom-1
+    question: What are the three states of a Promise?
+    answer: pending, fulfilled, and rejected. A settled promise cannot change state again.
+    difficulty: easy
+  - id: prom-2
+    question: What is the difference between Promise.all and Promise.allSettled?
+    answer: Promise.all rejects immediately if any promise rejects. allSettled always waits and returns status for each.
+    difficulty: medium
+  - id: prom-3
+    question: Where do async/await continuations run?
+    answer: After await resolves, the continuation runs as a microtask — same queue as Promise.then.
+    difficulty: medium
+  - id: prom-4
+    question: What does return inside a then callback do?
+    answer: It wraps the value in a resolved Promise, enabling chaining. Returning another Promise flattens it.
+    difficulty: hard
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+A **Promise** is an object representing the eventual completion or failure of an asynchronous operation. Promises replace callback pyramids with **chainable** `.then` / `.catch` handlers.
+
+Because `.then` schedules **microtasks**, Promise order questions almost always appear alongside the event loop.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+<CodeExample title="Chaining" language="javascript">
+{`Promise.resolve(1)
+  .then((n) => n + 1)
+  .then((n) => n * 2)
+  .then(console.log); // 4`}
+</CodeExample>
+
+<CodeExample title="async/await" language="javascript">
+{`async function fetchUser() {
+  try {
+    const res = await fetch('/api/user');
+    return await res.json();
+  } catch (err) {
+    console.error(err);
+  }
+}`}
+</CodeExample>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+<CodeExample title="Output order with setTimeout" language="javascript" runnable>
+{`console.log('A');
+setTimeout(() => console.log('B'), 0);
+Promise.resolve().then(() => console.log('C'));
+console.log('D');
+// A, D, C, B`}
+</CodeExample>
+
+<Callout type="interview">
+Tie Promise microtasks back to the **Event Loop** topic — sync first, then all microtasks, then macrotasks.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['prom-1', 'prom-2', 'prom-3', 'prom-4']} />
+
+<InterviewQuestionBlock id="prom-1" />
+<InterviewQuestionBlock id="prom-2" />
+<InterviewQuestionBlock id="prom-3" />
+<InterviewQuestionBlock id="prom-4" />
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground>
+
+<OutputPrediction
+  title="Predict the console output"
+  expected="A, D, C, B"
+  explanation="Sync logs A and D run first. Promise.then schedules a microtask (C) that drains before the next macrotask. setTimeout(0) is still a macrotask, so B prints last."
+  code={`console.log('A');
+
+setTimeout(() => console.log('B'), 0);
+
+Promise.resolve().then(() => console.log('C'));
+
+console.log('D');`}
+/>
+
+</TopicPlayground>
+
+</TopicTab>
+
+</TopicTabs>

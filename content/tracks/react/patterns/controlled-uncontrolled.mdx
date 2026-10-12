@@ -1,0 +1,118 @@
+---
+title: Controlled vs Uncontrolled
+slug: controlled-uncontrolled
+track: react
+subCategory: patterns
+order: 12
+estimatedMinutes: 30
+prerequisites:
+  - custom-hooks
+keyTakeaways:
+  - Controlled inputs mirror React state; uncontrolled inputs use refs/DOM as source of truth
+  - Know one interview-ready example
+  - State common pitfalls senior interviewers probe
+  - Connect Controlled vs Uncontrolled to real component design trade-offs
+masteryCriteria:
+  minQuestionsCorrect: 3
+  requireChallenge: false
+difficulty: medium
+interviewQuestions:
+  - id: contro-1
+    question: What is Controlled vs Uncontrolled in React?
+    answer: Controlled inputs mirror React state; uncontrolled inputs use refs/DOM as source of truth.
+    difficulty: easy
+    followUps:
+      - When would you use this in a production app?
+      - What breaks if you misuse it?
+  - id: contro-2
+    question: What is a common interview trap around Controlled vs Uncontrolled?
+    answer: Interviewers probe edge cases — state the rule, then walk through a short JSX example.
+    difficulty: medium
+    followUps:
+      - How would you debug a bug related to this?
+  - id: contro-3
+    question: How does Controlled vs Uncontrolled relate to other React concepts?
+    answer: It builds on earlier topics in this track — tie your answer to props, state, hooks, or rendering.
+    difficulty: medium
+    followUps:
+      - Which topic would you review if you got this wrong?
+  - id: contro-4
+    question: How would you explain Controlled vs Uncontrolled to a junior developer?
+    answer: Plain language, one analogy, and a tiny component — avoid jargon until they ask.
+    difficulty: easy
+    followUps:
+      - What follow-up would you ask to check understanding?
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+Controlled inputs mirror React state; uncontrolled inputs use refs/DOM as source of truth.
+
+In React interviews, start with a one-sentence definition, then show a minimal component. Senior rounds go deeper on re-renders, hooks rules, and performance trade-offs.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+<CodeExample title="Quick example" language="javascript">
+{`// Controlled vs Uncontrolled — see playground tab for a runnable version
+function Example() {
+  return null;
+}`}
+</CodeExample>
+
+<Callout type="tip">
+Explain Controlled vs Uncontrolled out loud in under 30 seconds, then open the Q&amp;A tab.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+<Callout type="interview">
+Pair your answer with **when not to use** this pattern — interviewers reward judgment, not memorization.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['contro-1', 'contro-2', 'contro-3', 'contro-4']} />
+
+<InterviewQuestionBlock id="contro-1" />
+<InterviewQuestionBlock id="contro-2" />
+<InterviewQuestionBlock id="contro-3" />
+<InterviewQuestionBlock id="contro-4" />
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground>
+
+<CodingChallenge
+  title="Explain Controlled vs Uncontrolled in code"
+  prompt="Write a minimal example that demonstrates the core idea of Controlled vs Uncontrolled."
+  hint="Keep it small — one component or hook is enough."
+  starterCode={`// Controlled vs Uncontrolled example
+console.log('Implement a minimal demo');`}
+  tests={[
+    { label: 'runs without error', code: 'console.assert(true);' },
+  ]}
+/>
+
+</TopicPlayground>
+
+</TopicTab>
+
+</TopicTabs>

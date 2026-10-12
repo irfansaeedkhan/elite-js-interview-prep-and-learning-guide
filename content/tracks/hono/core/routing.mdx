@@ -1,0 +1,49 @@
+---
+title: Routing
+slug: routing
+track: hono
+subCategory: core
+order: 1
+status: preview
+estimatedMinutes: 25
+prerequisites:
+  - event-loop-and-libuv
+keyTakeaways:
+  - Hono is lightweight and runs on Node, Bun, Deno, and edge runtimes
+  - Routes are chained with app.get, app.post, and route groups
+  - Middleware composes similarly to Express but with modern TypeScript ergonomics
+  - Edge deployment favors small cold starts and Web Standard APIs
+masteryCriteria:
+  minQuestionsCorrect: 2
+  requireChallenge: false
+difficulty: medium
+interviewQuestions:
+  - id: hono-1
+    question: Why use Hono over Express?
+    answer: Smaller footprint, first-class TypeScript, Web Standard Request/Response, and strong edge/runtime portability.
+    difficulty: medium
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+**Hono** is a modern alternative to Express for APIs that may deploy to edge workers or multiple runtimes.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<InterviewQuestionBlock id="hono-1" />
+
+</TopicTab>
+
+</TopicTabs>

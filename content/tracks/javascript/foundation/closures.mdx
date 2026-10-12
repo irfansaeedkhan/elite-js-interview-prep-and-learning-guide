@@ -1,0 +1,124 @@
+---
+title: Closures
+slug: closures
+track: javascript
+subCategory: foundation
+order: 6
+estimatedMinutes: 35
+prerequisites:
+  - hoisting
+keyTakeaways:
+  - A closure is a function plus its lexical environment
+  - Inner functions retain access to outer variables after the outer function returns
+  - Closures power private state, callbacks, and partial application
+  - Classic loop-with-var interview trap tests closure understanding
+masteryCriteria:
+  minQuestionsCorrect: 4
+  requireChallenge: false
+difficulty: hard
+interviewQuestions:
+  - id: close-1
+    question: What is a closure?
+    answer: A closure is created when a function references variables from an outer scope. The inner function keeps those bindings alive even after the outer function finishes.
+    difficulty: easy
+  - id: close-2
+    question: Why do closures matter in JavaScript?
+    answer: They enable data privacy, factory functions, event handlers, and callbacks that remember context without global variables.
+    difficulty: medium
+  - id: close-3
+    question: Fix the classic loop — for (var i = 0; i < 3; i++) setTimeout(() => console.log(i), 0);
+    answer: Logs 3 three times because var is function-scoped and shares one i. Fix with let (block scope), IIFE, or bind the index.
+    difficulty: hard
+  - id: close-4
+    question: Can closures cause memory leaks?
+    answer: Yes, if a closure retains large objects or DOM nodes longer than needed because references stay reachable.
+    difficulty: medium
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+A **closure** forms when a function is defined inside another function and **remembers** variables from the outer scope — even after the outer function has returned.
+
+Closures are the mechanism behind **encapsulation** in JavaScript without classes.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+<CodeExample title="Private counter" language="javascript">
+{`function createCounter() {
+  let count = 0;
+  return {
+    increment() { count += 1; return count; },
+    getCount() { return count; },
+  };
+}
+
+const counter = createCounter();
+counter.increment();
+console.log(counter.getCount()); // 1`}
+</CodeExample>
+
+<CodeExample title="Loop trap with let" language="javascript">
+{`for (let i = 0; i < 3; i++) {
+  setTimeout(() => console.log(i), 0);
+}
+// 0, 1, 2 — each iteration gets its own i binding`}
+</CodeExample>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+<Callout type="interview">
+Walk through **why** `var` fails in the loop: one shared binding updated to 3 before timeouts run.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['close-1', 'close-2', 'close-3', 'close-4']} />
+
+<InterviewQuestionBlock id="close-1" />
+<InterviewQuestionBlock id="close-2" />
+<InterviewQuestionBlock id="close-3" />
+<InterviewQuestionBlock id="close-4" />
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground>
+
+<CodingChallenge
+  title="Build a private counter"
+  prompt="Finish createCounter so increment() bumps an enclosed count and getCount() returns it — without exposing count directly."
+  hint="Return an object with methods that close over a let variable."
+  starterCode={`function createCounter() {
+  // your code here
+}
+
+const counter = createCounter();`}
+  tests={[
+    { label: 'increment returns 1', code: 'console.assert(counter.increment() === 1);' },
+    { label: 'getCount returns 1', code: 'console.assert(counter.getCount() === 1);' },
+    { label: 'increment returns 2', code: 'console.assert(counter.increment() === 2);' },
+  ]}
+/>
+
+</TopicPlayground>
+
+</TopicTab>
+
+</TopicTabs>

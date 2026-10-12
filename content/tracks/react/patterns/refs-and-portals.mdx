@@ -1,0 +1,118 @@
+---
+title: Refs & Portals
+slug: refs-and-portals
+track: react
+subCategory: patterns
+order: 14
+estimatedMinutes: 30
+prerequisites:
+  - error-boundaries
+keyTakeaways:
+  - Refs reach DOM nodes or component instances; portals render children into another DOM subtree
+  - Know one interview-ready example
+  - State common pitfalls senior interviewers probe
+  - Connect Refs & Portals to real component design trade-offs
+masteryCriteria:
+  minQuestionsCorrect: 3
+  requireChallenge: false
+difficulty: medium
+interviewQuestions:
+  - id: refsan-1
+    question: What is Refs & Portals in React?
+    answer: Refs reach DOM nodes or component instances; portals render children into another DOM subtree.
+    difficulty: easy
+    followUps:
+      - When would you use this in a production app?
+      - What breaks if you misuse it?
+  - id: refsan-2
+    question: What is a common interview trap around Refs & Portals?
+    answer: Interviewers probe edge cases — state the rule, then walk through a short JSX example.
+    difficulty: medium
+    followUps:
+      - How would you debug a bug related to this?
+  - id: refsan-3
+    question: How does Refs & Portals relate to other React concepts?
+    answer: It builds on earlier topics in this track — tie your answer to props, state, hooks, or rendering.
+    difficulty: medium
+    followUps:
+      - Which topic would you review if you got this wrong?
+  - id: refsan-4
+    question: How would you explain Refs & Portals to a junior developer?
+    answer: Plain language, one analogy, and a tiny component — avoid jargon until they ask.
+    difficulty: easy
+    followUps:
+      - What follow-up would you ask to check understanding?
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+Refs reach DOM nodes or component instances; portals render children into another DOM subtree.
+
+In React interviews, start with a one-sentence definition, then show a minimal component. Senior rounds go deeper on re-renders, hooks rules, and performance trade-offs.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+<CodeExample title="Quick example" language="javascript">
+{`// Refs & Portals — see playground tab for a runnable version
+function Example() {
+  return null;
+}`}
+</CodeExample>
+
+<Callout type="tip">
+Explain Refs & Portals out loud in under 30 seconds, then open the Q&amp;A tab.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+<Callout type="interview">
+Pair your answer with **when not to use** this pattern — interviewers reward judgment, not memorization.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['refsan-1', 'refsan-2', 'refsan-3', 'refsan-4']} />
+
+<InterviewQuestionBlock id="refsan-1" />
+<InterviewQuestionBlock id="refsan-2" />
+<InterviewQuestionBlock id="refsan-3" />
+<InterviewQuestionBlock id="refsan-4" />
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground>
+
+<CodingChallenge
+  title="Explain Refs & Portals in code"
+  prompt="Write a minimal example that demonstrates the core idea of Refs & Portals."
+  hint="Keep it small — one component or hook is enough."
+  starterCode={`// Refs & Portals example
+console.log('Implement a minimal demo');`}
+  tests={[
+    { label: 'runs without error', code: 'console.assert(true);' },
+  ]}
+/>
+
+</TopicPlayground>
+
+</TopicTab>
+
+</TopicTabs>

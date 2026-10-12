@@ -1,0 +1,121 @@
+---
+title: Lifting State Up
+slug: lifting-state
+track: react
+subCategory: core
+order: 5
+estimatedMinutes: 30
+prerequisites:
+  - lists-and-keys
+keyTakeaways:
+  - When siblings need shared data, move state to their closest common ancestor and pass callbacks down
+  - Know one interview-ready example
+  - State common pitfalls senior interviewers probe
+  - Connect Lifting State Up to real component design trade-offs
+masteryCriteria:
+  minQuestionsCorrect: 3
+  requireChallenge: false
+difficulty: medium
+interviewQuestions:
+  - id: liftin-1
+    question: What is Lifting State Up in React?
+    answer: When siblings need shared data, move state to their closest common ancestor and pass callbacks down.
+    difficulty: easy
+    followUps:
+      - When would you use this in a production app?
+      - What breaks if you misuse it?
+  - id: liftin-2
+    question: What is a common interview trap around Lifting State Up?
+    answer: Interviewers probe edge cases — state the rule, then walk through a short JSX example.
+    difficulty: medium
+    followUps:
+      - How would you debug a bug related to this?
+  - id: liftin-3
+    question: How does Lifting State Up relate to other React concepts?
+    answer: It builds on earlier topics in this track — tie your answer to props, state, hooks, or rendering.
+    difficulty: medium
+    followUps:
+      - Which topic would you review if you got this wrong?
+  - id: liftin-4
+    question: How would you explain Lifting State Up to a junior developer?
+    answer: Plain language, one analogy, and a tiny component — avoid jargon until they ask.
+    difficulty: easy
+    followUps:
+      - What follow-up would you ask to check understanding?
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+When siblings need shared data, move state to their closest common ancestor and pass callbacks down.
+
+In React interviews, start with a one-sentence definition, then show a minimal component. Senior rounds go deeper on re-renders, hooks rules, and performance trade-offs.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+<CodeExample title="Quick example" language="javascript">
+{`// Lifting State Up — see playground tab for a runnable version
+function Example() {
+  return null;
+}`}
+</CodeExample>
+
+<Callout type="tip">
+Explain Lifting State Up out loud in under 30 seconds, then open the Q&amp;A tab.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+<Callout type="interview">
+Pair your answer with **when not to use** this pattern — interviewers reward judgment, not memorization.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['liftin-1', 'liftin-2', 'liftin-3', 'liftin-4']} />
+
+<InterviewQuestionBlock id="liftin-1" />
+<InterviewQuestionBlock id="liftin-2" />
+<InterviewQuestionBlock id="liftin-3" />
+<InterviewQuestionBlock id="liftin-4" />
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground>
+
+<ReactPlayground
+  title="Try it"
+  code={`import { useState } from "react";
+
+export default function Counter() {
+  const [count, setCount] = useState(0);
+  return (
+    <button onClick={() => setCount((c) => c + 1)}>
+      Count: {count}
+    </button>
+  );
+}`}
+/>
+
+</TopicPlayground>
+
+</TopicTab>
+
+</TopicTabs>

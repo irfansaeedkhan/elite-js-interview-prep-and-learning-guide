@@ -1,0 +1,49 @@
+---
+title: Relations and Indexes
+slug: relations-and-indexes
+track: postgresql
+subCategory: core
+order: 1
+status: preview
+estimatedMinutes: 35
+prerequisites:
+  - objects
+keyTakeaways:
+  - PostgreSQL is relational — normalize then join
+  - Primary and foreign keys enforce referential integrity
+  - B-tree indexes help equality and range queries
+  - EXPLAIN ANALYZE shows query plans and scan types
+masteryCriteria:
+  minQuestionsCorrect: 2
+  requireChallenge: false
+difficulty: medium
+interviewQuestions:
+  - id: pg-1
+    question: What is the difference between a clustered and non-clustered index?
+    answer: In PostgreSQL, the table heap is separate; indexes are secondary structures. The primary key creates a unique B-tree index; physical row order is not the index order unlike some other databases.
+    difficulty: hard
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+**PostgreSQL** is the default choice for relational data in full-stack interviews — SQL, indexes, transactions, and normalization.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<InterviewQuestionBlock id="pg-1" />
+
+</TopicTab>
+
+</TopicTabs>

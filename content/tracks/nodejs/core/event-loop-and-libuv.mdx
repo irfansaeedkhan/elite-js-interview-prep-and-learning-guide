@@ -1,0 +1,50 @@
+---
+title: Event Loop and libuv
+slug: event-loop-and-libuv
+track: nodejs
+subCategory: core
+order: 1
+status: preview
+estimatedMinutes: 35
+prerequisites:
+  - event-loop
+  - promises
+keyTakeaways:
+  - Node uses libuv for the event loop, thread pool, and I/O
+  - process.nextTick runs before Promise microtasks
+  - libuv phases include timers, poll, check, and close
+  - Blocking the main thread blocks all JavaScript in that process
+masteryCriteria:
+  minQuestionsCorrect: 3
+  requireChallenge: false
+difficulty: hard
+interviewQuestions:
+  - id: node-1
+    question: How does process.nextTick differ from setImmediate?
+    answer: nextTick runs before the next event loop phase and before Promise microtasks. setImmediate runs in the check phase after I/O poll.
+    difficulty: hard
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+**Node.js** runs JavaScript on the server with libuv handling I/O. Build on the browser Event Loop topic, then compare phases, nextTick, and worker threads.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<InterviewQuestionBlock id="node-1" />
+
+</TopicTab>
+
+</TopicTabs>

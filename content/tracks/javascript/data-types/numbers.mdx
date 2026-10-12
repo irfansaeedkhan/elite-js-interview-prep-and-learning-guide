@@ -1,0 +1,111 @@
+---
+title: Numbers
+slug: numbers
+track: javascript
+subCategory: data-types
+order: 2
+estimatedMinutes: 30
+keyTakeaways:
+  - All numbers are IEEE 754 double-precision floats
+  - NaN is not equal to itself; use Number.isNaN
+  - Number.isInteger differs from parseInt behavior
+  - BigInt handles integers beyond Number.MAX_SAFE_INTEGER
+masteryCriteria:
+  minQuestionsCorrect: 3
+  requireChallenge: false
+difficulty: medium
+interviewQuestions:
+  - id: num-1
+    question: Why does 0.1 + 0.2 not equal 0.3?
+    answer: Floating-point binary representation cannot exactly store 0.1 or 0.2. The sum is slightly above 0.3.
+    difficulty: medium
+  - id: num-2
+    question: What is the difference between isNaN and Number.isNaN?
+    answer: isNaN coerces its argument first. Number.isNaN returns true only for the actual NaN value.
+    difficulty: medium
+  - id: num-3
+    question: When should you use BigInt?
+    answer: When you need integers larger than Number.MAX_SAFE_INTEGER without precision loss.
+    difficulty: easy
+  - id: num-4
+    question: What does parseInt('08', 10) return?
+    answer: '8. Always pass the radix to parseInt to avoid legacy octal parsing surprises.'
+    difficulty: easy
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+JavaScript has one numeric type: **IEEE 754 double-precision floating point**. There is no separate int type — `42` and `42.5` share the same type.
+
+Interviewers love **NaN**, **Infinity**, and **floating-point precision** questions.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+<CodeExample title="Floating-point precision" language="javascript">
+{`console.log(0.1 + 0.2);              // 0.30000000000000004
+console.log(0.1 + 0.2 === 0.3);      // false
+console.log(Math.abs(0.1 + 0.2 - 0.3) < Number.EPSILON); // true`}
+</CodeExample>
+
+<CodeExample title="NaN and parsing" language="javascript">
+{`console.log(NaN === NaN);           // false
+console.log(Number.isNaN(NaN));     // true
+console.log(parseInt('42px', 10));  // 42
+console.log(Number('42px'));        // NaN`}
+</CodeExample>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+<Callout type="gotcha">
+`typeof NaN` is `'number'`. NaN poisons arithmetic — any operation with NaN yields NaN.
+</Callout>
+
+<CodeExample title="BigInt for large integers" language="javascript">
+{`const big = 9007199254740991n;
+console.log(big + 1n); // 9007199254740992n`}
+</CodeExample>
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['num-1', 'num-2', 'num-3', 'num-4']} />
+
+<InterviewQuestionBlock id="num-1" />
+<InterviewQuestionBlock id="num-2" />
+<InterviewQuestionBlock id="num-3" />
+<InterviewQuestionBlock id="num-4" />
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground>
+
+<OutputPrediction
+  title="Floating-point equality"
+  expected="false"
+  hint="true or false"
+  explanation="0.1 and 0.2 cannot be represented exactly in binary floating point, so their sum is slightly above 0.3."
+  code={`console.log(0.1 + 0.2 === 0.3);`}
+/>
+
+</TopicPlayground>
+
+</TopicTab>
+
+</TopicTabs>

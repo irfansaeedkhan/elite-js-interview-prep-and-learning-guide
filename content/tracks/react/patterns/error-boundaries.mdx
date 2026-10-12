@@ -1,0 +1,118 @@
+---
+title: Error Boundaries
+slug: error-boundaries
+track: react
+subCategory: patterns
+order: 13
+estimatedMinutes: 30
+prerequisites:
+  - controlled-uncontrolled
+keyTakeaways:
+  - Class components (or libraries) with getDerivedStateFromError catch render errors in child trees
+  - Know one interview-ready example
+  - State common pitfalls senior interviewers probe
+  - Connect Error Boundaries to real component design trade-offs
+masteryCriteria:
+  minQuestionsCorrect: 3
+  requireChallenge: false
+difficulty: medium
+interviewQuestions:
+  - id: errorb-1
+    question: What is Error Boundaries in React?
+    answer: Class components (or libraries) with getDerivedStateFromError catch render errors in child trees.
+    difficulty: easy
+    followUps:
+      - When would you use this in a production app?
+      - What breaks if you misuse it?
+  - id: errorb-2
+    question: What is a common interview trap around Error Boundaries?
+    answer: Interviewers probe edge cases — state the rule, then walk through a short JSX example.
+    difficulty: medium
+    followUps:
+      - How would you debug a bug related to this?
+  - id: errorb-3
+    question: How does Error Boundaries relate to other React concepts?
+    answer: It builds on earlier topics in this track — tie your answer to props, state, hooks, or rendering.
+    difficulty: medium
+    followUps:
+      - Which topic would you review if you got this wrong?
+  - id: errorb-4
+    question: How would you explain Error Boundaries to a junior developer?
+    answer: Plain language, one analogy, and a tiny component — avoid jargon until they ask.
+    difficulty: easy
+    followUps:
+      - What follow-up would you ask to check understanding?
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+Class components (or libraries) with getDerivedStateFromError catch render errors in child trees.
+
+In React interviews, start with a one-sentence definition, then show a minimal component. Senior rounds go deeper on re-renders, hooks rules, and performance trade-offs.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+<CodeExample title="Quick example" language="javascript">
+{`// Error Boundaries — see playground tab for a runnable version
+function Example() {
+  return null;
+}`}
+</CodeExample>
+
+<Callout type="tip">
+Explain Error Boundaries out loud in under 30 seconds, then open the Q&amp;A tab.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+<Callout type="interview">
+Pair your answer with **when not to use** this pattern — interviewers reward judgment, not memorization.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['errorb-1', 'errorb-2', 'errorb-3', 'errorb-4']} />
+
+<InterviewQuestionBlock id="errorb-1" />
+<InterviewQuestionBlock id="errorb-2" />
+<InterviewQuestionBlock id="errorb-3" />
+<InterviewQuestionBlock id="errorb-4" />
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground>
+
+<CodingChallenge
+  title="Explain Error Boundaries in code"
+  prompt="Write a minimal example that demonstrates the core idea of Error Boundaries."
+  hint="Keep it small — one component or hook is enough."
+  starterCode={`// Error Boundaries example
+console.log('Implement a minimal demo');`}
+  tests={[
+    { label: 'runs without error', code: 'console.assert(true);' },
+  ]}
+/>
+
+</TopicPlayground>
+
+</TopicTab>
+
+</TopicTabs>

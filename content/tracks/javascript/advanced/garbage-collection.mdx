@@ -1,0 +1,109 @@
+---
+title: Garbage Collection
+slug: garbage-collection
+track: javascript
+subCategory: advanced
+order: 36
+estimatedMinutes: 35
+prerequisites:
+  - closures
+keyTakeaways:
+  - Core concepts for Garbage Collection interviews
+  - Know the definition and one concrete example
+  - Watch for common traps senior interviewers probe
+  - Tie answers back to real debugging experience
+masteryCriteria:
+  minQuestionsCorrect: 3
+  requireChallenge: false
+difficulty: hard
+interviewQuestions:
+  - id: garbag-1
+    question: What is Garbage Collection in JavaScript?
+    answer: Reachability, mark-and-sweep, and common leak patterns.
+    difficulty: easy
+    followUps:
+      - When would you reach for this in production code?
+      - What breaks if you misuse it?
+  - id: garbag-2
+    question: What is a common interview trap around Garbage Collection?
+    answer: Interviewers often pair Garbage Collection with edge cases — state the rule, then walk through a short example.
+    difficulty: medium
+    followUps:
+      - Can you show the fix in code?
+  - id: garbag-3
+    question: How does Garbage Collection relate to other JS concepts you know?
+    answer: It connects to topics earlier in this track — mention scope, types, async, or the DOM where relevant.
+    difficulty: medium
+    followUps:
+      - Which topic would you review first if you got this wrong?
+  - id: garbag-4
+    question: How would you explain Garbage Collection to a junior developer?
+    answer: Use plain language, one analogy, and one line of code — avoid spec jargon until they ask.
+    difficulty: easy
+    followUps:
+      - What follow-up question would you ask them to check understanding?
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+Reachability, mark-and-sweep, and common leak patterns.
+
+In interviews, lead with a clear one-liner, then add one example. Senior rounds go deeper on edge cases and trade-offs — have a short code snippet ready.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+<CodeExample title="Quick example" language="javascript">
+{`// Garbage Collection — add your own variation in the playground
+console.log('Review the in-depth tab and Q&A for this topic');`}
+</CodeExample>
+
+<Callout type="tip">
+Re-read the key takeaways, then try explaining Garbage Collection out loud in under 30 seconds.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+### What to focus on
+
+- Definition and mental model
+- One gotcha interviewers love
+- How it connects to prerequisites in this track
+
+### Senior follow-ups
+
+Be ready to compare alternatives and describe when **not** to use this feature.
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['garbag-1', 'garbag-2', 'garbag-3', 'garbag-4']} />
+
+<InterviewQuestionBlock id="garbag-1" />
+<InterviewQuestionBlock id="garbag-2" />
+<InterviewQuestionBlock id="garbag-3" />
+<InterviewQuestionBlock id="garbag-4" />
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground />
+
+</TopicTab>
+
+</TopicTabs>

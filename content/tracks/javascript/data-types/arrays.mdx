@@ -1,0 +1,124 @@
+---
+title: Arrays
+slug: arrays
+track: javascript
+subCategory: data-types
+order: 4
+estimatedMinutes: 30
+keyTakeaways:
+  - Arrays are objects with integer-like keys and a length property
+  - Mutating methods (push, splice) change the array in place
+  - map, filter, reduce are the core functional trio
+  - sparse arrays have empty slots that map and forEach skip
+masteryCriteria:
+  minQuestionsCorrect: 3
+  requireChallenge: false
+difficulty: medium
+interviewQuestions:
+  - id: arr-1
+    question: What is the difference between map and forEach?
+    answer: map returns a new array of transformed values. forEach returns undefined and is for side effects only.
+    difficulty: easy
+  - id: arr-2
+    question: How does reduce work?
+    answer: reduce folds the array into a single value using an accumulator and a callback, starting from an optional initial value.
+    difficulty: medium
+  - id: arr-3
+    question: What is the difference between slice and splice?
+    answer: slice returns a shallow copy without mutating. splice mutates the array by removing or inserting elements.
+    difficulty: medium
+  - id: arr-4
+    question: What does [1, 2, , 4].map(x => x * 2) produce?
+    answer: '[2, 4, empty × 1, 8]. Empty slots are skipped by map.'
+    difficulty: hard
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+An **array** is an ordered list backed by an object with a `length` property. JavaScript arrays are **dynamic** — you can push, pop, and sparse gaps are allowed.
+
+Senior interviews focus on **immutability vs mutation** and choosing the right iteration method.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+<CodeExample title="Functional transforms" language="javascript">
+{`const nums = [1, 2, 3, 4];
+
+const doubled = nums.map((n) => n * 2);
+const evens = nums.filter((n) => n % 2 === 0);
+const sum = nums.reduce((acc, n) => acc + n, 0);
+
+console.log(doubled); // [2, 4, 6, 8]
+console.log(evens);   // [2, 4]
+console.log(sum);     // 10`}
+</CodeExample>
+
+<CodeExample title="Mutating vs non-mutating" language="javascript">
+{`const original = [1, 2, 3];
+const copy = [...original];
+copy.push(4);
+
+console.log(original); // [1, 2, 3]
+console.log(copy);     // [1, 2, 3, 4]`}
+</CodeExample>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+<Callout type="gotcha">
+`sort()` without a comparator coerces elements to strings — `[10, 2, 1].sort()` becomes `[1, 10, 2]`.
+</Callout>
+
+<CodeExample title="Correct numeric sort" language="javascript">
+{`[10, 2, 1].sort((a, b) => a - b); // [1, 2, 10]`}
+</CodeExample>
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['arr-1', 'arr-2', 'arr-3', 'arr-4']} />
+
+<InterviewQuestionBlock id="arr-1" />
+<InterviewQuestionBlock id="arr-2" />
+<InterviewQuestionBlock id="arr-3" />
+<InterviewQuestionBlock id="arr-4" />
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground>
+
+<CodingChallenge
+  title="Sum with reduce"
+  prompt="Implement sum(nums) using reduce — no for-loop."
+  starterCode={`function sum(nums) {
+  // your code
+}
+
+const nums = [1, 2, 3, 4];`}
+  tests={[
+    { label: 'sum equals 10', code: 'console.assert(sum(nums) === 10);' },
+    { label: 'empty array is 0', code: 'console.assert(sum([]) === 0);' },
+  ]}
+/>
+
+</TopicPlayground>
+
+</TopicTab>
+
+</TopicTabs>

@@ -1,0 +1,118 @@
+---
+title: Custom Hooks
+slug: custom-hooks
+track: react
+subCategory: hooks
+order: 11
+estimatedMinutes: 35
+prerequisites:
+  - use-reducer
+keyTakeaways:
+  - Extract reusable stateful logic into functions named useSomething — they can compose other hooks
+  - Know one interview-ready example
+  - State common pitfalls senior interviewers probe
+  - Connect Custom Hooks to real component design trade-offs
+masteryCriteria:
+  minQuestionsCorrect: 3
+  requireChallenge: false
+difficulty: hard
+interviewQuestions:
+  - id: custom-1
+    question: What is Custom Hooks in React?
+    answer: Extract reusable stateful logic into functions named useSomething — they can compose other hooks.
+    difficulty: easy
+    followUps:
+      - When would you use this in a production app?
+      - What breaks if you misuse it?
+  - id: custom-2
+    question: What is a common interview trap around Custom Hooks?
+    answer: Interviewers probe edge cases — state the rule, then walk through a short JSX example.
+    difficulty: medium
+    followUps:
+      - How would you debug a bug related to this?
+  - id: custom-3
+    question: How does Custom Hooks relate to other React concepts?
+    answer: It builds on earlier topics in this track — tie your answer to props, state, hooks, or rendering.
+    difficulty: medium
+    followUps:
+      - Which topic would you review if you got this wrong?
+  - id: custom-4
+    question: How would you explain Custom Hooks to a junior developer?
+    answer: Plain language, one analogy, and a tiny component — avoid jargon until they ask.
+    difficulty: easy
+    followUps:
+      - What follow-up would you ask to check understanding?
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+Extract reusable stateful logic into functions named useSomething — they can compose other hooks.
+
+In React interviews, start with a one-sentence definition, then show a minimal component. Senior rounds go deeper on re-renders, hooks rules, and performance trade-offs.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+<CodeExample title="Quick example" language="javascript">
+{`// Custom Hooks — see playground tab for a runnable version
+function Example() {
+  return null;
+}`}
+</CodeExample>
+
+<Callout type="tip">
+Explain Custom Hooks out loud in under 30 seconds, then open the Q&amp;A tab.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+<Callout type="interview">
+Pair your answer with **when not to use** this pattern — interviewers reward judgment, not memorization.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['custom-1', 'custom-2', 'custom-3', 'custom-4']} />
+
+<InterviewQuestionBlock id="custom-1" />
+<InterviewQuestionBlock id="custom-2" />
+<InterviewQuestionBlock id="custom-3" />
+<InterviewQuestionBlock id="custom-4" />
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground>
+
+<CodingChallenge
+  title="Explain Custom Hooks in code"
+  prompt="Write a minimal example that demonstrates the core idea of Custom Hooks."
+  hint="Keep it small — one component or hook is enough."
+  starterCode={`// Custom Hooks example
+console.log('Implement a minimal demo');`}
+  tests={[
+    { label: 'runs without error', code: 'console.assert(true);' },
+  ]}
+/>
+
+</TopicPlayground>
+
+</TopicTab>
+
+</TopicTabs>

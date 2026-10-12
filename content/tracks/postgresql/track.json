@@ -1,0 +1,7 @@
+{
+  "title": "PostgreSQL",
+  "slug": "postgresql",
+  "description": "SQL, relations, transactions, indexes, and query planning.",
+  "order": 9,
+  "icon": "Table"
+}

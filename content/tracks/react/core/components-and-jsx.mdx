@@ -1,0 +1,129 @@
+---
+title: Components & JSX
+slug: components-and-jsx
+track: react
+subCategory: core
+order: 1
+estimatedMinutes: 40
+prerequisites:
+  - closures
+  - prototypes
+keyTakeaways:
+  - JSX is syntactic sugar for React.createElement
+  - Components are functions that return UI descriptions
+  - Props flow down; each render produces a new element tree
+  - Reconciliation compares element type and keys on updates
+masteryCriteria:
+  minQuestionsCorrect: 4
+  requireChallenge: false
+difficulty: medium
+interviewQuestions:
+  - id: reactjsx-1
+    question: What is JSX?
+    answer: JSX is syntax that compiles to React.createElement calls. It lets you write HTML-like markup inside JavaScript and keeps component structure readable.
+    difficulty: easy
+    followUps:
+      - Why can't browsers run JSX directly?
+      - What does a JSX fragment compile to?
+  - id: reactjsx-2
+    question: What is a React component?
+    answer: A component is a function (or class) that accepts props and returns a React element tree describing UI. React calls it on each render.
+    difficulty: easy
+    followUps:
+      - Function vs class components — when still use classes?
+  - id: reactjsx-3
+    question: What is the difference between props and state?
+    answer: Props are inputs from a parent and are read-only. State is data a component owns and can update — triggering a re-render when it changes.
+    difficulty: medium
+    followUps:
+      - Can you mutate props?
+  - id: reactjsx-4
+    question: What happens when a component re-renders?
+    answer: React calls the component function again, builds a new element tree, diffs it against the previous tree, and updates the DOM where needed.
+    difficulty: medium
+    followUps:
+      - Does re-render always mean DOM update?
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+**React** models UI as a function of state. **Components** are the building blocks — each one returns a tree of **elements** describing what should appear on screen.
+
+**JSX** is the syntax you write in `.jsx` files: it looks like HTML but compiles to `React.createElement(type, props, ...children)`.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+<CodeExample title="Function component" language="javascript">
+{`function Greeting({ name }) {
+  return <h1>Hello, {name}</h1>;
+}
+
+// JSX compiles roughly to:
+// React.createElement('h1', null, 'Hello, ', name)`}
+</CodeExample>
+
+<ReactPlayground
+  title="Hello component"
+  code={`export default function App() {
+  const name = "React";
+  return (
+    <main style={{ fontFamily: "sans-serif", padding: 24 }}>
+      <h1>Hello, {name}</h1>
+      <p>JSX expressions use curly braces.</p>
+    </main>
+  );
+}`}
+/>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+<Callout type="interview">
+When asked "what is JSX?", mention **createElement**, **expressions in `{}`**, and that **each render creates new element objects** — not DOM nodes directly.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['reactjsx-1', 'reactjsx-2', 'reactjsx-3', 'reactjsx-4']} />
+
+<InterviewQuestionBlock id="reactjsx-1" />
+<InterviewQuestionBlock id="reactjsx-2" />
+<InterviewQuestionBlock id="reactjsx-3" />
+<InterviewQuestionBlock id="reactjsx-4" />
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground>
+
+<ReactPlayground
+  title="Build a ProfileCard"
+  code={`export default function App() {
+  // Return a div with an h2 (name) and p (role)
+  const name = "Alex";
+  const role = "Frontend Engineer";
+  return null; // replace with JSX
+}`}
+/>
+
+</TopicPlayground>
+
+</TopicTab>
+
+</TopicTabs>

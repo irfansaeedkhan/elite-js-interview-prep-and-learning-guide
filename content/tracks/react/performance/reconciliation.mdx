@@ -1,0 +1,118 @@
+---
+title: Reconciliation Deep Dive
+slug: reconciliation
+track: react
+subCategory: performance
+order: 16
+estimatedMinutes: 40
+prerequisites:
+  - react-memo
+keyTakeaways:
+  - React compares element type and key — changing type unmounts; keys preserve identity in lists
+  - Know one interview-ready example
+  - State common pitfalls senior interviewers probe
+  - Connect Reconciliation Deep Dive to real component design trade-offs
+masteryCriteria:
+  minQuestionsCorrect: 3
+  requireChallenge: false
+difficulty: hard
+interviewQuestions:
+  - id: reconc-1
+    question: What is Reconciliation Deep Dive in React?
+    answer: React compares element type and key — changing type unmounts; keys preserve identity in lists.
+    difficulty: easy
+    followUps:
+      - When would you use this in a production app?
+      - What breaks if you misuse it?
+  - id: reconc-2
+    question: What is a common interview trap around Reconciliation Deep Dive?
+    answer: Interviewers probe edge cases — state the rule, then walk through a short JSX example.
+    difficulty: medium
+    followUps:
+      - How would you debug a bug related to this?
+  - id: reconc-3
+    question: How does Reconciliation Deep Dive relate to other React concepts?
+    answer: It builds on earlier topics in this track — tie your answer to props, state, hooks, or rendering.
+    difficulty: medium
+    followUps:
+      - Which topic would you review if you got this wrong?
+  - id: reconc-4
+    question: How would you explain Reconciliation Deep Dive to a junior developer?
+    answer: Plain language, one analogy, and a tiny component — avoid jargon until they ask.
+    difficulty: easy
+    followUps:
+      - What follow-up would you ask to check understanding?
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+React compares element type and key — changing type unmounts; keys preserve identity in lists.
+
+In React interviews, start with a one-sentence definition, then show a minimal component. Senior rounds go deeper on re-renders, hooks rules, and performance trade-offs.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+<CodeExample title="Quick example" language="javascript">
+{`// Reconciliation Deep Dive — see playground tab for a runnable version
+function Example() {
+  return null;
+}`}
+</CodeExample>
+
+<Callout type="tip">
+Explain Reconciliation Deep Dive out loud in under 30 seconds, then open the Q&amp;A tab.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+<Callout type="interview">
+Pair your answer with **when not to use** this pattern — interviewers reward judgment, not memorization.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['reconc-1', 'reconc-2', 'reconc-3', 'reconc-4']} />
+
+<InterviewQuestionBlock id="reconc-1" />
+<InterviewQuestionBlock id="reconc-2" />
+<InterviewQuestionBlock id="reconc-3" />
+<InterviewQuestionBlock id="reconc-4" />
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground>
+
+<CodingChallenge
+  title="Explain Reconciliation Deep Dive in code"
+  prompt="Write a minimal example that demonstrates the core idea of Reconciliation Deep Dive."
+  hint="Keep it small — one component or hook is enough."
+  starterCode={`// Reconciliation Deep Dive example
+console.log('Implement a minimal demo');`}
+  tests={[
+    { label: 'runs without error', code: 'console.assert(true);' },
+  ]}
+/>
+
+</TopicPlayground>
+
+</TopicTab>
+
+</TopicTabs>

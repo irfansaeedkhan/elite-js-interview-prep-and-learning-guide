@@ -1,0 +1,109 @@
+---
+title: Symbols
+slug: symbols
+track: javascript
+subCategory: data-types
+order: 14
+estimatedMinutes: 25
+prerequisites:
+  - objects
+keyTakeaways:
+  - Core concepts for Symbols interviews
+  - Know the definition and one concrete example
+  - Watch for common traps senior interviewers probe
+  - Tie answers back to real debugging experience
+masteryCriteria:
+  minQuestionsCorrect: 3
+  requireChallenge: false
+difficulty: medium
+interviewQuestions:
+  - id: symbol-1
+    question: What is Symbols in JavaScript?
+    answer: Unique property keys and well-known symbols like Symbol.iterator.
+    difficulty: easy
+    followUps:
+      - When would you reach for this in production code?
+      - What breaks if you misuse it?
+  - id: symbol-2
+    question: What is a common interview trap around Symbols?
+    answer: Interviewers often pair Symbols with edge cases — state the rule, then walk through a short example.
+    difficulty: medium
+    followUps:
+      - Can you show the fix in code?
+  - id: symbol-3
+    question: How does Symbols relate to other JS concepts you know?
+    answer: It connects to topics earlier in this track — mention scope, types, async, or the DOM where relevant.
+    difficulty: medium
+    followUps:
+      - Which topic would you review first if you got this wrong?
+  - id: symbol-4
+    question: How would you explain Symbols to a junior developer?
+    answer: Use plain language, one analogy, and one line of code — avoid spec jargon until they ask.
+    difficulty: easy
+    followUps:
+      - What follow-up question would you ask them to check understanding?
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+Unique property keys and well-known symbols like Symbol.iterator.
+
+In interviews, lead with a clear one-liner, then add one example. Senior rounds go deeper on edge cases and trade-offs — have a short code snippet ready.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+<CodeExample title="Quick example" language="javascript">
+{`// Symbols — add your own variation in the playground
+console.log('Review the in-depth tab and Q&A for this topic');`}
+</CodeExample>
+
+<Callout type="tip">
+Re-read the key takeaways, then try explaining Symbols out loud in under 30 seconds.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+### What to focus on
+
+- Definition and mental model
+- One gotcha interviewers love
+- How it connects to prerequisites in this track
+
+### Senior follow-ups
+
+Be ready to compare alternatives and describe when **not** to use this feature.
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['symbol-1', 'symbol-2', 'symbol-3', 'symbol-4']} />
+
+<InterviewQuestionBlock id="symbol-1" />
+<InterviewQuestionBlock id="symbol-2" />
+<InterviewQuestionBlock id="symbol-3" />
+<InterviewQuestionBlock id="symbol-4" />
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground />
+
+</TopicTab>
+
+</TopicTabs>

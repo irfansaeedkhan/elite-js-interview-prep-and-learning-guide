@@ -1,0 +1,251 @@
+---
+title: Event Loop
+slug: event-loop
+track: javascript
+subCategory: execution
+order: 9
+estimatedMinutes: 45
+prerequisites:
+  - closures
+keyTakeaways:
+  - JavaScript is single-threaded — one call stack, one thing at a time
+  - The event loop decides when queued callbacks run after the stack clears
+  - Microtasks (Promises) always run before the next macrotask (setTimeout, I/O)
+  - "`setTimeout(fn, 0)` is not instant — it waits for the stack and microtasks"
+  - Browser and Node event loops differ (Node has libuv phases)
+masteryCriteria:
+  minQuestionsCorrect: 4
+  requireChallenge: true
+difficulty: hard
+interviewQuestions:
+  - id: el-1
+    question: What is the event loop in JavaScript?
+    answer: >-
+      The event loop is the mechanism that coordinates the call stack, Web APIs
+      (or libuv in Node), and callback/task queues. When the call stack is empty,
+      it takes the next task from the queue and pushes its callback onto the stack.
+      This lets JavaScript handle async work despite being single-threaded.
+    difficulty: easy
+    followUps:
+      - Is JavaScript multithreaded?
+      - What runs first after synchronous code — a Promise or setTimeout?
+  - id: el-2
+    question: What is the output order of console.log, setTimeout, and Promise.then in the same block?
+    answer: >-
+      Synchronous console.log runs first. Promise.then callbacks (microtasks) run
+      next, before any macrotask. setTimeout (macrotask) runs last. Order:
+      sync → microtasks → macrotasks.
+    difficulty: medium
+    followUps:
+      - What if setTimeout is 0ms?
+      - Where do async/await continuations go?
+  - id: el-3
+    question: What is the difference between microtasks and macrotasks?
+    answer: >-
+      Microtasks (Promise callbacks, queueMicrotask, MutationObserver) run after
+      the current script completes and before the next macrotask. Macrotasks
+      (setTimeout, setInterval, I/O, UI rendering) run one per event loop tick
+      after all microtasks are drained.
+    difficulty: medium
+  - id: el-4
+    question: What will this code log? console.log(1); setTimeout(() => console.log(2), 0); Promise.resolve().then(() => console.log(3)); console.log(4);
+    answer: '1, 4, 3, 2. Sync first (1, 4), then microtask (3), then macrotask (2).'
+    difficulty: hard
+    followUps:
+      - Add another Promise.then — when does it run?
+      - What if setTimeout has 100ms delay but Promise chain is long?
+  - id: el-5
+    question: How does the Node.js event loop differ from the browser?
+    answer: >-
+      Node uses libuv with phases (timers, pending, poll, check, close). The browser
+      has Web APIs, render queue, and microtask queue tied to the rendering engine.
+      process.nextTick in Node runs before Promise microtasks — there is no browser equivalent.
+    difficulty: hard
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+JavaScript runs on a **single thread** with one **call stack**. It cannot run two functions at the same time in that thread. Yet we use timers, network requests, and Promises without blocking the UI.
+
+The **event loop** is the coordinator: when the stack is empty, it pulls work from queues and pushes callbacks back onto the stack. Understanding this model is non-negotiable for senior JavaScript interviews — especially output-prediction questions.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+### Mental model — call stack first
+
+Before async enters the picture, synchronous code runs top to bottom on the call stack:
+
+<MermaidDiagram caption="Synchronous execution — one frame at a time" size="inline">
+{`flowchart TB
+    subgraph stack["Call Stack"]
+        A["main()"]
+        B["console.log start"]
+        C["calculate()"]
+    end
+    A --> B --> C
+`}
+</MermaidDiagram>
+
+Each function pushed onto the stack must **finish and pop** before the next queued work runs.
+
+<CodeExample title="Stack builds and drains" language="javascript">
+{`function calculate() {
+  return 2 + 2;
+}
+
+console.log('start');
+const result = calculate();
+console.log(result);
+console.log('end');`}
+</CodeExample>
+
+### Output prediction — classic interview pattern
+
+<CodeExample title="Predict the output" language="javascript" runnable>
+{`console.log('A');
+
+setTimeout(() => console.log('B'), 0);
+
+Promise.resolve().then(() => console.log('C'));
+
+console.log('D');
+
+// Your prediction: A, D, C, B`}
+</CodeExample>
+
+<Callout type="interview">
+Say your answer **out loud with reasoning**: "Sync A and D first, then microtask C, then macrotask B."
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+When you call `setTimeout` or `fetch`, the browser handles the timer or network. When ready, the callback waits in a **task queue**. The event loop's job: *if stack is empty, dequeue and run*.
+
+### Microtasks vs macrotasks
+
+**Microtasks** (Promises, `queueMicrotask`) drain completely after each stack turn, **before** the next **macrotask** (`setTimeout`, I/O, rendering).
+
+<Figure
+  src="/diagrams/javascript/event-loop-browser.svg"
+  alt="Browser event loop architecture"
+  caption="Browser model (Excalidraw → SVG). Web APIs hold timers and network; queues feed the stack when empty."
+  size="section"
+/>
+
+<Callout type="gotcha">
+`setTimeout(fn, 0)` does **not** mean "run immediately." It means "schedule a macrotask after current sync code and **all** pending microtasks."
+</Callout>
+
+<MermaidDiagram caption="One event loop tick — microtasks drain first" size="section">
+{`sequenceDiagram
+    participant Stack as Call Stack
+    participant Micro as Microtask Queue
+    participant Macro as Macrotask Queue
+    participant EL as Event Loop
+
+    Stack->>Stack: Run sync code
+    Stack->>Micro: Drain ALL microtasks
+    Micro->>Stack: Promise.then and queueMicrotask
+    EL->>Macro: Take next macrotask
+    Macro->>Stack: setTimeout or IO callback
+`}
+</MermaidDiagram>
+
+### Node.js — not identical to the browser
+
+In Node, **libuv** drives the loop with phases. `process.nextTick` runs even before Promise microtasks.
+
+<MermaidDiagram caption="Node.js libuv phases (simplified)" size="full">
+{`flowchart LR
+    subgraph node["Node Event Loop"]
+        T[Timers]
+        P[Pending callbacks]
+        I["idle and prepare"]
+        Po[Poll]
+        Ch[Check]
+        Cl[Close callbacks]
+    end
+    T --> P --> I --> Po --> Ch --> Cl --> T
+`}
+</MermaidDiagram>
+
+<Callout type="tip">
+For **browser** interviews, focus on stack + microtask + macrotask. For **Node**, add `process.nextTick` and libuv phases.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['el-1', 'el-2', 'el-3', 'el-4', 'el-5']} />
+
+<InterviewQuestionBlock id="el-1" />
+
+<InterviewQuestionBlock id="el-2" />
+
+<InterviewQuestion
+  id="el-3-custom"
+  question="Why can a long-running microtask chain block the page?"
+  difficulty="hard"
+  followUps={["How does requestAnimationFrame fit in?", "What about Web Workers?"]}
+>
+
+Because microtasks drain **completely** before the next macrotask. A recursive `Promise.then` chain keeps the stack busy with microtasks and delays rendering, timers, and user input handling.
+
+<MermaidDiagram caption="Microtask starvation — macrotasks wait" size="inline">
+{`flowchart TD
+    S[Sync code finishes]
+    M1[Microtask 1]
+    M2[Microtask 2]
+    MN[Microtask N...]
+    R["Render and timers blocked until queue empty"]
+    S --> M1 --> M2 --> MN --> R
+`}
+</MermaidDiagram>
+
+</InterviewQuestion>
+
+<InterviewQuestionBlock id="el-4" />
+
+<InterviewQuestionBlock id="el-5" />
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground>
+
+<OutputPrediction
+  title="Predict the console output"
+  expected="A, D, C, B"
+  explanation="Sync logs A and D run first. Promise.then schedules a microtask (C) that drains before the next macrotask. setTimeout(0) is still a macrotask, so B prints last."
+  code={`console.log('A');
+
+setTimeout(() => console.log('B'), 0);
+
+Promise.resolve().then(() => console.log('C'));
+
+console.log('D');`}
+/>
+
+<EventLoopExplorer />
+
+</TopicPlayground>
+
+</TopicTab>
+
+</TopicTabs>

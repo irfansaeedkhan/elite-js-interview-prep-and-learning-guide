@@ -1,0 +1,127 @@
+---
+title: Objects
+slug: objects
+track: javascript
+subCategory: data-types
+order: 3
+estimatedMinutes: 30
+keyTakeaways:
+  - Objects store keyed properties; keys are coerced to strings
+  - Reference equality means two literals are never === unless same reference
+  - Shallow copy spreads one level only
+  - Optional chaining and nullish coalescing prevent common access errors
+masteryCriteria:
+  minQuestionsCorrect: 3
+  requireChallenge: false
+difficulty: medium
+interviewQuestions:
+  - id: obj-1
+    question: How do you clone an object shallowly?
+    answer: Object.assign({}, obj) or the spread operator {...obj}. Nested objects are still shared references.
+    difficulty: easy
+  - id: obj-2
+    question: What does Object.is do differently from ===?
+    answer: Object.is treats +0 and -0 as different and NaN as equal to NaN.
+    difficulty: hard
+  - id: obj-3
+    question: Are object property keys always strings?
+    answer: Yes. Symbols can also be keys. Other types are coerced to strings (except Symbol).
+    difficulty: medium
+  - id: obj-4
+    question: What is the difference between ?? and ||?
+    answer: ?? only falls back on null or undefined. || falls back on any falsy value including 0 and ''.
+    difficulty: medium
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+An **object** is a collection of properties — keys mapped to values. Arrays and functions are objects too, but plain objects `{}` are the workhorse for structured data.
+
+Objects are **reference types**: variables hold pointers, not the object itself.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+<CodeExample title="Reference vs value" language="javascript">
+{`const a = { count: 1 };
+const b = a;
+b.count = 2;
+console.log(a.count); // 2 — same object
+
+const c = { ...a };
+c.count = 99;
+console.log(a.count); // 2 — shallow copy`}
+</CodeExample>
+
+<CodeExample title="Optional chaining and nullish coalescing" language="javascript">
+{`const user = { profile: { name: 'Ada' } };
+console.log(user?.profile?.name);     // Ada
+console.log(user?.settings?.theme);   // undefined
+console.log(user?.settings?.theme ?? 'dark'); // dark`}
+</CodeExample>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+<Callout type="tip">
+Prefer `const` for object bindings — you cannot reassign the variable, but you **can** mutate properties.
+</Callout>
+
+### Common patterns
+
+- `Object.keys(obj)` — own enumerable keys
+- `Object.entries(obj)` — `[key, value]` pairs
+- `structuredClone(obj)` — deep clone (modern environments)
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['obj-1', 'obj-2', 'obj-3', 'obj-4']} />
+
+<InterviewQuestionBlock id="obj-1" />
+<InterviewQuestionBlock id="obj-2" />
+<InterviewQuestionBlock id="obj-3" />
+<InterviewQuestionBlock id="obj-4" />
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground>
+
+<CodingChallenge
+  title="Shallow clone without mutating the original"
+  prompt="Implement cloneUser so nested profile is not shared — the spread alone is not enough for this test."
+  starterCode={`function cloneUser(user) {
+  // fix the clone
+  return { ...user };
+}
+
+const original = { name: 'Ada', profile: { level: 1 } };
+const copy = cloneUser(original);
+copy.profile.level = 99;`}
+  tests={[
+    { label: 'copy name matches', code: "console.assert(copy.name === 'Ada');" },
+    { label: 'original level unchanged', code: 'console.assert(original.profile.level === 1);' },
+  ]}
+  hint="Spread is shallow. Clone profile with its own object: { ...user, profile: { ...user.profile } }"
+/>
+
+</TopicPlayground>
+
+</TopicTab>
+
+</TopicTabs>

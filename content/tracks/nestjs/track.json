@@ -1,0 +1,7 @@
+{
+  "title": "NestJS",
+  "slug": "nestjs",
+  "description": "Modules, dependency injection, guards, and enterprise Node APIs.",
+  "order": 10,
+  "icon": "Hexagon"
+}
