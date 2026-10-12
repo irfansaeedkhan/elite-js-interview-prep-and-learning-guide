@@ -46,6 +46,30 @@ export function getAdjacentTopics(track: string, currentPath: string) {
   };
 }
 
+export interface TopicNavItem {
+  slug: string;
+  subCategory: string;
+  title: string;
+  permalink: string;
+  order: number;
+  track: string;
+  path: string;
+  status?: string;
+}
+
+export function toNavItems(list: VeliteTopic[]): TopicNavItem[] {
+  return list.map((topic) => ({
+    slug: topic.slug,
+    subCategory: topic.subCategory,
+    title: topic.title,
+    permalink: topic.permalink,
+    order: topic.order,
+    track: topic.track,
+    path: topic.path,
+    status: topic.status,
+  }));
+}
+
 export interface NavSubCategory {
   id: string;
   title: string;
@@ -70,7 +94,7 @@ function getCategoryTitle(track: string, subCategory: string): string {
     .join(' ');
 }
 
-export function buildTrackNav(trackTopics: VeliteTopic[]): NavSubCategory[] {
+export function buildTrackNav(trackTopics: TopicNavItem[]): NavSubCategory[] {
   if (trackTopics.length === 0) return [];
 
   const track = trackTopics[0].track;

@@ -3,11 +3,13 @@
 import { useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSession } from '@/lib/auth-client';
-import { getTopicByPath, isTopicMastered as checkMastered } from '@/lib/progress/mastery';
+import { useTopicIndex } from '@/components/curriculum/topic-index-context';
+import { getTopicFromIndex, isTopicMastered as checkMastered } from '@/lib/progress/mastery-rules';
 import {
   fetchProgressSnapshot,
   migrateLocalProgress,
   patchProgress,
+  recordPracticeAttempt,
 } from '@/lib/progress/progress-api-client';
 import {
   clearLocalProgress,
@@ -36,7 +38,7 @@ function useProgressQuery(enabled: boolean) {
     queryKey: PROGRESS_QUERY_KEY,
     queryFn: fetchProgressSnapshot,
     enabled,
-    staleTime: 30_000,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -110,12 +112,13 @@ export function getTopicQaScore(path: string): { know: number; total: number } {
 
 export function useTopicMastery(path: string) {
   const progress = useTopicProgressMap();
-  const topic = getTopicByPath(path);
+  const index = useTopicIndex();
+  const topic = getTopicFromIndex(index, path);
 
   return {
     progress: progress[path] ?? null,
     knowCount: Object.values(progress[path]?.qaResults ?? {}).filter((r) => r === 'know').length,
-    isMastered: checkMastered(path, progress),
+    isMastered: checkMastered(index, path, progress),
     topic,
   };
 }
@@ -128,6 +131,7 @@ export function useProgressActions() {
     (topicPath: string, questionId: string) => {
       if (!enabled) return;
       mutation.mutate({ action: 'qa', topicPath, questionId, result: 'know' });
+      void recordPracticeAttempt({ topicPath, kind: 'qa', promptId: questionId, passed: true });
     },
     [enabled, mutation],
   );
@@ -136,6 +140,7 @@ export function useProgressActions() {
     (topicPath: string, questionId: string) => {
       if (!enabled) return;
       mutation.mutate({ action: 'qa', topicPath, questionId, result: 'review' });
+      void recordPracticeAttempt({ topicPath, kind: 'qa', promptId: questionId, passed: false });
     },
     [enabled, mutation],
   );

@@ -6,7 +6,8 @@ import {
   type ReactElement,
   type ReactNode,
 } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   BookOpen,
   Code,
@@ -47,16 +48,17 @@ export interface TopicTabsProps {
 }
 
 export function TopicTabs({ defaultValue = 'overview', children }: TopicTabsProps) {
-  const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
 
   const tabs = Children.toArray(children)
-    .filter(
-      (child): child is ReactElement<TopicTabProps> =>
-        isValidElement(child) &&
-        (child.type as { displayName?: string }).displayName === 'TopicTab',
-    )
+    .filter((child): child is ReactElement<TopicTabProps> => {
+      if (!isValidElement(child)) return false;
+      const typeName = (child.type as { displayName?: string }).displayName;
+      if (typeName === 'TopicTab') return true;
+      const value = (child.props as { value?: unknown }).value;
+      return typeof value === 'string';
+    })
     .map((child) => {
       const meta = TAB_META[child.props.value];
       return {
@@ -67,14 +69,24 @@ export function TopicTabs({ defaultValue = 'overview', children }: TopicTabsProp
     });
 
   const cols = Math.min(tabs.length, 5);
-  const tabValues = tabs.map((t) => t.value);
-  const tabParam = searchParams.get('tab');
-  const activeTab =
-    tabParam && tabValues.includes(tabParam) ? tabParam : defaultValue;
+  const tabKey = tabs.map((t) => t.value).join('|');
+  const [activeTab, setActiveTab] = useState(defaultValue);
+
+  useEffect(() => {
+    const allowed = tabKey.split('|');
+    const sync = () => {
+      const tab = new URLSearchParams(window.location.search).get('tab');
+      setActiveTab(tab && allowed.includes(tab) ? tab : defaultValue);
+    };
+    sync();
+    window.addEventListener('popstate', sync);
+    return () => window.removeEventListener('popstate', sync);
+  }, [defaultValue, tabKey]);
 
   function handleTabChange(value: string) {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(window.location.search);
     params.set('tab', value);
+    setActiveTab(value);
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }
 

@@ -1,43 +1,27 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
+import type { ReactNode } from 'react';
 import { BookOpen } from 'lucide-react';
 import { ResumeLearningPrompt } from '@/components/progress/resume-learning-prompt';
 import { MainSidebar } from '@/components/navigation/main-sidebar';
 import { SubSidebar } from '@/components/navigation/sub-sidebar';
 import { LearnSidebarToolbar } from '@/components/navigation/learn-sidebar-toolbar';
 import { useLearnSidebar } from '@/hooks/use-learn-sidebar';
-import {
-  buildTrackNav,
-  getTrackNavItems,
-  type NavSubCategory,
-} from '@/lib/curriculum/get-topics';
+import type { NavSubCategory } from '@/lib/curriculum/get-topics';
 
 export interface LearnShellProps {
   track: string;
-  topics: Array<{
-    slug: string;
-    subCategory: string;
-    title: string;
-    permalink: string;
-    order: number;
-    track: string;
-    path: string;
-    status?: string;
-  }>;
-  activeSubCategory: string;
-  selectedTopicSlug: string;
-  children: React.ReactNode;
+  nav: NavSubCategory[];
+  trackItems: Array<{ id: string; title: string; icon: string; href: string }>;
+  children: ReactNode;
 }
 
-export function LearnShell({
-  track,
-  topics,
-  activeSubCategory,
-  selectedTopicSlug,
-  children,
-}: LearnShellProps) {
-  const nav: NavSubCategory[] = buildTrackNav(topics as Parameters<typeof buildTrackNav>[0]);
-  const trackItems = getTrackNavItems();
+export function LearnShell({ track, nav, trackItems, children }: LearnShellProps) {
+  const pathname = usePathname();
+  const parts = pathname.split('/').filter(Boolean);
+  const selectedTopicSlug = parts.length >= 4 ? parts[parts.length - 1] : '';
+  const activeSubCategory = parts.length >= 3 ? parts[2] : (nav[0]?.id ?? '');
 
   const {
     mainMode,

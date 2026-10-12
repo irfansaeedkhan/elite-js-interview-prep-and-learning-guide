@@ -1,4 +1,4 @@
-import { index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { boolean, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 import { user } from '@/db/schema/auth.schema';
 
 export type QaResultsJson = Record<string, 'know' | 'review'>;
@@ -41,3 +41,25 @@ export const userStats = pgTable('user_stats', {
     .$onUpdate(() => new Date())
     .notNull(),
 });
+
+export const practiceAttempts = pgTable(
+  'practice_attempts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    topicPath: text('topic_path').notNull(),
+    kind: text('kind').notNull(),
+    promptId: text('prompt_id').notNull(),
+    passed: boolean('passed').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('practice_attempts_user_topic_created_idx').on(
+      table.userId,
+      table.topicPath,
+      table.createdAt,
+    ),
+  ],
+);

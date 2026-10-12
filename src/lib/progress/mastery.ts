@@ -1,8 +1,41 @@
 import { topics } from '#site/content';
+import {
+  canAccessTopic as canAccess,
+  countKnowAnswers,
+  getAdjacentFromIndex,
+  getTopicBySlugFromIndex,
+  getTopicProgressPercent as topicPercent,
+  getTrackMasteryPercent as trackPercent,
+  getUnmetPrerequisites as unmet,
+  isTopicMastered as mastered,
+  resolvePrerequisiteFromIndex,
+  type TopicIndexEntry,
+} from '@/lib/progress/mastery-rules';
 import type { TopicProgressMap } from '@/lib/progress/types';
 import type { TopicMeta } from '@/types/curriculum';
 
+export type { TopicIndexEntry };
 export type ProgressTopic = TopicMeta & { path: string; permalink: string };
+
+function toIndex(topic: (typeof topics)[number]): TopicIndexEntry {
+  return {
+    path: topic.path,
+    permalink: topic.permalink,
+    slug: topic.slug,
+    track: topic.track,
+    title: topic.title,
+    order: topic.order,
+    status: topic.status ?? 'published',
+    prerequisites: topic.prerequisites ?? [],
+    masteryCriteria: topic.masteryCriteria,
+  };
+}
+
+const index: TopicIndexEntry[] = topics.map(toIndex);
+
+export function getTopicIndex(): TopicIndexEntry[] {
+  return index;
+}
 
 export function getPublishedTopicsForTrack(track: string): ProgressTopic[] {
   return topics
@@ -15,98 +48,42 @@ export function getTopicByPath(path: string): ProgressTopic | undefined {
 }
 
 export function getTopicBySlug(track: string, slug: string): ProgressTopic | undefined {
-  return topics.find((t) => t.track === track && t.slug === slug) as ProgressTopic | undefined;
+  const hit = getTopicBySlugFromIndex(index, track, slug);
+  return hit ? (topics.find((t) => t.path === hit.path) as ProgressTopic) : undefined;
 }
 
-/** Resolve a prerequisite slug — same track first, then any track (e.g. JS before React). */
-export function resolvePrerequisiteTopic(
-  track: string,
-  slug: string,
-): ProgressTopic | undefined {
-  return getTopicBySlug(track, slug) ?? (topics.find((t) => t.slug === slug) as ProgressTopic | undefined);
+export function resolvePrerequisiteTopic(track: string, slug: string): ProgressTopic | undefined {
+  const hit = resolvePrerequisiteFromIndex(index, track, slug);
+  return hit ? (topics.find((t) => t.path === hit.path) as ProgressTopic) : undefined;
 }
 
-export function countKnowAnswers(path: string, progress: TopicProgressMap): number {
-  const results = Object.values(progress[path]?.qaResults ?? {});
-  return results.filter((r) => r === 'know').length;
-}
+export { countKnowAnswers };
 
 export function isTopicMastered(path: string, progress: TopicProgressMap): boolean {
-  const topic = getTopicByPath(path);
-  if (!topic) return false;
-
-  const entry = progress[path];
-  if (entry?.masteredAt) return true;
-
-  const knowCount = countKnowAnswers(path, progress);
-  const { minQuestionsCorrect, requireChallenge } = topic.masteryCriteria;
-  const qaPass = knowCount >= minQuestionsCorrect;
-  const challengePass = !requireChallenge || Boolean(entry?.challengePassed);
-
-  return qaPass && challengePass;
+  return mastered(index, path, progress);
 }
 
 export function canAccessTopic(path: string, progress: TopicProgressMap): boolean {
-  const topic = getTopicByPath(path);
-  if (!topic?.prerequisites?.length) return true;
-
-  return topic.prerequisites.every((slug) => {
-    const prereq = resolvePrerequisiteTopic(topic.track, slug);
-    return prereq ? isTopicMastered(prereq.path, progress) : true;
-  });
+  return canAccess(index, path, progress);
 }
 
 export function getTopicProgressPercent(path: string, progress: TopicProgressMap): number {
-  const topic = getTopicByPath(path);
-  if (!topic) return 0;
-
-  const { minQuestionsCorrect, requireChallenge } = topic.masteryCriteria;
-  const knowCount = countKnowAnswers(path, progress);
-  const qaRatio = Math.min(knowCount / Math.max(minQuestionsCorrect, 1), 1);
-  const challengeRatio =
-    !requireChallenge || progress[path]?.challengePassed ? 1 : 0;
-
-  return Math.round(((qaRatio + challengeRatio) / 2) * 100);
+  return topicPercent(index, path, progress);
 }
 
 export function getTrackMasteryPercent(track: string, progress: TopicProgressMap): number {
-  const published = getPublishedTopicsForTrack(track);
-  if (!published.length) return 0;
-  const mastered = published.filter((t) => isTopicMastered(t.path, progress)).length;
-  return Math.round((mastered / published.length) * 100);
+  return trackPercent(index, track, progress);
 }
 
-export function getUnmetPrerequisites(
-  path: string,
-  progress: TopicProgressMap,
-): ProgressTopic[] {
-  const topic = getTopicByPath(path);
-  if (!topic?.prerequisites?.length) return [];
-
-  return topic.prerequisites
-    .map((slug) => resolvePrerequisiteTopic(topic.track, slug))
-    .filter((t): t is ProgressTopic => Boolean(t))
-    .filter((t) => !isTopicMastered(t.path, progress));
+export function getUnmetPrerequisites(path: string, progress: TopicProgressMap): ProgressTopic[] {
+  return unmet(index, path, progress)
+    .map((entry) => topics.find((t) => t.path === entry.path))
+    .filter((t) => t != null) as ProgressTopic[];
 }
 
-export const LEARN_SETTINGS_KEY = 'elite-learn-settings';
-
-export interface LearnSettings {
-  hardLock: boolean;
-}
-
-export function getLearnSettings(): LearnSettings {
-  if (typeof window === 'undefined') return { hardLock: false };
-  try {
-    const raw = localStorage.getItem(LEARN_SETTINGS_KEY);
-    return raw ? ({ hardLock: false, ...JSON.parse(raw) } as LearnSettings) : { hardLock: false };
-  } catch {
-    return { hardLock: false };
-  }
-}
-
-export function setLearnSettings(settings: Partial<LearnSettings>) {
-  const next = { ...getLearnSettings(), ...settings };
-  localStorage.setItem(LEARN_SETTINGS_KEY, JSON.stringify(next));
-  window.dispatchEvent(new Event('elite-learn-settings-change'));
+export function getAdjacentTopics(track: string, path: string) {
+  const adjacent = getAdjacentFromIndex(index, track, path);
+  const asFull = (entry: TopicIndexEntry | null) =>
+    entry ? ((topics.find((t) => t.path === entry.path) as ProgressTopic | undefined) ?? null) : null;
+  return { prev: asFull(adjacent.prev), next: asFull(adjacent.next) };
 }

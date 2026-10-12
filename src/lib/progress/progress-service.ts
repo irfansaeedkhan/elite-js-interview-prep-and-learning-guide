@@ -1,6 +1,11 @@
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { db } from '@/db/db';
-import { topicProgress, userStats, type QaResultsJson } from '@/db/schema/progress.schema';
+import {
+  practiceAttempts,
+  topicProgress,
+  userStats,
+  type QaResultsJson,
+} from '@/db/schema/progress.schema';
 import { isTopicMastered as checkTopicMastered, getTopicByPath } from '@/lib/progress/mastery';
 import type { TopicProgressEntry, TopicProgressMap } from '@/lib/progress/types';
 
@@ -305,5 +310,38 @@ export const progressService = {
 
     await updateStreak(userId);
     return this.getSnapshot(userId);
+  },
+
+  async recordPracticeAttempt(
+    userId: string,
+    input: { topicPath: string; kind: 'challenge' | 'prediction' | 'qa'; promptId: string; passed: boolean },
+  ) {
+    const [row] = await db
+      .insert(practiceAttempts)
+      .values({
+        userId,
+        topicPath: input.topicPath,
+        kind: input.kind,
+        promptId: input.promptId,
+        passed: input.passed,
+      })
+      .returning();
+    return row;
+  },
+
+  async listPracticeAttempts(userId: string, topicPath: string) {
+    return db
+      .select({
+        id: practiceAttempts.id,
+        topicPath: practiceAttempts.topicPath,
+        kind: practiceAttempts.kind,
+        promptId: practiceAttempts.promptId,
+        passed: practiceAttempts.passed,
+        createdAt: practiceAttempts.createdAt,
+      })
+      .from(practiceAttempts)
+      .where(and(eq(practiceAttempts.userId, userId), eq(practiceAttempts.topicPath, topicPath)))
+      .orderBy(desc(practiceAttempts.createdAt))
+      .limit(20);
   },
 };

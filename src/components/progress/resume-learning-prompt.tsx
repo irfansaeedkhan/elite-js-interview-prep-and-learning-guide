@@ -3,16 +3,18 @@
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getTopicByPath } from '@/lib/progress/mastery';
+import { useTopicIndex } from '@/components/curriculum/topic-index-context';
+import { getTopicFromIndex } from '@/lib/progress/mastery-rules';
 import { useProgressEnabled, useUserStats } from '@/hooks/use-topic-progress';
 
 export function ResumeLearningPrompt() {
   const { enabled } = useProgressEnabled();
   const { stats } = useUserStats();
+  const index = useTopicIndex();
 
   if (!enabled || !stats?.lastTopicPath) return null;
 
-  const topic = getTopicByPath(stats.lastTopicPath);
+  const topic = getTopicFromIndex(index, stats.lastTopicPath);
   if (!topic) return null;
 
   return (

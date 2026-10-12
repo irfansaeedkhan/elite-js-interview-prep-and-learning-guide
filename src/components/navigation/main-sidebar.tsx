@@ -87,7 +87,11 @@ export function MainSidebar({ mode, selectedTrack, tracks, onCollapse }: MainSid
       </div>
 
       <ScrollArea className="min-h-0 flex-1">
-        <CrossTrackProgress compact={isRail} selectedTrack={selectedTrack} />
+        <CrossTrackProgress
+          compact={isRail}
+          selectedTrack={selectedTrack}
+          tracks={tracks.map((track) => ({ slug: track.id, title: track.title, href: track.href }))}
+        />
         <nav className={cn('space-y-1', isRail ? 'p-2' : 'p-4')}>
           {!isRail ? (
             <p className="mb-2 px-4 text-xs font-medium uppercase tracking-wide text-muted-foreground">

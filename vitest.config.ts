@@ -5,6 +5,8 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts'],
+    // forks/threads lose the Vitest runner binding on this Vite 8 + Windows setup.
+    pool: 'vmForks',
   },
   resolve: {
     alias: {

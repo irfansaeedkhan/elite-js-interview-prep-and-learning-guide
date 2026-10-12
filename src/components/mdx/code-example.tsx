@@ -1,7 +1,3 @@
-'use client';
-
-import { useEffect, useState } from 'react';
-import { useTheme } from 'next-themes';
 import { codeToHtml } from 'shiki';
 import { cn } from '@/lib/utils';
 
@@ -12,36 +8,30 @@ export interface CodeExampleProps {
   children: string;
 }
 
-export function CodeExample({
+const highlightCache = new Map<string, { light: string; dark: string }>();
+
+async function highlight(code: string, language: string) {
+  const key = `${language}\0${code}`;
+  const cached = highlightCache.get(key);
+  if (cached) return cached;
+
+  const [light, dark] = await Promise.all([
+    codeToHtml(code, { lang: language, theme: 'github-light' }),
+    codeToHtml(code, { lang: language, theme: 'github-dark' }),
+  ]);
+  const entry = { light, dark };
+  highlightCache.set(key, entry);
+  return entry;
+}
+
+export async function CodeExample({
   title,
   language = 'javascript',
   runnable = false,
   children,
 }: CodeExampleProps) {
   const code = children.trim();
-  const { resolvedTheme } = useTheme();
-  const [html, setHtml] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function highlight() {
-      try {
-        const highlighted = await codeToHtml(code, {
-          lang: language,
-          theme: resolvedTheme === 'dark' ? 'github-dark' : 'github-light',
-        });
-        if (!cancelled) setHtml(highlighted);
-      } catch {
-        if (!cancelled) setHtml(null);
-      }
-    }
-
-    highlight();
-    return () => {
-      cancelled = true;
-    };
-  }, [code, language, resolvedTheme]);
+  const html = await highlight(code, language);
 
   return (
     <div className="my-6 overflow-hidden rounded-xl border bg-card">
@@ -55,18 +45,18 @@ export function CodeExample({
           ) : null}
         </div>
       )}
-      {html ? (
-        <div
-          className={cn(
-            'overflow-x-auto p-4 text-sm [&_pre]:!m-0 [&_pre]:!bg-transparent [&_pre]:!p-0',
-          )}
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
-      ) : (
-        <pre className="overflow-x-auto p-4 text-sm">
-          <code className={`language-${language}`}>{code}</code>
-        </pre>
-      )}
+      <div
+        className={cn(
+          'overflow-x-auto p-4 text-sm dark:hidden [&_pre]:!m-0 [&_pre]:!bg-transparent [&_pre]:!p-0',
+        )}
+        dangerouslySetInnerHTML={{ __html: html.light }}
+      />
+      <div
+        className={cn(
+          'hidden overflow-x-auto p-4 text-sm dark:block [&_pre]:!m-0 [&_pre]:!bg-transparent [&_pre]:!p-0',
+        )}
+        dangerouslySetInnerHTML={{ __html: html.dark }}
+      />
     </div>
   );
 }

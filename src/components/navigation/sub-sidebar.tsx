@@ -8,13 +8,14 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TopicProgressRing } from '@/components/progress/topic-progress-ring';
+import { getLearnSettings } from '@/lib/progress/learn-settings';
 import {
   canAccessTopic,
-  getLearnSettings,
   getTopicProgressPercent,
   getTrackMasteryPercent,
   isTopicMastered,
-} from '@/lib/progress/mastery';
+} from '@/lib/progress/mastery-rules';
+import { useTopicIndex } from '@/components/curriculum/topic-index-context';
 import { useProgressEnabled, useTopicProgressMap } from '@/hooks/use-topic-progress';
 import { cn } from '@/lib/utils';
 import type { NavSubCategory } from '@/lib/curriculum/get-topics';
@@ -37,10 +38,11 @@ export function SubSidebar({
   track,
   onClose,
 }: SubSidebarProps) {
+  const index = useTopicIndex();
   const { enabled: progressEnabled } = useProgressEnabled();
   const progressMap = useTopicProgressMap();
   const [hardLock, setHardLock] = useState(false);
-  const trackPercent = progressEnabled ? getTrackMasteryPercent(track, progressMap) : 0;
+  const trackPercent = progressEnabled ? getTrackMasteryPercent(index, track, progressMap) : 0;
 
   useEffect(() => {
     if (progressEnabled) {
@@ -112,13 +114,10 @@ export function SubSidebar({
 
               <CollapsibleContent className="mt-1 space-y-1 pl-1">
                 {subCategory.topics.map((topic) => {
-                  const mastered = progressEnabled && isTopicMastered(topic.path, progressMap);
-                  const accessible =
-                    !progressEnabled || canAccessTopic(topic.path, progressMap);
+                  const mastered = progressEnabled && isTopicMastered(index, topic.path, progressMap);
+                  const accessible = !progressEnabled || canAccessTopic(index, topic.path, progressMap);
                   const blocked = progressEnabled && hardLock && !accessible;
-                  const percent = progressEnabled
-                    ? getTopicProgressPercent(topic.path, progressMap)
-                    : 0;
+                  const percent = progressEnabled ? getTopicProgressPercent(index, topic.path, progressMap) : 0;
 
                   const linkClass = cn(
                     'flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-5 py-2 text-left text-sm transition-colors',

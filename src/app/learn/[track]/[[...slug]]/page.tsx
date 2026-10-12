@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { topics, tracks } from '#site/content';
-import { LearnLayout } from '@/components/navigation/learn-layout';
+import { TopicArticle } from '@/components/curriculum/topic-article';
+import { LearnPlaceholder } from '@/components/navigation/learn-shell';
 import {
   getTopicByPath,
   getTopicsForTrack,
@@ -66,10 +67,17 @@ export default async function LearnTopicPage({
     notFound();
   }
 
-  const trackTopics = getTopicsForTrack(track);
   const topic = getTopicByPath(track, slug);
 
-  return <LearnLayout track={track} topics={trackTopics} topic={topic} />;
+  if (!slug?.length) {
+    return <LearnPlaceholder />;
+  }
+
+  if (!topic) {
+    notFound();
+  }
+
+  return <TopicArticle topic={topic} />;
 }
 
 export function generateStaticParams() {

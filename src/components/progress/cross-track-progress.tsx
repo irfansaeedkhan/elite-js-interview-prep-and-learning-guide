@@ -2,22 +2,23 @@
 
 import Link from 'next/link';
 import { TopicProgressRing } from '@/components/progress/topic-progress-ring';
-import { getActiveTracks, getDefaultTrackHref } from '@/lib/curriculum/get-topics';
-import { getTrackMasteryPercent } from '@/lib/progress/mastery';
+import { useTopicIndex } from '@/components/curriculum/topic-index-context';
+import { getTrackMasteryPercent } from '@/lib/progress/mastery-rules';
 import { useProgressEnabled, useTopicProgressMap } from '@/hooks/use-topic-progress';
 import { cn } from '@/lib/utils';
 
 export interface CrossTrackProgressProps {
   compact?: boolean;
   selectedTrack?: string;
+  tracks: Array<{ slug: string; title: string; href: string }>;
 }
 
-export function CrossTrackProgress({ compact, selectedTrack }: CrossTrackProgressProps) {
+export function CrossTrackProgress({ compact, selectedTrack, tracks }: CrossTrackProgressProps) {
   const { enabled } = useProgressEnabled();
   const progressMap = useTopicProgressMap();
-  const activeTracks = getActiveTracks();
+  const index = useTopicIndex();
 
-  if (!enabled || activeTracks.length < 2) return null;
+  if (!enabled || tracks.length < 2) return null;
 
   return (
     <div className={cn('border-b', compact ? 'px-2 py-3' : 'px-4 py-4')}>
@@ -27,15 +28,14 @@ export function CrossTrackProgress({ compact, selectedTrack }: CrossTrackProgres
         </p>
       ) : null}
       <ul className="space-y-2">
-        {activeTracks.map((track) => {
-          const percent = getTrackMasteryPercent(track.slug, progressMap);
-          const href = getDefaultTrackHref(track.slug);
+        {tracks.map((track) => {
+          const percent = getTrackMasteryPercent(index, track.slug, progressMap);
           const isSelected = selectedTrack === track.slug;
 
           return (
             <li key={track.slug}>
               <Link
-                href={href}
+                href={track.href}
                 title={`${track.title} — ${percent}% mastered`}
                 className={cn(
                   'flex cursor-pointer items-center gap-2 rounded-md text-xs transition-colors',

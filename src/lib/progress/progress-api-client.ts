@@ -33,3 +33,36 @@ export async function migrateLocalProgress(progress: TopicProgressMap): Promise<
   });
   return parseJson<ProgressSnapshot>(response);
 }
+
+export interface PracticeAttemptInput {
+  topicPath: string;
+  kind: 'challenge' | 'prediction' | 'qa';
+  promptId: string;
+  passed: boolean;
+}
+
+export async function recordPracticeAttempt(input: PracticeAttemptInput): Promise<boolean> {
+  const response = await fetch('/api/progress/attempts', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  return response.ok;
+}
+
+export async function fetchPracticeAttempts(topicPath: string) {
+  const response = await fetch(`/api/progress/attempts?topicPath=${encodeURIComponent(topicPath)}`, {
+    credentials: 'include',
+  });
+  return parseJson<{
+    attempts: Array<{
+      id: string;
+      topicPath: string;
+      kind: string;
+      promptId: string;
+      passed: boolean;
+      createdAt: string;
+    }>;
+  }>(response);
+}

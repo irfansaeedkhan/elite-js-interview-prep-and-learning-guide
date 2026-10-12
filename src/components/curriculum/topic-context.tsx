@@ -9,13 +9,15 @@ export type VeliteTopic = TopicMeta & {
   content: string;
 };
 
-const TopicContext = createContext<VeliteTopic | null>(null);
+export type ClientTopic = Omit<VeliteTopic, 'content'>;
+
+const TopicContext = createContext<ClientTopic | null>(null);
 
 export function TopicProvider({
   topic,
   children,
 }: {
-  topic: VeliteTopic;
+  topic: ClientTopic;
   children: ReactNode;
 }) {
   return <TopicContext.Provider value={topic}>{children}</TopicContext.Provider>;
@@ -34,7 +36,7 @@ export function useTopicOptional() {
 }
 
 export function getInterviewQuestionById(
-  topic: VeliteTopic | null,
+  topic: ClientTopic | null,
   id: string,
 ): InterviewQuestion | undefined {
   return topic?.interviewQuestions.find((q) => q.id === id);

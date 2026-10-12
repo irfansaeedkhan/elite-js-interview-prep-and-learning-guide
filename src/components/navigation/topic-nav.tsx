@@ -3,22 +3,23 @@
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import type { VeliteTopic } from '@/components/curriculum/topic-context';
-import { getAdjacentTopics } from '@/lib/curriculum/get-topics';
-import { getLearnSettings, isTopicMastered } from '@/lib/progress/mastery';
+import { useTopicIndex } from '@/components/curriculum/topic-index-context';
+import { useTopicOptional } from '@/components/curriculum/topic-context';
+import { getLearnSettings } from '@/lib/progress/learn-settings';
+import { getAdjacentFromIndex, isTopicMastered } from '@/lib/progress/mastery-rules';
 import { useProgressEnabled, useTopicProgressMap } from '@/hooks/use-topic-progress';
 import { cn } from '@/lib/utils';
 
-export interface TopicNavProps {
-  track: string;
-  topic: VeliteTopic;
-}
-
-export function TopicNav({ track, topic }: TopicNavProps) {
+export function TopicNav() {
+  const topic = useTopicOptional();
+  const index = useTopicIndex();
   const { enabled: progressEnabled } = useProgressEnabled();
   const progressMap = useTopicProgressMap();
-  const { prev, next } = getAdjacentTopics(track, topic.path);
-  const currentMastered = progressEnabled && isTopicMastered(topic.path, progressMap);
+
+  if (!topic) return null;
+
+  const { prev, next } = getAdjacentFromIndex(index, topic.track, topic.path);
+  const currentMastered = progressEnabled && isTopicMastered(index, topic.path, progressMap);
   const hardLock = progressEnabled && getLearnSettings().hardLock;
   const nextBlocked = Boolean(next && !currentMastered && hardLock);
 

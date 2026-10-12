@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { CodeExample } from '@/components/mdx/code-example';
+import { useTopicOptional } from '@/components/curriculum/topic-context';
 import { predictionsMatch } from '@/lib/playground/normalize-prediction';
 import { SandpackPlayground } from '@/components/playground/sandpack-playground-client';
+import { recordPracticeAttempt } from '@/lib/progress/progress-api-client';
+import { useProgressEnabled } from '@/hooks/use-topic-progress';
 import { cn } from '@/lib/utils';
 
 export interface OutputPredictionProps {
@@ -22,17 +24,31 @@ export function OutputPrediction({
   hint = 'Type letters in order, e.g. A, D, C, B',
   explanation,
 }: OutputPredictionProps) {
+  const topic = useTopicOptional();
+  const { enabled } = useProgressEnabled();
   const [guess, setGuess] = useState('');
   const [checked, setChecked] = useState(false);
+  const [saved, setSaved] = useState(false);
   const correct = checked && predictionsMatch(guess, expected);
 
-  function handleCheck() {
+  async function handleCheck() {
+    const passed = predictionsMatch(guess, expected);
     setChecked(true);
+    setSaved(false);
+    if (!topic || !enabled) return;
+    const ok = await recordPracticeAttempt({
+      topicPath: topic.path,
+      kind: 'prediction',
+      promptId: title,
+      passed,
+    });
+    setSaved(ok);
   }
 
   function handleReset() {
     setGuess('');
     setChecked(false);
+    setSaved(false);
   }
 
   return (
@@ -43,7 +59,9 @@ export function OutputPrediction({
           Predict what prints and in what order — then run the code below to verify.
         </p>
 
-        <CodeExample title="Code">{code}</CodeExample>
+        <pre className="my-6 overflow-x-auto rounded-xl border bg-card p-4 text-sm">
+          <code>{code}</code>
+        </pre>
 
         <div className="mt-4 space-y-3">
           <label className="text-sm font-medium" htmlFor="output-guess">
@@ -90,6 +108,14 @@ export function OutputPrediction({
               Expected: <span className="font-mono text-foreground">{expected}</span>
             </p>
             <p className="mt-2 leading-relaxed text-muted-foreground">{explanation}</p>
+            {saved ? (
+              <p className="mt-2 text-muted-foreground">Saved to your history.</p>
+            ) : null}
+            {!enabled ? (
+              <p className="mt-2 text-muted-foreground">
+                This attempt stays on this page until you refresh. Sign in to save it.
+              </p>
+            ) : null}
           </div>
         ) : null}
       </div>

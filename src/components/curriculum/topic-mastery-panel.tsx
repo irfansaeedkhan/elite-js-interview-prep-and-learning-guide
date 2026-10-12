@@ -4,17 +4,19 @@ import Link from 'next/link';
 import { Lock, Trophy } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useTopicIndex } from '@/components/curriculum/topic-index-context';
 import { useTopicOptional } from '@/components/curriculum/topic-context';
 import {
   countKnowAnswers,
   getUnmetPrerequisites,
   isTopicMastered,
-} from '@/lib/progress/mastery';
+} from '@/lib/progress/mastery-rules';
 import { useProgressEnabled, useTopicProgressMap } from '@/hooks/use-topic-progress';
 import { cn } from '@/lib/utils';
 
 export function TopicMasteryPanel() {
   const topic = useTopicOptional();
+  const index = useTopicIndex();
   const { enabled: progressEnabled } = useProgressEnabled();
   const progressMap = useTopicProgressMap();
 
@@ -37,8 +39,8 @@ export function TopicMasteryPanel() {
   const entry = progressMap[topic.path];
   const knowCount = countKnowAnswers(topic.path, progressMap);
   const { minQuestionsCorrect, requireChallenge } = topic.masteryCriteria;
-  const mastered = isTopicMastered(topic.path, progressMap);
-  const unmet = getUnmetPrerequisites(topic.path, progressMap);
+  const mastered = isTopicMastered(index, topic.path, progressMap);
+  const unmet = getUnmetPrerequisites(index, topic.path, progressMap);
 
   return (
     <div

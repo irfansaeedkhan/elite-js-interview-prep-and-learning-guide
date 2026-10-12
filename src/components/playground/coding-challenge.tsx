@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { useTopicOptional } from '@/components/curriculum/topic-context';
 import { SandpackPlayground } from '@/components/playground/sandpack-playground-client';
 import { useProgressActions } from '@/hooks/use-topic-progress';
+import { fetchPracticeAttempts, recordPracticeAttempt } from '@/lib/progress/progress-api-client';
 import { cn } from '@/lib/utils';
 
 export interface CodingChallengeTest {
@@ -46,12 +48,31 @@ export function CodingChallenge({
 }: CodingChallengeProps) {
   const topic = useTopicOptional();
   const { passChallenge, enabled } = useProgressActions();
+  const queryClient = useQueryClient();
   const [ran, setRan] = useState(false);
+  const [saved, setSaved] = useState(false);
   const code = buildTestHarness(starterCode, tests);
+  const history = useQuery({
+    queryKey: ['practice-attempts', topic?.path],
+    queryFn: () => fetchPracticeAttempts(topic!.path),
+    enabled: Boolean(enabled && topic?.path),
+    staleTime: 60_000,
+  });
 
-  function handleMarkPassed() {
+  async function handleMarkPassed() {
     setRan(true);
-    if (topic && enabled) passChallenge(topic.path);
+    if (!topic || !enabled) return;
+    passChallenge(topic.path);
+    const ok = await recordPracticeAttempt({
+      topicPath: topic.path,
+      kind: 'challenge',
+      promptId: title,
+      passed: true,
+    });
+    setSaved(ok);
+    if (ok) {
+      await queryClient.invalidateQueries({ queryKey: ['practice-attempts', topic.path] });
+    }
   }
 
   return (
@@ -70,7 +91,6 @@ export function CodingChallenge({
         variant="outline"
         className="cursor-pointer"
         onClick={handleMarkPassed}
-        disabled={!enabled}
       >
         Mark challenge attempted
       </Button>
@@ -78,7 +98,24 @@ export function CodingChallenge({
       {ran ? (
         <p className={cn('text-sm text-muted-foreground')}>
           Check the console for ✓ / ✗ lines after you click Run. All green means you pass.
+          {saved ? ' Saved to your history.' : ''}
+          {!enabled
+            ? ' This attempt stays on this page until you refresh. Sign in to save it.'
+            : ''}
         </p>
+      ) : null}
+
+      {enabled && history.data?.attempts.length ? (
+        <ul className="space-y-1 text-sm text-muted-foreground">
+          {history.data.attempts
+            .filter((attempt) => attempt.kind === 'challenge')
+            .slice(0, 5)
+            .map((attempt) => (
+              <li key={attempt.id}>
+                {attempt.promptId} — {attempt.passed ? 'passed' : 'missed'}
+              </li>
+            ))}
+        </ul>
       ) : null}
     </div>
   );
