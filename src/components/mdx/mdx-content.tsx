@@ -59,11 +59,28 @@ function getMDXComponent(code: string) {
   }>;
 }
 
+type MDXComponent = ReturnType<typeof getMDXComponent>;
+
+/**
+ * Compiled MDX components, keyed by the Velite `content` string.
+ * `new Function` runs on the server on every request without this;
+ * the set is bounded (one entry per topic), so a plain Map is enough.
+ */
+const componentCache = new Map<string, MDXComponent>();
+
+function getCachedMDXComponent(code: string): MDXComponent {
+  const cached = componentCache.get(code);
+  if (cached) return cached;
+  const Component = getMDXComponent(code);
+  componentCache.set(code, Component);
+  return Component;
+}
+
 export interface MDXContentProps {
   code: string;
 }
 
 export function MDXContent({ code }: MDXContentProps) {
-  const Component = getMDXComponent(code);
+  const Component = getCachedMDXComponent(code);
   return <Component components={components} />;
 }
