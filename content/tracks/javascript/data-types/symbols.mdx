@@ -8,40 +8,38 @@ estimatedMinutes: 25
 prerequisites:
   - objects
 keyTakeaways:
-  - Core concepts for Symbols interviews
-  - Know the definition and one concrete example
-  - Watch for common traps senior interviewers probe
-  - Tie answers back to real debugging experience
+  - Symbol() creates a guaranteed-unique primitive; the description is a debug label, not an identity
+  - Never use `new Symbol()` — it throws; call Symbol() as a plain function
+  - Symbol-keyed properties are skipped by for..in, Object.keys, and JSON.stringify
+  - They are NOT private — getOwnPropertySymbols and Reflect.ownKeys reveal them; spread and Object.assign copy them
+  - Symbol.for(key) returns the same symbol from the global registry; Symbol(key) never does
+  - Well-known symbols like Symbol.iterator are protocols — implement them to hook into language behavior
+  - Symbols throw TypeError on implicit string conversion — use String(sym) or sym.description
 masteryCriteria:
   minQuestionsCorrect: 3
   requireChallenge: false
 difficulty: medium
 interviewQuestions:
-  - id: symbol-1
-    question: What is Symbols in JavaScript?
-    answer: Unique property keys and well-known symbols like Symbol.iterator.
+  - id: sym-1
+    question: What does Symbol('id') === Symbol('id') evaluate to, and why?
+    answer: "false. Every Symbol() call returns a brand-new unique primitive — the string is only a description for debugging, not an identity."
     difficulty: easy
-    followUps:
-      - When would you reach for this in production code?
-      - What breaks if you misuse it?
-  - id: symbol-2
-    question: What is a common interview trap around Symbols?
-    answer: Interviewers often pair Symbols with edge cases — state the rule, then walk through a short example.
+  - id: sym-2
+    question: How do Symbol() and Symbol.for() differ?
+    answer: "Symbol() always creates a fresh unique symbol. Symbol.for(key) checks the global registry and returns the same symbol for the same key; Symbol.keyFor is its inverse."
     difficulty: medium
-    followUps:
-      - Can you show the fix in code?
-  - id: symbol-3
-    question: How does Symbols relate to other JS concepts you know?
-    answer: It connects to topics earlier in this track — mention scope, types, async, or the DOM where relevant.
+  - id: sym-3
+    question: What happens to symbol-keyed properties in for..in, Object.keys, and JSON.stringify?
+    answer: "All three skip them — that's the 'hidden' behavior. But they're not private: Object.getOwnPropertySymbols and Reflect.ownKeys reveal them, and Object.assign and spread copy them."
     difficulty: medium
-    followUps:
-      - Which topic would you review first if you got this wrong?
-  - id: symbol-4
-    question: How would you explain Symbols to a junior developer?
-    answer: Use plain language, one analogy, and one line of code — avoid spec jargon until they ask.
+  - id: sym-4
+    question: What is a well-known symbol? Give an example.
+    answer: "Built-in symbols that act as protocols for customizing language behavior. Implementing [Symbol.iterator]() makes a plain object work with for..of, spread, and destructuring."
+    difficulty: medium
+  - id: sym-5
+    question: "What does 'id: ' + Symbol('id') do?"
+    answer: "Throws a TypeError — symbols refuse implicit string conversion. Use String(sym) for 'Symbol(id)' or sym.description for 'id'."
     difficulty: easy
-    followUps:
-      - What follow-up question would you ask them to check understanding?
 ---
 
 <TopicTabs>
@@ -50,9 +48,11 @@ interviewQuestions:
 
 <TopicDefinition>
 
-Unique property keys and well-known symbols like Symbol.iterator.
+If someone asks what a **symbol** is in JavaScript, I'd say it's a primitive that's guaranteed to be unique — every time you call `Symbol()`, you get a brand-new value, even if you pass the same description string twice. Its main job is giving you object keys that can never collide with anyone else's keys.
 
-In interviews, lead with a clear one-liner, then add one example. Senior rounds go deeper on edge cases and trade-offs — have a short code snippet ready.
+What interviewers usually probe next is the **"hidden" behavior**: symbol-keyed properties are skipped by `for..in`, `Object.keys()`, and `JSON.stringify()`, which is why libraries use them to stash metadata on objects. But — and this is the trap — **they're not private**. `Object.getOwnPropertySymbols()` and `Reflect.ownKeys()` find them, and spread and `Object.assign` copy them.
+
+In senior rounds you'll hear about **well-known symbols** like `Symbol.iterator` and `Symbol.toPrimitive` — hooks into the language itself. Implement `[Symbol.iterator]()` on a plain object and it suddenly works with `for..of`. Also worth blurting out once: `new Symbol()` throws. Symbols are never constructed.
 
 </TopicDefinition>
 
@@ -64,45 +64,140 @@ In interviews, lead with a clear one-liner, then add one example. Senior rounds 
 
 <TopicTab value="examples">
 
-<CodeExample title="Quick example" language="javascript">
-{`// Symbols — add your own variation in the playground
-console.log('Review the in-depth tab and Q&A for this topic');`}
+<CodeExample title="Uniqueness and the description trap" language="javascript">
+{`const a = Symbol('id');
+const b = Symbol('id');
+
+console.log(a === b);  // false — same label, different symbols
+console.log(typeof a); // 'symbol'
+
+// new Symbol(); // TypeError: Symbol is not a constructor`}
 </CodeExample>
 
-<Callout type="tip">
-Re-read the key takeaways, then try explaining Symbols out loud in under 30 seconds.
+<CodeExample title="Hidden keys that aren't private" language="javascript">
+{`const id = Symbol('id');
+const user = { name: 'Ada', [id]: 42 };
+
+console.log(Object.keys(user)); // ['name'] — symbol skipped
+console.log(JSON.stringify(user)); // '{"name":"Ada"}' — symbol skipped
+
+// ...but not private:
+console.log(Object.getOwnPropertySymbols(user)); // [Symbol(id)]
+const copy = { ...user };
+console.log(copy[id]); // 42 — spread copies symbol keys`}
+</CodeExample>
+
+<CodeExample title="A well-known symbol: making an object iterable" language="javascript">
+{`const range = {
+  from: 1,
+  to: 3,
+  *[Symbol.iterator]() {
+    for (let i = this.from; i <= this.to; i++) yield i;
+  },
+};
+
+console.log([...range]); // [1, 2, 3]
+for (const n of range) console.log(n); // 1, 2, 3`}
+</CodeExample>
+
+<Callout type="interview">
+Say it out loud: symbols are **unique**, **hidden from normal enumeration**, but **not private** — and they throw on implicit string conversion.
 </Callout>
 
 </TopicTab>
 
 <TopicTab value="indepth">
 
-### What to focus on
+<CodeExample title="Symbol.for and the global registry" language="javascript">
+{`const s1 = Symbol.for('app-id');
+const s2 = Symbol.for('app-id');
 
-- Definition and mental model
-- One gotcha interviewers love
-- How it connects to prerequisites in this track
+console.log(s1 === s2);               // true — same registry entry
+console.log(Symbol('app-id') === s1); // false — Symbol() is always new
+console.log(Symbol.keyFor(s1));      // 'app-id' — the inverse lookup`}
+</CodeExample>
+
+<CodeExample title="Symbol.toPrimitive: custom type conversion" language="javascript">
+{`const money = {
+  amount: 99,
+  [Symbol.toPrimitive](hint) {
+    return hint === 'number' ? this.amount : \`$\${this.amount}\`;
+  },
+};
+
+console.log(+money);     // 99 — number hint
+console.log(\`\${money}\`); // '$99' — string hint`}
+</CodeExample>
+
+<CodeExample title="The string-conversion trap" language="javascript">
+{`const sym = Symbol('id');
+
+// \`\${sym}\`; // TypeError: Cannot convert a Symbol value to a string
+// 'id: ' + sym; // TypeError — same for +
+
+console.log(String(sym));     // 'Symbol(id)' — explicit is fine
+console.log(sym.description); // 'id' — just the label`}
+</CodeExample>
 
 ### Senior follow-ups
 
-Be ready to compare alternatives and describe when **not** to use this feature.
+Be ready to say when **not** to use symbols: overusing them makes objects hard to inspect in the debugger, and because symbol keys silently vanish from `JSON.stringify`, data can be lost when an object crosses an API boundary — serialize deliberately.
 
 </TopicTab>
 
 <TopicTab value="questions">
 
-<FlashcardDeck ids={['symbol-1', 'symbol-2', 'symbol-3', 'symbol-4']} />
+<FlashcardDeck ids={['sym-1', 'sym-2', 'sym-3', 'sym-4', 'sym-5']} />
 
-<InterviewQuestionBlock id="symbol-1" />
-<InterviewQuestionBlock id="symbol-2" />
-<InterviewQuestionBlock id="symbol-3" />
-<InterviewQuestionBlock id="symbol-4" />
+<InterviewQuestionBlock id="sym-1" />
+<InterviewQuestionBlock id="sym-2" />
+<InterviewQuestionBlock id="sym-3" />
+<InterviewQuestionBlock id="sym-4" />
+<InterviewQuestionBlock id="sym-5" />
 
 </TopicTab>
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<OutputPrediction
+  title="The uniqueness trap"
+  expected="false"
+  hint="Same label — but does the label make them equal?"
+  explanation="Every Symbol() call returns a new unique primitive. The description is only a debugging label, so two symbols with the same label are still different values."
+  code={`console.log(Symbol('id') === Symbol('id'));`}
+/>
+
+<OutputPrediction
+  title="Registry vs fresh"
+  expected="true false"
+  hint="Which two come from the registry?"
+  explanation="Symbol.for('k') returns the same symbol for the same key from the global registry, so a === b. But Symbol('k') always creates a new one, so b !== c."
+  code={`const a = Symbol.for('k');
+const b = Symbol.for('k');
+const c = Symbol('k');
+console.log(a === b, b === c);`}
+/>
+
+<CodingChallenge
+  title="Make the playlist iterable"
+  prompt="The playlist object holds an array of track names. Implement [Symbol.iterator] so that for..of and the spread operator yield every track in order."
+  starterCode={`const playlist = {
+  tracks: ['a', 'b', 'c'],
+  [Symbol.iterator]() {
+    // return an iterator over this.tracks
+  },
+};`}
+  tests={[
+    { label: 'spread yields all tracks in order', code: `const out = [...playlist]; if (out.join(',') !== 'a,b,c') throw new Error('expected a,b,c, got ' + out.join(','));` },
+    { label: 'works with for..of', code: `let count = 0; for (const t of playlist) count++; if (count !== 3) throw new Error('expected 3 iterations, got ' + count);` },
+    { label: 'iterators are independent', code: `const first = [...playlist]; const second = [...playlist]; if (first.join(',') !== 'a,b,c' || second.join(',') !== 'a,b,c') throw new Error('each iteration must start over');` },
+  ]}
+  hint="Easiest path: return this.tracks[Symbol.iterator]() — the array already knows how to iterate. A generator (function*) also works."
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 

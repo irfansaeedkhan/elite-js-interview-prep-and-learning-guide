@@ -8,40 +8,48 @@ estimatedMinutes: 25
 prerequisites:
   - type-coercion
 keyTakeaways:
-  - Core concepts for Equality (== vs ===) interviews
-  - Know the definition and one concrete example
-  - Watch for common traps senior interviewers probe
-  - Tie answers back to real debugging experience
+  - === compares type and value with no conversion; == converts first, then compares
+  - "The == rule set is small and deterministic: same type → like ===, null/undefined are a special pair, string vs number converts the string, boolean converts to a number first, object vs primitive runs ToPrimitive"
+  - The one defensible == is `x == null` — true for null or undefined, false for 0 and ''
+  - "Object.is differs from === in exactly two cases: NaN equals itself, +0 and -0 differ — React uses it for state/props comparison"
+  - NaN is the only value not equal to itself; check with Number.isNaN, never equality
 masteryCriteria:
   minQuestionsCorrect: 3
   requireChallenge: false
 difficulty: medium
 interviewQuestions:
   - id: equali-1
-    question: What is Equality (== vs ===) in JavaScript?
-    answer: Loose vs strict equality and when interviewers expect ===.
+    question: What is the difference between == and ===?
+    answer: "=== compares type and value with no conversion — different types means immediately false. == converts the operands to a common type first, then compares. In practice I default to === and treat every == as a decision that needs a reason."
     difficulty: easy
     followUps:
-      - When would you reach for this in production code?
-      - What breaks if you misuse it?
+      - Walk me through `[] == false` using the conversion rules.
+      - Is there any place in production code where you'd keep ==?
   - id: equali-2
-    question: What is a common interview trap around Equality (== vs ===)?
-    answer: Interviewers often pair Equality (== vs ===) with edge cases — state the rule, then walk through a short example.
+    question: Why is `[] == false` true?
+    answer: "[] is an object compared to a primitive, so it converts first: `[].toString()` is ''. Now '' == false. The boolean converts to a number first: false becomes 0. Then '' == 0 converts the string to a number: '' becomes 0. 0 === 0, so true."
     difficulty: medium
     followUps:
-      - Can you show the fix in code?
+      - What does `[] == ![]` evaluate to, and why?
+      - Why is `null == 0` false if null == undefined is true?
   - id: equali-3
-    question: How does Equality (== vs ===) relate to other JS concepts you know?
-    answer: It connects to topics earlier in this track — mention scope, types, async, or the DOM where relevant.
+    question: Is == ever justified in production code?
+    answer: "Exactly once: `x == null` is true for null or undefined and false for everything else, including 0 and ''. Before ?? existed this was the standard concise nullish guard, and you'll still see it in real codebases. Every other == is a lint error waiting to happen."
     difficulty: medium
     followUps:
-      - Which topic would you review first if you got this wrong?
+      - How does `x == null` differ from `x ?? default`?
   - id: equali-4
-    question: How would you explain Equality (== vs ===) to a junior developer?
-    answer: Use plain language, one analogy, and one line of code — avoid spec jargon until they ask.
+    question: How does Object.is differ from ===, and where does that matter in practice?
+    answer: "Object.is is identical to === except in two cases: NaN equals itself, and +0 is not equal to -0. React compares state and props with Object.is, so setting state to NaN when it was already NaN bails out of the re-render instead of looping forever."
+    difficulty: medium
+    followUps:
+      - Could you implement Object.is yourself?
+  - id: equali-5
+    question: How do you reliably check whether a value is NaN?
+    answer: "NaN is the only value in the language not equal to itself, so `x !== x` detects it — but in real code use Number.isNaN. The global isNaN coerces its argument first, so isNaN('hello') is true while Number.isNaN('hello') is false."
     difficulty: easy
     followUps:
-      - What follow-up question would you ask them to check understanding?
+      - Why does `typeof NaN` return 'number'?
 ---
 
 <TopicTabs>
@@ -50,9 +58,11 @@ interviewQuestions:
 
 <TopicDefinition>
 
-Loose vs strict equality and when interviewers expect ===.
+If someone asks the difference between `==` and `===`, I'd say: `===` compares type and value with no conversion — different types, immediately false. `==` tries to convert the operands to a common type first, then compares.
 
-In interviews, lead with a clear one-liner, then add one example. Senior rounds go deeper on edge cases and trade-offs — have a short code snippet ready.
+Interviewers don't really want the textbook line. They want the rule set: same type behaves like `===`; `null` and `undefined` are a special pair; a string compared to a number converts the string to a number; a boolean converts to a number first; an object compared to a primitive goes through `valueOf`/`toString`. Every "weird" result — `[] == false`, `'' == 0` — falls straight out of these.
+
+Senior rounds always ask the same follow-up: is `==` ever okay? Yes, exactly once — `x == null` catches `null` or `undefined` in one check, and it's false for `0` and `''`. Everything else, `===`.
 
 </TopicDefinition>
 
@@ -64,45 +74,106 @@ In interviews, lead with a clear one-liner, then add one example. Senior rounds 
 
 <TopicTab value="examples">
 
-<CodeExample title="Quick example" language="javascript">
-{`// Equality (== vs ===) — add your own variation in the playground
-console.log('Review the in-depth tab and Q&A for this topic');`}
+<CodeExample title="The == rule set in six lines" language="javascript">
+{`5 === '5';            // false — different types, no conversion
+5 == '5';             // true — string converts to number
+
+true == 1;            // true — boolean converts to number first
+false == '';          // true — false → 0, '' → 0
+
+null == undefined;    // true — the special pair, no coercion
+null == 0;            // false — null equals ONLY undefined
+NaN == NaN;           // false — NaN equals nothing, not even itself`}
 </CodeExample>
 
-<Callout type="tip">
-Re-read the key takeaways, then try explaining Equality (== vs ===) out loud in under 30 seconds.
+<CodeExample title="Walking through [] == false" language="javascript">
+{`// [] == false — say each step out loud in an interview:
+// 1. [] is an object vs a primitive → convert: [].toString() is ''
+// 2. '' == false — boolean converts to a number first: false → 0
+// 3. '' == 0 — string converts to a number: '' → 0
+// 4. 0 === 0 → true
+console.log([] == false);  // true
+
+// Same machinery, different trap:
+console.log([] == ![]);    // true — ![] is false, then the same walk`}
+</CodeExample>
+
+<CodeExample title="Object.is vs === — the two differences" language="javascript">
+{`0 === -0;               // true — same numeric value
+Object.is(0, -0);       // false — Object.is distinguishes the signs
+
+NaN === NaN;            // false — NaN is never equal to itself
+Object.is(NaN, NaN);     // true
+
+// React compares state and props with Object.is:
+// setState(NaN) when state was already NaN bails out — no infinite re-render`}
+</CodeExample>
+
+<Callout type="interview">
+When `==` mixes types in an interview, narrate the conversion order out loud: **"object to primitive, then boolean to number, then string to number."** Saying the order beats reciting the answer.
 </Callout>
 
 </TopicTab>
 
 <TopicTab value="indepth">
 
-### What to focus on
+### The three comparisons
 
-- Definition and mental model
-- One gotcha interviewers love
-- How it connects to prerequisites in this track
+- `==` — **abstract equality**. Symmetric, deterministic, small rule set. Same type falls back to `===`.
+- `===` — **strict equality**. Type and value, no conversion. The default for everything.
+- `Object.is` — **sameness**. Identical to `===` except `NaN` equals itself and `+0` ≠ `-0`.
 
 ### Senior follow-ups
 
-Be ready to compare alternatives and describe when **not** to use this feature.
+Be ready to defend exactly one `==`: `x == null`. It's the null-or-undefined guard that predates `??`, still idiomatic in many codebases, and — critically — it stays false for `0` and `''`, which is what separates it from a sloppy truthiness check.
+
+Know why `Object.is` exists beyond trivia: it's what React uses under the hood for the bail-out check in `useState` and `React.memo`. That means a senior candidate can explain *why* `Object.is(NaN, NaN)` matters — without it, a state update to `NaN` would never converge.
+
+And the trap interviewers reach for when you say "always `===`": "So how do you check for `NaN`?" Answer: never with equality — `Number.isNaN(x)`, because `x !== x` works but reads like a riddle.
 
 </TopicTab>
 
 <TopicTab value="questions">
 
-<FlashcardDeck ids={['equali-1', 'equali-2', 'equali-3', 'equali-4']} />
+<FlashcardDeck ids={['equali-1', 'equali-2', 'equali-3', 'equali-4', 'equali-5']} />
 
 <InterviewQuestionBlock id="equali-1" />
 <InterviewQuestionBlock id="equali-2" />
 <InterviewQuestionBlock id="equali-3" />
 <InterviewQuestionBlock id="equali-4" />
+<InterviewQuestionBlock id="equali-5" />
 
 </TopicTab>
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<OutputPrediction
+  title="The [] == ![] trap"
+  expected="true"
+  hint="What does ![] evaluate to first? Then walk the == conversion order."
+  explanation="[] is truthy, so ![] is false. Then [] == false: [].toString() is '', false becomes 0, '' becomes 0 — and 0 === 0."
+  code={`console.log([] == ![]);`}
+/>
+
+<CodingChallenge
+  title="Implement a simplified =="
+  prompt="Implement looseEqual(a, b) covering the core == rules: same type → ===; null/undefined pair → true (and false against anything else); boolean → number first; string vs number → string to number; object vs primitive → convert via String(obj) first. (NaN falls out naturally: NaN === NaN is false.)"
+  starterCode={`function looseEqual(a, b) {
+  // your code
+}`}
+  tests={[
+    { label: 'same type behaves like ===', code: `if (looseEqual(5, 5) !== true) throw new Error('5, 5'); if (looseEqual(5, '5') !== true) throw new Error('5, "5"');` },
+    { label: 'null/undefined special pair', code: `if (looseEqual(null, undefined) !== true) throw new Error('null, undefined'); if (looseEqual(null, 0) !== false) throw new Error('null, 0 should be false');` },
+    { label: 'boolean converts to number first', code: `if (looseEqual(false, 0) !== true) throw new Error('false, 0'); if (looseEqual(true, '1') !== true) throw new Error('true, "1"');` },
+    { label: 'object converts to primitive first', code: `if (looseEqual([], false) !== true) throw new Error('[], false'); if (looseEqual([1], 1) !== true) throw new Error('[1], 1');` },
+    { label: 'NaN equals nothing', code: `if (looseEqual(NaN, NaN) !== false) throw new Error('NaN, NaN should be false');` },
+  ]}
+  hint="Order matters: check the null/undefined pair before boolean conversion (otherwise null → 0 breaks the special rule), and convert the boolean side first when one side is boolean."
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 

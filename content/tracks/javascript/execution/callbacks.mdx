@@ -8,40 +8,46 @@ estimatedMinutes: 30
 prerequisites:
   - functions
 keyTakeaways:
-  - Core concepts for Callbacks interviews
-  - Know the definition and one concrete example
-  - Watch for common traps senior interviewers probe
-  - Tie answers back to real debugging experience
+  - "A callback is a function you hand to another function to run later — it is not automatically async"
+  - "Async callbacks (timers, network, events) run after the current code finishes"
+  - "Error-first convention: the first callback argument is the error, the second is the result"
+  - "Deep nesting becomes callback hell — fix it with named functions, promises, or async/await"
+  - "Handing a callback to foreign code is a trust problem: it may fire never, twice, or synchronously"
 masteryCriteria:
   minQuestionsCorrect: 3
   requireChallenge: false
 difficulty: medium
 interviewQuestions:
-  - id: callba-1
-    question: What is Callbacks in JavaScript?
-    answer: Callback pattern, error-first callbacks, and callback hell.
+  - id: callb-1
+    question: What is a callback in JavaScript?
+    answer: A function passed as an argument to another function, to be invoked later — typically when an async operation (timer, network request, event) completes.
     difficulty: easy
     followUps:
-      - When would you reach for this in production code?
-      - What breaks if you misuse it?
-  - id: callba-2
-    question: What is a common interview trap around Callbacks?
-    answer: Interviewers often pair Callbacks with edge cases — state the rule, then walk through a short example.
+      - Is every callback asynchronous?
+  - id: callb-2
+    question: Does a callback have to be asynchronous?
+    answer: "No. Array methods like forEach and map take synchronous callbacks. Async-ness depends on the caller, not on the callback itself."
     difficulty: medium
     followUps:
-      - Can you show the fix in code?
-  - id: callba-3
-    question: How does Callbacks relate to other JS concepts you know?
-    answer: It connects to topics earlier in this track — mention scope, types, async, or the DOM where relevant.
+      - Name one sync and one async callback you have used.
+  - id: callb-3
+    question: What is callback hell, and how do you avoid it?
+    answer: Deep nesting when each async step needs the previous step's result — the "pyramid of doom". Avoid it with named functions, promises, or async/await.
     difficulty: medium
     followUps:
-      - Which topic would you review first if you got this wrong?
-  - id: callba-4
-    question: How would you explain Callbacks to a junior developer?
-    answer: Use plain language, one analogy, and one line of code — avoid spec jargon until they ask.
-    difficulty: easy
+      - Why is error handling harder inside nested callbacks?
+  - id: callb-4
+    question: What is the error-first callback convention?
+    answer: The callback's first argument is the error, the second is the result — callback(err, result). Always check err first and return early; never swallow errors.
+    difficulty: medium
     followUps:
-      - What follow-up question would you ask them to check understanding?
+      - What happens if you forget to return after handling the error?
+  - id: callb-5
+    question: Why are promises preferred over raw callbacks?
+    answer: "Inversion of control — once you hand a callback to third-party code, you can't trust when or how often it fires: never, twice, or even synchronously. Promises guarantee single, async resolution."
+    difficulty: hard
+    followUps:
+      - What does "never release Zalgo" mean?
 ---
 
 <TopicTabs>
@@ -50,9 +56,11 @@ interviewQuestions:
 
 <TopicDefinition>
 
-Callback pattern, error-first callbacks, and callback hell.
+If someone asks what a callback is, I'd say: it's a function you hand to another function, to be called **later**. "Call me back when you're done." Timers, network requests, event listeners — they all take callbacks.
 
-In interviews, lead with a clear one-liner, then add one example. Senior rounds go deeper on edge cases and trade-offs — have a short code snippet ready.
+The trap interviewers probe is assuming every callback is async. It's not — the callback doesn't decide. The caller does. `forEach` runs your callback right away; `setTimeout` parks it until the timer fires.
+
+Senior rounds go one layer deeper: **error handling** (the error-first `(err, result)` convention) and **trust** (once your callback is inside someone else's code, they can call it never, twice, or synchronously). That's the real reason promises exist.
 
 </TopicDefinition>
 
@@ -64,45 +72,136 @@ In interviews, lead with a clear one-liner, then add one example. Senior rounds 
 
 <TopicTab value="examples">
 
-<CodeExample title="Quick example" language="javascript">
-{`// Callbacks — add your own variation in the playground
-console.log('Review the in-depth tab and Q&A for this topic');`}
+<CodeExample title="Sync vs async callbacks" language="javascript">
+{`// The callback doesn't decide when it runs — the caller does.
+console.log('A');
+
+[1, 2].forEach((n) => console.log('sync', n)); // runs right now
+
+setTimeout(() => console.log('async'), 0);     // runs after A..Z
+
+console.log('Z');
+// A, sync 1, sync 2, Z, async`}
 </CodeExample>
 
-<Callout type="tip">
-Re-read the key takeaways, then try explaining Callbacks out loud in under 30 seconds.
+<CodeExample title="Error-first convention (Node.js style)" language="javascript">
+{`function readFileFake(path, callback) {
+  setTimeout(() => {
+    if (!path) {
+      callback(new Error('no path given'), null); // error first
+      return;                                     // always return after err
+    }
+    callback(null, 'file contents');              // null error = success
+  }, 100);
+}
+
+readFileFake('/a.txt', (err, data) => {
+  if (err) {
+    console.error('failed:', err.message);
+    return; // handle it or bail — never fall through
+  }
+  console.log('got:', data);
+});`}
+</CodeExample>
+
+<CodeExample title="Callback hell, then flattened" language="javascript">
+{`// Callback hell: each step nests inside the previous one.
+getUser(id, (user) => {
+  getOrders(user.id, (orders) => {
+    getTotals(orders, (total) => {
+      console.log(total); // pyramid of doom
+    });
+  });
+});
+
+// Same flow with named functions — flat and readable.
+function onUser(user)    { getOrders(user.id, onOrders); }
+function onOrders(orders) { getTotals(orders, onTotal); }
+function onTotal(total)   { console.log(total); }
+getUser(id, onUser);`}
+</CodeExample>
+
+<Callout type="interview">
+Say this out loud: **"A callback runs later — but later might be synchronous."** Then name one sync example (`forEach`) and one async one (`setTimeout`).
 </Callout>
 
 </TopicTab>
 
 <TopicTab value="indepth">
 
-### What to focus on
+### The traps interviewers actually set
 
-- Definition and mental model
-- One gotcha interviewers love
-- How it connects to prerequisites in this track
+**1. "Never release Zalgo"** — an API that calls your callback synchronously *sometimes* and asynchronously *other times* creates ordering bugs that only appear in production. Promises fix this: `.then` callbacks are always async, even for already-resolved values.
 
-### Senior follow-ups
+**2. Called twice (or never).** Nothing stops a buggy library from invoking your callback twice — charging a customer twice, appending two DOM nodes. The `callOnce` challenge below is the real-world guard.
 
-Be ready to compare alternatives and describe when **not** to use this feature.
+**3. Errors get swallowed.** Inside nested callbacks, a thrown error doesn't bubble to your try/catch — it lands in the event loop and vanishes. That's why error-first callbacks check `err` first, and why promise chains use `.catch`.
+
+### Worked example: bridging callbacks to promises
+
+This is the interview classic — wrap any error-first function so it returns a promise:
+
+{`function promisify(fn) {
+  return (...args) =>
+    new Promise((resolve, reject) => {
+      fn(...args, (err, result) => {
+        if (err) reject(err);
+        else resolve(result);
+      });
+    });
+}
+
+// Usage: const readFile = promisify(readFileFake);
+// readFile('/a.txt').then(console.log).catch(console.error);`}
+
+Node ships this as `util.promisify` — but interviewers often ask you to write it by hand.
 
 </TopicTab>
 
 <TopicTab value="questions">
 
-<FlashcardDeck ids={['callba-1', 'callba-2', 'callba-3', 'callba-4']} />
+<FlashcardDeck ids={['callb-1', 'callb-2', 'callb-3', 'callb-4', 'callb-5']} />
 
-<InterviewQuestionBlock id="callba-1" />
-<InterviewQuestionBlock id="callba-2" />
-<InterviewQuestionBlock id="callba-3" />
-<InterviewQuestionBlock id="callba-4" />
+<InterviewQuestionBlock id="callb-1" />
+<InterviewQuestionBlock id="callb-2" />
+<InterviewQuestionBlock id="callb-3" />
+<InterviewQuestionBlock id="callb-4" />
+<InterviewQuestionBlock id="callb-5" />
 
 </TopicTab>
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<OutputPrediction
+  title="Callback called twice, synchronously"
+  expected="A, B, B, C"
+  hint="Letters in order — how many times does runTwice call its callback?"
+  explanation="Callbacks aren't automatically async — runTwice calls it right away, and twice. Never assume a foreign callback runs exactly once."
+  code={`console.log('A');
+
+function runTwice(cb) { cb(); cb(); }
+runTwice(() => console.log('B'));
+
+console.log('C');`}
+/>
+
+<CodingChallenge
+  title="Guard a callback: callOnce"
+  prompt="Implement callOnce(fn) — return a wrapper that invokes fn the first time it is called and ignores all later calls. Forward arguments and the return value."
+  starterCode={`function callOnce(fn) {
+  // your code
+}`}
+  tests={[
+    { label: 'invokes the callback only once', code: `let n = 0; const f = callOnce(() => { n++; }); f(); f(); f(); if (n !== 1) throw new Error('expected 1 call, got ' + n);` },
+    { label: 'forwards arguments and return value', code: `const f = callOnce((a, b) => a + b); if (f(2, 3) !== 5) throw new Error('expected 5, got ' + f(2, 3));` },
+    { label: 'later calls are no-ops', code: `const seen = []; const f = callOnce((x) => seen.push(x)); f('a'); f('b'); if (seen.length !== 1 || seen[0] !== 'a') throw new Error('callback ran more than once');` },
+  ]}
+  hint="A closure flag does it — set called = true on the first run and bail early after that. This is how real libraries guard double-invocation."
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 

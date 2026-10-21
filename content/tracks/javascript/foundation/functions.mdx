@@ -8,40 +8,46 @@ estimatedMinutes: 30
 prerequisites:
   - hoisting
 keyTakeaways:
-  - Core concepts for Functions Deep Dive interviews
-  - Know the definition and one concrete example
-  - Watch for common traps senior interviewers probe
-  - Tie answers back to real debugging experience
+  - Function declarations are hoisted and callable before their definition; expressions and arrows are not
+  - Arrow functions have no own this, arguments, or prototype — use rest params instead of arguments
+  - Object methods need regular functions or method shorthand; arrows as methods break this
+  - 'Wrap implicit-return objects in parentheses: () => ({ ... })'
+  - 'Callable vs constructable: new needs a constructable function; arrows throw TypeError'
 masteryCriteria:
   minQuestionsCorrect: 3
   requireChallenge: false
 difficulty: medium
 interviewQuestions:
   - id: functi-1
-    question: What is Functions Deep Dive in JavaScript?
-    answer: Declarations, expressions, arrows, IIFEs, and default/rest params.
+    question: What is the difference between a function declaration and a function expression?
+    answer: A declaration (function f() {}) is hoisted with its body, so you can call it before it appears in the code. An expression (const f = function() {}) creates the function at runtime — with const/let it sits in the temporal dead zone until the line runs, so calling it early throws a ReferenceError.
     difficulty: easy
     followUps:
-      - When would you reach for this in production code?
-      - What breaks if you misuse it?
+      - When would you prefer a declaration over an expression?
   - id: functi-2
-    question: What is a common interview trap around Functions Deep Dive?
-    answer: Interviewers often pair Functions Deep Dive with edge cases — state the rule, then walk through a short example.
+    question: When should you NOT use an arrow function?
+    answer: Skip arrows when you need your own this (object or class methods), when the function will be called with new (arrows are not constructable and throw TypeError), and when you need the arguments object — arrows have none, so use rest params instead.
     difficulty: medium
     followUps:
-      - Can you show the fix in code?
+      - What happens when you pass an arrow function to call or bind?
   - id: functi-3
-    question: How does Functions Deep Dive relate to other JS concepts you know?
-    answer: It connects to topics earlier in this track — mention scope, types, async, or the DOM where relevant.
+    question: 'Why does const createUser = name => { name: name } return undefined?'
+    answer: 'The braces after the arrow start a block body, not an object literal — name: name parses as a label, and there is no return, so the result is undefined. Wrap the object in parentheses for implicit return: name => ({ name: name }).'
     difficulty: medium
     followUps:
-      - Which topic would you review first if you got this wrong?
+      - What other value could that snippet silently return?
   - id: functi-4
-    question: How would you explain Functions Deep Dive to a junior developer?
-    answer: Use plain language, one analogy, and one line of code — avoid spec jargon until they ask.
-    difficulty: easy
+    question: How does this differ between a regular function and an arrow function?
+    answer: A regular function's this depends on how it's called — as a method, this is the receiver; standalone, it's undefined in modules. An arrow function has no own this at all — it inherits this from the scope where it was defined, so it never changes no matter how you call it.
+    difficulty: medium
     followUps:
-      - What follow-up question would you ask them to check understanding?
+      - Why does an arrow function keep working when you detach a method from its object?
+  - id: functi-5
+    question: What happens when you call new on an arrow function?
+    answer: 'TypeError: it is not a constructor. Think callable vs constructable: declarations and expressions are both (callable, and constructable with new). Arrows and shorthand methods are callable only. Class constructors flip it — constructable only, calling them without new throws.'
+    difficulty: hard
+    followUps:
+      - Why do arrow functions lack a prototype property?
 ---
 
 <TopicTabs>
@@ -50,9 +56,11 @@ interviewQuestions:
 
 <TopicDefinition>
 
-Declarations, expressions, arrows, IIFEs, and default/rest params.
+If an interviewer asks how functions work in JavaScript, I'd start here: a function is a reusable block of code, and there are four ways to write one — a declaration (`function f() {}`), an expression (`const f = function() {}`), an arrow (`const f = () => {}`), and the method shorthand (`greet() {}` inside an object).
 
-In interviews, lead with a clear one-liner, then add one example. Senior rounds go deeper on edge cases and trade-offs — have a short code snippet ready.
+The question that follows is almost always about **arrows**: they don't get their own `this`, their own `arguments`, or a `prototype`. They borrow `this` from wherever they were defined. That's the feature when you write `.map(x => x * 2)` — and the trap when you write an object method as an arrow.
+
+One senior-level framing worth having: **callable vs constructable**. Regular functions are both — you can call them and `new` them. Arrows are callable only (`new` throws). Class constructors are the reverse — constructable only.
 
 </TopicDefinition>
 
@@ -64,45 +72,145 @@ In interviews, lead with a clear one-liner, then add one example. Senior rounds 
 
 <TopicTab value="examples">
 
-<CodeExample title="Quick example" language="javascript">
-{`// Functions Deep Dive — add your own variation in the playground
-console.log('Review the in-depth tab and Q&A for this topic');`}
+<CodeExample title="Declaration vs expression vs arrow" language="javascript">
+{`// Declaration: hoisted, callable before this line
+declared(); // works
+
+// Expression / arrow: TDZ until the line runs
+// arrow(); // ReferenceError: Cannot access 'arrow' before initialization
+
+function declared() { return 'hoisted'; }
+const arrow = () => 'not hoisted';`}
 </CodeExample>
 
-<Callout type="tip">
-Re-read the key takeaways, then try explaining Functions Deep Dive out loud in under 30 seconds.
+<CodeExample title="The arrow-method trap" language="javascript">
+{`const counter = {
+  count: 0,
+  // WRONG: arrow takes this from the enclosing scope, not counter
+  increment: () => { this.count++; },
+  // RIGHT: method shorthand gets this = counter
+  bump() { this.count++; },
+};`}
+</CodeExample>
+
+<CodeExample title="Implicit return with objects" language="javascript">
+{`// WRONG: braces are a block body, { name: name } is a label — returns undefined
+const makeUser = (name) => { name: name };
+
+// RIGHT: wrap the object in parentheses
+const makeUser2 = (name) => ({ name: name });
+console.log(makeUser2('ada')); // { name: 'ada' }`}
+</CodeExample>
+
+<CodeExample title="Default and rest params" language="javascript">
+{`function greet(name = 'guest') {
+  return \`hi \${name}\`;
+}
+greet();      // 'hi guest'
+greet('ada'); // 'hi ada'
+
+// Rest params replace the arguments object (arrows have none)
+const sum = (...numbers) => numbers.reduce((a, b) => a + b, 0);
+sum(1, 2, 3); // 6`}
+</CodeExample>
+
+<Callout type="interview">
+When an interviewer says "functions," lead with the **four forms** — declaration, expression, arrow, method — then state the arrow rule: **no own `this`, no `arguments`, no `new`**.
 </Callout>
 
 </TopicTab>
 
 <TopicTab value="indepth">
 
-### What to focus on
+### Named function expressions
 
-- Definition and mental model
-- One gotcha interviewers love
-- How it connects to prerequisites in this track
+Anonymous functions show up as `(anonymous)` in stack traces. Naming the expression costs nothing and makes debugging real:
 
-### Senior follow-ups
+<CodeExample title="Named function expressions" language="javascript">
+{`const factorial = function fact(n) {
+  return n <= 1 ? 1 : n * fact(n - 1); // fact is visible only inside itself
+};`}
+</CodeExample>
 
-Be ready to compare alternatives and describe when **not** to use this feature.
+The inner name `fact` is scoped to the function body — handy for recursion without depending on the outer variable.
+
+### IIFEs are scope, not magic
+
+An immediately-invoked function expression just runs code in its own scope. Modules and block scoping made them rare, but you'll still read them in older codebases:
+
+<CodeExample title="IIFE" language="javascript">
+{`(function () {
+  const secret = 'not global';
+  // ... setup work ...
+})();`}
+</CodeExample>
+
+### Senior nuance: arrow class fields cost memory
+
+`handler = () => {}` as a class field is "auto-bound," but the arrow is created **per instance**, not once on the prototype. In hot paths with thousands of instances, a prototype method plus an explicit bind in the constructor can be leaner.
+
+### Useful built-ins
+
+- `fn.length` — number of declared parameters (rest params don't count)
+- `fn.name` — the function's name, even when inferred from a variable
+- `fn.call(thisArg, ...args)` / `fn.apply(thisArg, args)` / `fn.bind(thisArg)` — control `this` (no effect on arrows)
 
 </TopicTab>
 
 <TopicTab value="questions">
 
-<FlashcardDeck ids={['functi-1', 'functi-2', 'functi-3', 'functi-4']} />
+<FlashcardDeck ids={['functi-1', 'functi-2', 'functi-3', 'functi-4', 'functi-5']} />
 
 <InterviewQuestionBlock id="functi-1" />
 <InterviewQuestionBlock id="functi-2" />
 <InterviewQuestionBlock id="functi-3" />
 <InterviewQuestionBlock id="functi-4" />
+<InterviewQuestionBlock id="functi-5" />
 
 </TopicTab>
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<OutputPrediction
+  title="Arrows have no own arguments"
+  expected="caught"
+  hint="Arrow functions don't bind their own arguments — so whose arguments does it see?"
+  explanation="Arrows have no own arguments binding, so arguments resolves to the enclosing function's — outer('caught') makes arguments[0] equal 'caught'. In an interview, say: use rest params instead."
+  code={`function outer() {
+  const inner = () => arguments[0];
+  return inner();
+}
+console.log(outer('caught'));`}
+/>
+
+<OutputPrediction
+  title="Default params run fresh each call"
+  expected="2"
+  hint="When does the default expression evaluate — once, or on every call that skips the argument?"
+  explanation="Default expressions evaluate lazily on every call that omits the argument. First id() bumps n to 1 and returns 1; the second id() bumps n to 2. So the printed value is 2."
+  code={`let n = 0;
+function id(x = ++n) { return x; }
+id();
+console.log(id());`}
+/>
+
+<CodingChallenge
+  title="Implement once()"
+  prompt="Write once(fn): it returns a wrapper that calls fn at most one time and returns the first result on every later call. This is the real lodash _.once pattern — used for init code and lazy singletons."
+  starterCode={`function once(fn) {
+  // your code
+}`}
+  tests={[
+    { label: 'calls the wrapped function only once', code: `let calls = 0; const f = once(() => { calls++; return 42; }); f(); f(); if (calls !== 1) throw new Error('fn ran ' + calls + ' times, expected 1');` },
+    { label: 'returns the first result every time', code: `const f = once(() => ({ a: 1 })); const r1 = f(); const r2 = f(); if (r1 !== r2) throw new Error('expected the same cached result');` },
+    { label: 'forwards arguments to fn', code: `const f = once((a, b) => a + b); if (f(2, 3) !== 5) throw new Error('expected 5, got ' + f(2, 3));` },
+  ]}
+  hint="A closure holds a flag plus the cached result between calls. Remember to apply fn with the wrapper's this and arguments so methods keep working."
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 

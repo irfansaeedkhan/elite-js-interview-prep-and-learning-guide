@@ -9,40 +9,50 @@ prerequisites:
   - strings
   - numbers
 keyTakeaways:
-  - Core concepts for Type Coercion interviews
-  - Know the definition and one concrete example
-  - Watch for common traps senior interviewers probe
-  - Tie answers back to real debugging experience
+  - "Coercion is operator-driven: the operator picks a target type, then converts the operands"
+  - "`+` concatenates if either side (after ToPrimitive) is a string; every other arithmetic operator converts to numbers"
+  - Objects become primitives via Symbol.toPrimitive first, then valueOf/toString in hint order — "string" hint tries toString first
+  - Falsy is exactly 0, -0, 0n, "", null, undefined, NaN, false — everything else, including [] and {}, is truthy
+  - "Chained comparisons don't chain: 1 < 2 < 3 evaluates left to right as (1 < 2) < 3"
 masteryCriteria:
   minQuestionsCorrect: 3
   requireChallenge: false
 difficulty: medium
 interviewQuestions:
   - id: typeco-1
-    question: What is Type Coercion in JavaScript?
-    answer: Implicit and explicit coercion — what +, ==, and Boolean() really do.
+    question: What is type coercion, and when does it happen?
+    answer: "It's JavaScript converting a value's type automatically so an operation can proceed. It happens because operators demand a type: `+` wants a string if either side is one, `-` and friends want numbers, `if` and `&&` want booleans. The conversion is implicit — I didn't ask for it, the operator did."
     difficulty: easy
     followUps:
-      - When would you reach for this in production code?
-      - What breaks if you misuse it?
+      - What's the difference between implicit and explicit coercion?
+      - When would you prefer explicit conversion in real code?
   - id: typeco-2
-    question: What is a common interview trap around Type Coercion?
-    answer: Interviewers often pair Type Coercion with edge cases — state the rule, then walk through a short example.
-    difficulty: medium
-    followUps:
-      - Can you show the fix in code?
-  - id: typeco-3
-    question: How does Type Coercion relate to other JS concepts you know?
-    answer: It connects to topics earlier in this track — mention scope, types, async, or the DOM where relevant.
-    difficulty: medium
-    followUps:
-      - Which topic would you review first if you got this wrong?
-  - id: typeco-4
-    question: How would you explain Type Coercion to a junior developer?
-    answer: Use plain language, one analogy, and one line of code — avoid spec jargon until they ask.
+    question: Why does '5' + 3 give '53' but '5' - 3 give 2?
+    answer: "`+` is the odd one out: if either operand ends up a string after ToPrimitive, it concatenates. Every other arithmetic operator — `-`, `*`, `/` — converts both sides to numbers first. So `'5' + 3` is string concatenation, while `'5' - 3` is 5 minus 3."
     difficulty: easy
     followUps:
-      - What follow-up question would you ask them to check understanding?
+      - What does [] + [] evaluate to, and why?
+      - How would you force numeric addition when a value might be a string?
+  - id: typeco-3
+    question: How does an object become a primitive?
+    answer: "Through ToPrimitive. JavaScript first checks Symbol.toPrimitive with a hint — 'string', 'number', or 'default'. Without it, the 'string' hint tries toString then valueOf; 'number' and 'default' try valueOf then toString. The first method that returns a primitive wins; if none do, you get a TypeError."
+    difficulty: medium
+    followUps:
+      - Why is Date the exception to the default-hint order?
+      - Give a real use case for a custom Symbol.toPrimitive.
+  - id: typeco-4
+    question: What does [] + {} evaluate to, and why?
+    answer: "'[object Object]'. `+` uses the 'default' hint on both sides, so each runs valueOf first (returns the object itself — not a primitive), then toString: `[]` becomes '' and `{}` becomes '[object Object]'. Now one side is a string, so `+` concatenates: '' + '[object Object]'."
+    difficulty: medium
+    followUps:
+      - Why does typing {} + [] in a console print 0 instead?
+      - What would [] + [] give, and why is it different?
+  - id: typeco-5
+    question: Why is 1 < 2 < 3 true?
+    answer: "Comparisons don't chain — they evaluate left to right. `1 < 2` is true, then `true < 3` coerces true to 1, and `1 < 3` is true. Same machinery makes `3 > 2 > 1` false: `3 > 2` is true, then `true > 1` is `1 > 1`, which is false."
+    difficulty: medium
+    followUps:
+      - How would you write the check the author probably meant?
 ---
 
 <TopicTabs>
@@ -51,9 +61,11 @@ interviewQuestions:
 
 <TopicDefinition>
 
-Implicit and explicit coercion — what +, ==, and Boolean() really do.
+If someone asks what type coercion is, I'd say: JavaScript converts values between types automatically when an operator needs it to. You never called `Number()` — the operator did it on your behalf.
 
-In interviews, lead with a clear one-liner, then add one example. Senior rounds go deeper on edge cases and trade-offs — have a short code snippet ready.
+The mental model that makes the weird stuff predictable: **the operator decides the target type**. `+` says "string if I see one, otherwise numbers." `-`, `*`, `/`, and `<` say "numbers, always." `if`, `&&`, and `!` say "booleans." Once you know what the operator wants, the result stops being magic.
+
+Interviewers probe the two places this bites: objects turning into primitives (`valueOf`/`toString`, hint order) and the falsy list. Nail those and every "trick question" is just arithmetic.
 
 </TopicDefinition>
 
@@ -65,45 +77,144 @@ In interviews, lead with a clear one-liner, then add one example. Senior rounds 
 
 <TopicTab value="examples">
 
-<CodeExample title="Quick example" language="javascript">
-{`// Type Coercion — add your own variation in the playground
-console.log('Review the in-depth tab and Q&A for this topic');`}
+<CodeExample title="The + split personality" language="javascript">
+{`'5' + 3;      // '53' — + concatenates if either side is a string
+'5' - 3;      // 2 — minus always converts to numbers first
+'5' * '2';    // 10 — both strings become numbers
+true + true;  // 2 — booleans become 1 and 1
+
+// Evaluation is left to right — the string "infects" what follows:
+1 + '2' + 3;  // '123' — (1 + '2') is '12', then '12' + 3
+1 + 2 + '3';  // '33'  — (1 + 2) is 3, then 3 + '3'`}
 </CodeExample>
 
-<Callout type="tip">
-Re-read the key takeaways, then try explaining Type Coercion out loud in under 30 seconds.
+<CodeExample title="Objects to primitives" language="javascript">
+{`// A plain object's valueOf returns the object itself (not a
+// primitive), so it falls through to toString:
+String({});   // '[object Object]'
+String([1, 2]); // '1,2' — arrays join with commas
+String([]);   // '' — empty array becomes the empty string
+
+// That's the whole story behind the classics:
+[] + [];      // '' — '' + ''
+[] + {};      // '[object Object]' — '' + '[object Object]'`}
+</CodeExample>
+
+<CodeExample title="Boolean coercion: the falsy list" language="javascript">
+{`Boolean('');        // false
+Boolean('hello');   // true — any non-empty string is truthy
+Boolean([]);        // true — objects are NEVER falsy
+Boolean({});        // true
+Boolean(0n);        // false — BigInt zero is falsy, like 0
+
+if ([]) {
+  // this runs — [] is truthy, a classic interview gotcha
+}`}
+</CodeExample>
+
+<Callout type="interview">
+When an interviewer shows `x + y` with mixed types, narrate it: **"ToPrimitive both sides, then if either is a string, concatenate; otherwise convert to numbers."** Saying the order beats reciting the answer.
 </Callout>
 
 </TopicTab>
 
 <TopicTab value="indepth">
 
-### What to focus on
+### ToPrimitive: the order that decides everything
 
-- Definition and mental model
-- One gotcha interviewers love
-- How it connects to prerequisites in this track
+Whenever an operator needs a primitive from an object, JavaScript runs `ToPrimitive` with one of three hints. The hint picks the method order — and the first method returning a primitive wins:
+
+- **"string"** — template literals, `String()`: `Symbol.toPrimitive` → `toString` → `valueOf`
+- **"number"** — unary `+`, `Number()`, `-`: `Symbol.toPrimitive` → `valueOf` → `toString`
+- **"default"** — binary `+`, `==`: `Symbol.toPrimitive` → `valueOf` → `toString`
+
+The one exception: **Date** treats `"default"` as `"string"`, which is why `new Date(0) + 1` concatenates instead of adding.
+
+<CodeExample title="Hint order in action" language="javascript">
+{`const weird = {
+  valueOf() { return 10; },
+  toString() { return 'twenty'; },
+};
+
+String(weird);  // 'twenty' — 'string' hint tries toString first
++weird;         // 10 — 'number' hint tries valueOf first
+weird + 5;      // 15 — 'default' hint tries valueOf first`}
+</CodeExample>
+
+<CodeExample title="Symbol.toPrimitive overrides everything" language="javascript">
+{`const price = {
+  amount: 1000,
+  currency: 'USD',
+  [Symbol.toPrimitive](hint) {
+    if (hint === 'string') return this.amount + ' ' + this.currency;
+    return this.amount; // 'number' and 'default'
+  },
+};
+
+String(price);  // '1000 USD'
++price;         // 1000
+price + 50;     // 1050`}
+</CodeExample>
+
+### The console trap: {} + []
+
+Type `{} + []` in a console and you get `0`, not `'[object Object]'`. That's not coercion — it's parsing. At the start of a statement, `{}` is read as an empty **block**, so the engine only sees `+[]`: unary plus on `[]`, which ToPrimitives to `''`, then to `0`. Wrap it in parentheses — `({} + [])` — and the object survives: `'[object Object]'`.
 
 ### Senior follow-ups
 
-Be ready to compare alternatives and describe when **not** to use this feature.
+Be ready to say when **not** to lean on coercion. At system boundaries — API payloads, form values, URL params — convert explicitly: `Number(input)`, `String(id)`. Implicit coercion stays readable only for the idioms everyone recognizes: `!!value` for booleans, `+str` for numbers, `value ?? fallback` instead of `||` when `0` and `''` are valid.
+
+And know the famous applied-coercion interview question: a chainable `add(1)(2)(3)` that coerces to its running total. It's in the playground below — implementing it with `Symbol.toPrimitive` is the difference between reciting the rules and using them.
 
 </TopicTab>
 
 <TopicTab value="questions">
 
-<FlashcardDeck ids={['typeco-1', 'typeco-2', 'typeco-3', 'typeco-4']} />
+<FlashcardDeck ids={['typeco-1', 'typeco-2', 'typeco-3', 'typeco-4', 'typeco-5']} />
 
 <InterviewQuestionBlock id="typeco-1" />
 <InterviewQuestionBlock id="typeco-2" />
 <InterviewQuestionBlock id="typeco-3" />
 <InterviewQuestionBlock id="typeco-4" />
+<InterviewQuestionBlock id="typeco-5" />
 
 </TopicTab>
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<OutputPrediction
+  title="Minus first, plus second"
+  expected="22"
+  hint="Two operators — which one converts to numbers, and which one concatenates?"
+  explanation="'5' - '3' converts both sides to numbers: 2. Then 2 + '2' sees a string and concatenates: '22'. Mixed operators evaluate left to right, each applying its own rule."
+  code={`console.log('5' - '3' + '2');`}
+/>
+
+<OutputPrediction
+  title="Chained comparison"
+  expected="true"
+  hint="Comparisons evaluate left to right — what is 1 < 2, and what does it become next?"
+  explanation="1 < 2 is true. Then true < 3 coerces true to 1, and 1 < 3 is true. Comparisons never chain the way they read in math notation."
+  code={`console.log(1 < 2 < 3);`}
+/>
+
+<CodingChallenge
+  title="Chainable add with coercion"
+  prompt="Implement add(n) so that add(1)(2)(3) accumulates a running total, and the result coerces to that total: +add(1)(2) should be 3, and String(add(5)) should be '5'. Use Symbol.toPrimitive so every hint ('number', 'string', 'default') works."
+  starterCode={`function add(n) {
+  // return a function that adds to n and coerces to the total
+}`}
+  tests={[
+    { label: '+add(1)(2) is 3', code: `if (+add(1)(2) !== 3) throw new Error('expected 3, got ' + +add(1)(2));` },
+    { label: 'add(1)(2)(3) + 0 is 6', code: `if (add(1)(2)(3) + 0 !== 6) throw new Error('expected 6, got ' + (add(1)(2)(3) + 0));` },
+    { label: "String(add(5)) is '5'", code: `if (String(add(5)) !== '5') throw new Error("expected '5', got " + String(add(5)));` },
+  ]}
+  hint="Return a function from add; attach Symbol.toPrimitive to that function so the running total wins for every hint."
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 

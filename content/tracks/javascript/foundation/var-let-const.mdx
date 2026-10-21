@@ -9,40 +9,41 @@ prerequisites:
   - scope
   - hoisting
 keyTakeaways:
-  - Core concepts for var, let, and const interviews
-  - Know the definition and one concrete example
-  - Watch for common traps senior interviewers probe
-  - Tie answers back to real debugging experience
+  - var is function-scoped and initialized to undefined on hoist; let and const are block-scoped and throw in the temporal dead zone
+  - Reading a let or const before its declaration throws a ReferenceError — that is the TDZ, not "not hoisted"
+  - Closures capture the variable, not its value — the var loop plus setTimeout prints the final value every time
+  - const locks the binding, not the contents — push into a const array all day, but never reassign it
+  - Default to const, reach for let when the value genuinely changes, and don't write new var
 masteryCriteria:
   minQuestionsCorrect: 3
   requireChallenge: false
 difficulty: easy
 interviewQuestions:
   - id: varlet-1
-    question: What is var, let, and const in JavaScript?
-    answer: Block scoping, temporal dead zone, and const immutability.
+    question: Explain the difference between var, let, and const.
+    answer: "var is function-scoped and gets hoisted with the value undefined. let and const are block-scoped, and they are also hoisted — but reading them before the declaration throws a ReferenceError because of the temporal dead zone. const additionally requires an initial value and forbids reassignment."
     difficulty: easy
-    followUps:
-      - When would you reach for this in production code?
-      - What breaks if you misuse it?
   - id: varlet-2
-    question: What is a common interview trap around var, let, and const?
-    answer: Interviewers often pair var, let, and const with edge cases — state the rule, then walk through a short example.
+    question: What is the temporal dead zone?
+    answer: "It's the stretch of code between entering a scope and the line where a let or const is declared. Touching the variable in that window throws 'Cannot access before initialization'. The declaration is hoisted — that's exactly why the engine knows to throw instead of returning undefined."
     difficulty: medium
     followUps:
-      - Can you show the fix in code?
+      - Does that mean let is not hoisted?
+      - What happens with var in the same position?
   - id: varlet-3
-    question: How does var, let, and const relate to other JS concepts you know?
-    answer: It connects to topics earlier in this track — mention scope, types, async, or the DOM where relevant.
+    question: What does a for loop with var and setTimeout print, and why?
+    answer: "for (var i = 0; i < 3; i++) setTimeout(() => console.log(i)) prints 3, 3, 3. var is function-scoped, so all three callbacks close over the same i, and the loop finishes — leaving i at 3 — before any callback runs. Fix it with let: each iteration then gets its own fresh binding."
     difficulty: medium
     followUps:
-      - Which topic would you review first if you got this wrong?
+      - How did people fix this before let existed?
+      - What is a closure actually capturing here?
   - id: varlet-4
-    question: How would you explain var, let, and const to a junior developer?
-    answer: Use plain language, one analogy, and one line of code — avoid spec jargon until they ask.
-    difficulty: easy
+    question: Does const make an object immutable?
+    answer: "No. const only locks the binding — you cannot reassign the variable itself. The contents are still mutable: pushing to a const array or changing a property on a const object works fine. Reassignment throws 'Assignment to constant variable'."
+    difficulty: medium
     followUps:
-      - What follow-up question would you ask them to check understanding?
+      - How would you truly freeze an object?
+      - When would you use let over const in production code?
 ---
 
 <TopicTabs>
@@ -51,9 +52,11 @@ interviewQuestions:
 
 <TopicDefinition>
 
-Block scoping, temporal dead zone, and const immutability.
+If someone asks the difference between `var`, `let`, and `const`, I'd say `var` is the old one — it ignores blocks and leaks to the whole function, and it's initialized to `undefined` even before its line runs. `let` and `const` are block-scoped and were added to fix exactly that.
 
-In interviews, lead with a clear one-liner, then add one example. Senior rounds go deeper on edge cases and trade-offs — have a short code snippet ready.
+The trap interviewers love is the **temporal dead zone**: `let` and `const` are hoisted too, but reading them before the declaration line throws a ReferenceError. "It's hoisted, just uninitialized" is the senior version of the answer.
+
+Senior rounds also probe the **loop trap** — `for (var i ...)` with async callbacks sees the final value every time, because closures capture the variable, not a copy of its value. Swapping to `let` gives each iteration its own binding. That's the one to have rehearsed.
 
 </TopicDefinition>
 
@@ -65,28 +68,84 @@ In interviews, lead with a clear one-liner, then add one example. Senior rounds 
 
 <TopicTab value="examples">
 
-<CodeExample title="Quick example" language="javascript">
-{`// var, let, and const — add your own variation in the playground
-console.log('Review the in-depth tab and Q&A for this topic');`}
+<CodeExample title="Scope and hoisting" language="javascript">
+{`function scopeDemo() {
+  if (true) {
+    var leaked = 'var ignores blocks';
+    let kept = 'let stays in the block';
+  }
+  console.log(leaked); // 'var ignores blocks'
+  console.log(kept);   // ReferenceError: kept is not defined
+}
+
+console.log(hoisted);  // undefined — var is hoisted AND initialized
+var hoisted = 1;`}
 </CodeExample>
 
-<Callout type="tip">
-Re-read the key takeaways, then try explaining var, let, and const out loud in under 30 seconds.
+<CodeExample title="The temporal dead zone" language="javascript">
+{`{
+  console.log(a); // ReferenceError: Cannot access 'a' before initialization
+  let a = 1;      // the TDZ ends here
+
+  console.log(b); // undefined — no TDZ for var
+  var b = 2;
+}`}
+</CodeExample>
+
+<CodeExample title="const locks the binding, not the contents" language="javascript">
+{`const user = { name: 'Ada' };
+user.name = 'Grace';      // fine — mutating contents
+user = { name: 'Lin' };   // TypeError: Assignment to constant variable
+
+const tags = ['js'];
+tags.push('ts');          // fine
+// tags = [];             // TypeError`}
+</CodeExample>
+
+<Callout type="interview">
+Say **"the binding, not the value"** for const, and **"hoisted but uninitialized"** for the TDZ. Those phrases land.
 </Callout>
 
 </TopicTab>
 
 <TopicTab value="indepth">
 
-### What to focus on
+<CodeExample title="The famous loop trap, walked through" language="javascript">
+{`// prints 3, 3, 3 — one shared 'i' across all iterations
+for (var i = 0; i < 3; i++) {
+  setTimeout(() => console.log(i), 0);
+}
 
-- Definition and mental model
-- One gotcha interviewers love
-- How it connects to prerequisites in this track
+// prints 0, 1, 2 — 'let' gives every iteration a fresh binding
+for (let j = 0; j < 3; j++) {
+  setTimeout(() => console.log(j), 0);
+}
+
+// the pre-ES6 fix: a function call per iteration captures the value
+for (var k = 0; k < 3; k++) {
+  (function (value) {
+    setTimeout(() => console.log(value), 0);
+  })(k);
+}`}
+</CodeExample>
+
+<CodeExample title="Redeclaration and the for-of habit" language="javascript">
+{`var x = 1;
+var x = 2; // allowed — silently overwrites, another reason to avoid var
+
+// let x = 3; // SyntaxError: Identifier 'x' has already been declared
+
+for (const item of ['a', 'b']) {
+  // const works in for-of: each iteration re-declares it
+  console.log(item);
+}`}
+</CodeExample>
 
 ### Senior follow-ups
 
-Be ready to compare alternatives and describe when **not** to use this feature.
+- **Is let hoisted?** Yes — the engine knows the name exists, which is exactly why touching it early throws a ReferenceError instead of returning `undefined`.
+- **Why avoid var in new code?** Function scoping leaks across blocks, redeclaration is silently allowed, and the hoisted `undefined` masks bugs the TDZ would surface.
+- **When do you use let over const?** Only when the variable is genuinely reassigned — counters, accumulators, swap variables. Default to const and let the compiler catch accidents.
 
 </TopicTab>
 
@@ -103,7 +162,51 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<OutputPrediction
+  title="The var loop trap"
+  expected="3 3 3"
+  hint="Think about when the callbacks run relative to the loop — and how many i variables there are."
+  explanation="var is function-scoped, so all three callbacks close over the same i. The loop finishes first, leaving i at 3, and only then do the callbacks run — reading the current value of that one shared variable."
+  code={`for (var i = 0; i < 3; i++) {
+  setTimeout(() => console.log(i), 0);
+}`}
+/>
+
+<OutputPrediction
+  title="TDZ or undefined?"
+  expected="ReferenceError undefined"
+  hint="The first line runs before any declaration. Which keyword gives a TDZ?"
+  explanation="The let read happens inside its temporal dead zone, so it throws a ReferenceError. The var read happens before initialization but var has no TDZ — hoisted var starts as undefined."
+  code={`try {
+  console.log(value);
+} catch (e) {
+  console.log(e.constructor.name);
+}
+let value = 1;
+
+console.log(other);
+var other = 2;`}
+/>
+
+<CodingChallenge
+  title="Capture each iteration's value"
+  prompt="Implement makeIndexedLoggers(count) — it must return an array of count functions, where calling the i-th function returns i. The naive version closes over one shared variable and returns count every time; prove you can make each function remember its own value."
+  starterCode={`function makeIndexedLoggers(count) {
+  const loggers = [];
+  // your code
+  return loggers;
+}`}
+  tests={[
+    { label: 'each logger returns its own index', code: `const ls = makeIndexedLoggers(3); if (ls.length !== 3) throw new Error('expected 3 loggers, got ' + ls.length); if (ls[0]() !== 0 || ls[1]() !== 1 || ls[2]() !== 2) throw new Error('got ' + [ls[0](), ls[1](), ls[2]()].join(','));` },
+    { label: 'loggers are independent of each other', code: `const ls = makeIndexedLoggers(5); const before = ls[4](); ls[0](); ls[1](); if (ls[4]() !== before) throw new Error('logger 4 changed after calling others');` },
+    { label: 'zero count returns empty array', code: `if (makeIndexedLoggers(0).length !== 0) throw new Error('expected empty array');` },
+  ]}
+  hint="Closures capture the binding, not the value. You need a fresh binding per iteration — think about what let does in a loop, or wrap the push in a function call."
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 

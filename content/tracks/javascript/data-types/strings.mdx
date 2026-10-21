@@ -10,6 +10,7 @@ keyTakeaways:
   - Template literals support interpolation and multiline text
   - Common methods include slice, includes, split, and trim
   - Coercion with + often produces unexpected results in interviews
+  - Unary + binds tighter than binary + — 'b' + 'a' + + 'a' + 'a' is "baNaNa"
 masteryCriteria:
   minQuestionsCorrect: 3
   requireChallenge: false
@@ -31,6 +32,10 @@ interviewQuestions:
     question: How do template literals differ from single-quoted strings?
     answer: Template literals use backticks, support ${expression} interpolation, and can span multiple lines.
     difficulty: easy
+  - id: str-5
+    question: What does 'b' + 'a' + + 'a' + 'a' print, and why?
+    answer: "'baNaNa'. Unary + binds tighter, so +'a' becomes NaN first; then left-to-right concatenation gives 'ba' + 'NaN' + 'a'."
+    difficulty: medium
 ---
 
 <TopicTabs>
@@ -70,6 +75,14 @@ console.log('5' - 3);   // 2
 console.log(Number('42')); // 42`}
 </CodeExample>
 
+<CodeExample title="slice vs substring" language="javascript">
+{`'hello'.slice(1, 3);     // 'el'
+'hello'.slice(-3);        // 'llo' — negatives count from the end
+'hello'.substring(1, 3);  // 'el'
+'hello'.substring(-3);    // 'hello' — negatives treated as 0
+'hello'.substring(3, 1);  // 'el' — arguments get swapped`}
+</CodeExample>
+
 <Callout type="interview">
 When you see `+` with mixed types, say **"string concatenation wins if either side is a string."**
 </Callout>
@@ -84,6 +97,13 @@ When you see `+` with mixed types, say **"string concatenation wins if either si
 s = 'Hello'; // reassignment, not mutation`}
 </CodeExample>
 
+<CodeExample title="Surrogate pairs" language="javascript">
+{`'👋'.length;             // 2 — one emoji, two UTF-16 code units
+'👋'.split('').length;   // 2 — split breaks the pair
+Array.from('👋').length; // 1 — iterates code points
+[...'👋👋'].length;       // 2 — spread uses code points too`}
+</CodeExample>
+
 ### Useful methods
 
 - `includes(sub)` — boolean search
@@ -95,12 +115,13 @@ s = 'Hello'; // reassignment, not mutation`}
 
 <TopicTab value="questions">
 
-<FlashcardDeck ids={['str-1', 'str-2', 'str-3', 'str-4']} />
+<FlashcardDeck ids={['str-1', 'str-2', 'str-3', 'str-4', 'str-5']} />
 
 <InterviewQuestionBlock id="str-1" />
 <InterviewQuestionBlock id="str-2" />
 <InterviewQuestionBlock id="str-3" />
 <InterviewQuestionBlock id="str-4" />
+<InterviewQuestionBlock id="str-5" />
 
 </TopicTab>
 
@@ -114,6 +135,28 @@ s = 'Hello'; // reassignment, not mutation`}
   hint="Single value — what does console.log print?"
   explanation="The + operator sees a string on the left, so it concatenates: '5' + 3 becomes '53', not 8."
   code={`console.log('5' + 3);`}
+/>
+
+<OutputPrediction
+  title="The 'baNaNa' trap"
+  expected="baNaNa"
+  hint="Work left to right — but what does +'a' evaluate to first?"
+  explanation="Unary + binds tighter than binary +. So 'b' + 'a' + (+'a') + 'a' → 'ba' + NaN + 'a' → 'baNaNa'. Interviewers love this one."
+  code={`console.log('b' + 'a' + + 'a' + 'a');`}
+/>
+
+<CodingChallenge
+  title="Truncate without breaking emoji"
+  prompt="Implement truncate(str, maxLength) — keep the first maxLength characters, add '…' only when the string was actually cut. It must not split surrogate pairs (emoji)."
+  starterCode={`function truncate(str, maxLength) {
+  // your code
+}`}
+  tests={[
+    { label: 'short string untouched', code: `if (truncate('hello', 10) !== 'hello') throw new Error('expected hello, got ' + truncate('hello', 10));` },
+    { label: 'adds ellipsis when cut', code: `if (truncate('hello world', 5) !== 'hello…') throw new Error('expected hello…, got ' + truncate('hello world', 5));` },
+    { label: 'emoji survives truncation', code: `const out = truncate('👋👋👋👋', 2); if (out !== '👋👋…') throw new Error('expected 👋👋…, got ' + out);` },
+  ]}
+  hint="Iterate code points with Array.from(str), not UTF-16 units — slice(0, 2) on '👋' gives a lone surrogate."
 />
 
 </TopicPlayground>

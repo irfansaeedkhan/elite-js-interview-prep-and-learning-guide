@@ -8,40 +8,42 @@ estimatedMinutes: 20
 prerequisites:
   - numbers
 keyTakeaways:
-  - Core concepts for BigInt interviews
-  - Know the definition and one concrete example
-  - Watch for common traps senior interviewers probe
-  - Tie answers back to real debugging experience
+  - BigInt stores integers beyond Number.MAX_SAFE_INTEGER (2^53 - 1) with no precision loss
+  - Mixing BigInt and Number in arithmetic throws a TypeError — convert one side explicitly first
+  - BigInt division truncates — 5n / 2n is 2n, never 2.5n
+  - JSON.stringify throws on BigInt — stringify with toString() first
+  - 0n === 0 is false but 0n == 0 is true; relational comparisons (<, >) mix types freely
 masteryCriteria:
   minQuestionsCorrect: 3
   requireChallenge: false
 difficulty: easy
 interviewQuestions:
   - id: bigint-1
-    question: What is BigInt in JavaScript?
-    answer: Arbitrary-precision integers beyond Number.MAX_SAFE_INTEGER.
+    question: Why can't you just use regular numbers for very large integers?
+    answer: "Numbers are 64-bit floats, so integer precision dies past 2^53 - 1: Number.MAX_SAFE_INTEGER + 1 === Number.MAX_SAFE_INTEGER + 2 is true. BigInt stores arbitrarily large integers exactly — BigInt(Number.MAX_SAFE_INTEGER) + 2n is 9007199254740993n."
     difficulty: easy
     followUps:
       - When would you reach for this in production code?
-      - What breaks if you misuse it?
   - id: bigint-2
-    question: What is a common interview trap around BigInt?
-    answer: Interviewers often pair BigInt with edge cases — state the rule, then walk through a short example.
-    difficulty: medium
+    question: What happens when you mix a BigInt and a Number in an arithmetic operation?
+    answer: "TypeError. The engine won't guess whether the result should be a Number or a BigInt, so it refuses — 1n + 1 throws. Convert one side explicitly: 1n + BigInt(1) or Number(1n) + 1."
+    difficulty: easy
     followUps:
       - Can you show the fix in code?
   - id: bigint-3
-    question: How does BigInt relate to other JS concepts you know?
-    answer: It connects to topics earlier in this track — mention scope, types, async, or the DOM where relevant.
+    question: What does 5n / 2n evaluate to, and why?
+    answer: "2n. BigInt has no fractional values, so division truncates toward zero instead of producing 2.5n. That's why it's wrong for general math and right for exact integer work like IDs or cents."
     difficulty: medium
-    followUps:
-      - Which topic would you review first if you got this wrong?
   - id: bigint-4
-    question: How would you explain BigInt to a junior developer?
-    answer: Use plain language, one analogy, and one line of code — avoid spec jargon until they ask.
-    difficulty: easy
+    question: What breaks when you JSON.stringify a value containing a BigInt?
+    answer: "It throws a TypeError — BigInt has no default JSON representation. The fix is converting to a string first, either with .toString() before serializing or a replacer that returns value.toString() when typeof value === 'bigint'."
+    difficulty: medium
+  - id: bigint-5
+    question: When would you actually use BigInt in production?
+    answer: "When exactness matters past 2^53 - 1 — snowflake-style IDs, financial math in minor units, big counters. And senior depth: only 0n is falsy, +10n throws (no unary plus), Math methods reject BigInts, and >>> is unsupported — use >>."
+    difficulty: hard
     followUps:
-      - What follow-up question would you ask them to check understanding?
+      - What breaks if you misuse it?
 ---
 
 <TopicTabs>
@@ -50,9 +52,11 @@ interviewQuestions:
 
 <TopicDefinition>
 
-Arbitrary-precision integers beyond Number.MAX_SAFE_INTEGER.
+If someone asks what BigInt is, I'd say it's JavaScript's answer to integers that are too big for the regular Number type. A Number is a 64-bit float, so it only keeps integers exact up to 2^53 − 1. Past that, `Number.MAX_SAFE_INTEGER + 1` and `+ 2` both print `9007199254740992`. BigInt stores arbitrarily large integers exactly — you just add an `n`: `9007199254740993n`.
 
-In interviews, lead with a clear one-liner, then add one example. Senior rounds go deeper on edge cases and trade-offs — have a short code snippet ready.
+What interviewers probe most is that BigInt is deliberately **strict**: `1n + 1` throws a TypeError. The engine won't guess whether you wanted a Number or a BigInt result, so you convert one side explicitly first.
+
+In senior rounds, expect the quirks: `JSON.stringify(5n)` throws, `5n / 2n` is `2n` (division truncates), and `Math.sqrt(4n)` throws because Math only takes Numbers. One elegant fix to know: `BigInt.prototype.toJSON` is honored by JSON.stringify, so a tiny prototype patch makes BigInts serializable — one of the rare cases where patching a built-in is officially acceptable.
 
 </TopicDefinition>
 
@@ -64,45 +68,119 @@ In interviews, lead with a clear one-liner, then add one example. Senior rounds 
 
 <TopicTab value="examples">
 
-<CodeExample title="Quick example" language="javascript">
-{`// BigInt — add your own variation in the playground
-console.log('Review the in-depth tab and Q&A for this topic');`}
+<CodeExample title="Where precision dies" language="javascript">
+{`const safe = Number.MAX_SAFE_INTEGER; // 9007199254740991
+console.log(safe + 1 === safe + 2);   // true — precision lost
+
+const big = BigInt(Number.MAX_SAFE_INTEGER); // 9007199254740991n
+console.log(big + 1n); // 9007199254740992n
+console.log(big + 2n); // 9007199254740993n — exact`}
 </CodeExample>
 
-<Callout type="tip">
-Re-read the key takeaways, then try explaining BigInt out loud in under 30 seconds.
+<CodeExample title="Mixing types throws" language="javascript">
+{`// 1n + 1;              // TypeError: can't mix BigInt and Number
+console.log(1n + BigInt(1)); // 2n — convert the Number side
+console.log(Number(1n) + 1); // 2 — or the BigInt side (loses precision on huge values)
+console.log(1n + '2');       // '12' — + with a string still concatenates`}
+</CodeExample>
+
+<CodeExample title="Division truncates, unary plus throws" language="javascript">
+{`console.log(5n / 2n);   // 2n — truncates toward zero, never 2.5n
+console.log(-5n / 2n);  // -2n
+// +10n;              // TypeError — no unary plus on BigInt
+console.log(-10n);      // -10n — unary minus is fine
+console.log(Boolean(0n)); // false — only 0n is falsy`}
+</CodeExample>
+
+<Callout type="interview">
+When a question mixes BigInt and Number, the one-word answer is usually **TypeError** — name the error first, then show the explicit conversion.
 </Callout>
 
 </TopicTab>
 
 <TopicTab value="indepth">
 
-### What to focus on
+<CodeExample title="Comparison rules" language="javascript">
+{`console.log(0n === 0); // false — strict equality checks the type
+console.log(0n == 0);   // true — loose equality converts
+console.log(2n > 1);    // true — relational comparisons mix freely
+console.log(2n >= 2);   // true
 
-- Definition and mental model
-- One gotcha interviewers love
-- How it connects to prerequisites in this track
+const mixed = [4n, 6, -12n, 10, 4, 0, 0n];
+// mixed.sort((a, b) => a - b); // TypeError — subtraction mixes types
+mixed.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)); // safe comparator`}
+</CodeExample>
 
-### Senior follow-ups
+<CodeExample title="JSON serialization" language="javascript">
+{`// JSON.stringify({ id: 5n }); // TypeError: BigInt value can't be serialized
 
-Be ready to compare alternatives and describe when **not** to use this feature.
+const withReplacer = JSON.stringify({ id: 5n }, (key, value) =>
+  typeof value === 'bigint' ? value.toString() : value
+);
+console.log(withReplacer); // {"id":"5"}
+
+// Or patch the one officially tolerated hook:
+BigInt.prototype.toJSON = function () { return this.toString(); };
+console.log(JSON.stringify({ id: 5n })); // {"id":"5"}`}
+</CodeExample>
+
+### Quirks interviewers love
+
+- `typeof 10n === 'bigint'` — it's a primitive, not an object
+- `Math.sqrt(4n)` throws — Math methods only accept Numbers
+- `4n >>> 2n` throws — unsigned right shift is unsupported; use `>>`
+- `BigInt(123.3)` throws RangeError; `BigInt(null)` throws TypeError
+- `new BigInt(5)` throws — call it as a function, never with `new`
 
 </TopicTab>
 
 <TopicTab value="questions">
 
-<FlashcardDeck ids={['bigint-1', 'bigint-2', 'bigint-3', 'bigint-4']} />
+<FlashcardDeck ids={['bigint-1', 'bigint-2', 'bigint-3', 'bigint-4', 'bigint-5']} />
 
 <InterviewQuestionBlock id="bigint-1" />
 <InterviewQuestionBlock id="bigint-2" />
 <InterviewQuestionBlock id="bigint-3" />
 <InterviewQuestionBlock id="bigint-4" />
+<InterviewQuestionBlock id="bigint-5" />
 
 </TopicTab>
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<OutputPrediction
+  title="Precision loss past MAX_SAFE_INTEGER"
+  expected="true"
+  hint="Numbers are 64-bit floats — what happens to integers past 2^53 - 1?"
+  explanation="Both expressions round to 9007199254740992, so the comparison is true. This exact failure is why BigInt exists."
+  code={`console.log(Number.MAX_SAFE_INTEGER + 1 === Number.MAX_SAFE_INTEGER + 2);`}
+/>
+
+<OutputPrediction
+  title="Mixing BigInt and Number"
+  expected="true"
+  hint="Can the engine pick a result type for you?"
+  explanation="1n + 1 throws a TypeError — mixing is never allowed in arithmetic. Convert one side explicitly instead."
+  code={`try { 1n + 1; } catch (e) { console.log(e instanceof TypeError); }`}
+/>
+
+<CodingChallenge
+  title="Sum mixed Number/BigInt values"
+  prompt="Implement sumBigInts(values) — accept an array of Numbers and BigInts, return their total as a BigInt. Empty array returns 0n."
+  starterCode={`function sumBigInts(values) {
+  // your code
+}`}
+  tests={[
+    { label: 'sums bigint values', code: `if (sumBigInts([1n, 2n, 3n]) !== 6n) throw new Error('expected 6n');` },
+    { label: 'converts mixed input', code: `if (sumBigInts([1n, 2, 3n]) !== 6n) throw new Error('expected 6n');` },
+    { label: 'empty array returns 0n', code: `if (sumBigInts([]) !== 0n) throw new Error('expected 0n');` },
+  ]}
+  hint="Start the accumulator at 0n and wrap every value in BigInt() before adding — 1n + 1 throws, so convert first."
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 

@@ -8,40 +8,41 @@ estimatedMinutes: 20
 prerequisites:
   - strings
 keyTakeaways:
-  - Core concepts for Null & Undefined interviews
-  - Know the definition and one concrete example
-  - Watch for common traps senior interviewers probe
-  - Tie answers back to real debugging experience
+  - "null is an intentional 'no value' you assign; undefined is JavaScript's default for 'not set yet'"
+  - typeof null returns 'object' — a 1995 bug kept for backwards compatibility, never check null with typeof
+  - null == undefined is true; null === undefined is false — the one == most style guides allow
+  - Use ?? for defaults instead of || so you don't clobber 0, '', or false
+  - typeof x === 'undefined' is safe on undeclared variables; x === undefined throws a ReferenceError
 masteryCriteria:
   minQuestionsCorrect: 3
   requireChallenge: false
 difficulty: easy
 interviewQuestions:
   - id: nullan-1
-    question: What is Null & Undefined in JavaScript?
-    answer: null vs undefined, typeof quirks, and default parameters.
+    question: What is the difference between null and undefined?
+    answer: "null is an intentional 'no value' that I assign myself — a database lookup that found nothing returns null. undefined is JavaScript's way of saying 'not set yet': a declared variable with no assignment, a missing function argument, a missing object property, or a function that returns nothing."
     difficulty: easy
     followUps:
-      - When would you reach for this in production code?
-      - What breaks if you misuse it?
+      - When would you return null from a function instead of undefined?
+      - What does typeof return for each?
   - id: nullan-2
-    question: What is a common interview trap around Null & Undefined?
-    answer: Interviewers often pair Null & Undefined with edge cases — state the rule, then walk through a short example.
+    question: Why does typeof null return 'object'?
+    answer: "It's a bug from the very first JavaScript implementation in 1995 — null was represented with a zero tag that the type system read as an object. It was never fixed because fixing it would break the web. The takeaway: never check for null with typeof, use x === null, or x == null if you want to catch both null and undefined."
     difficulty: medium
     followUps:
-      - Can you show the fix in code?
+      - What breaks if you use typeof to check for null?
   - id: nullan-3
-    question: How does Null & Undefined relate to other JS concepts you know?
-    answer: It connects to topics earlier in this track — mention scope, types, async, or the DOM where relevant.
+    question: How do you give a default value without clobbering 0 or an empty string?
+    answer: "Use ?? (nullish coalescing) instead of ||. `0 ?? 'default'` gives 0 because ?? only falls back on null or undefined, while `0 || 'default'` gives 'default' since 0 is falsy. This is the classic interview trap — || treats every falsy value the same."
     difficulty: medium
     followUps:
-      - Which topic would you review first if you got this wrong?
+      - What does `config.timeout ?? 5000` do when timeout is 0?
   - id: nullan-4
-    question: How would you explain Null & Undefined to a junior developer?
-    answer: Use plain language, one analogy, and one line of code — avoid spec jargon until they ask.
-    difficulty: easy
+    question: What is the difference between x === undefined and typeof x === 'undefined'?
+    answer: "Same result on declared variables, but typeof is safe on variables that were never declared — `typeof missingVar === 'undefined'` is true, while `missingVar === undefined` throws a ReferenceError. Old polyfill code used the typeof guard for exactly that reason."
+    difficulty: hard
     followUps:
-      - What follow-up question would you ask them to check understanding?
+      - When would a global variable be undeclared at runtime?
 ---
 
 <TopicTabs>
@@ -50,9 +51,11 @@ interviewQuestions:
 
 <TopicDefinition>
 
-null vs undefined, typeof quirks, and default parameters.
+If someone asks me about `null` vs `undefined`, I'd say they are JavaScript's two flavors of "nothing" — and they mean different things. `null` is a **decision**: I assigned it to mean "there is intentionally no value here," like a user lookup that found no user. `undefined` is a **default state**: JavaScript's way of saying "not set yet" — a declared variable you never assigned, a function argument nobody passed, a property that doesn't exist, or a function that returned nothing.
 
-In interviews, lead with a clear one-liner, then add one example. Senior rounds go deeper on edge cases and trade-offs — have a short code snippet ready.
+Interviewers care about this topic because it's a **trap factory**. `typeof null` says `'object'` — a 1995 bug that can never be fixed without breaking the web. `null == undefined` is true but `null === undefined` is false. `Number(null)` is `0` while `Number(undefined)` is `NaN`. And the default-value question separates juniors from seniors: `||` falls back on **any** falsy value, while `??` only falls back on null and undefined.
+
+Senior rounds sometimes probe the **`typeof` guard**: `typeof someVar === 'undefined'` doesn't throw even when `someVar` was never declared, which is why old code used it to feature-detect globals before optional chaining existed.
 
 </TopicDefinition>
 
@@ -64,13 +67,55 @@ In interviews, lead with a clear one-liner, then add one example. Senior rounds 
 
 <TopicTab value="examples">
 
-<CodeExample title="Quick example" language="javascript">
-{`// Null & Undefined — add your own variation in the playground
-console.log('Review the in-depth tab and Q&A for this topic');`}
+<CodeExample title="Where each one shows up" language="javascript">
+{`// undefined — JavaScript assigns it, you usually don't
+let name;
+console.log(name);            // undefined (declared, not assigned)
+
+function greet(user) { return user; }
+console.log(greet());         // undefined (missing argument)
+
+console.log({}.missingKey);   // undefined (missing property)
+
+// null — you assign it on purpose
+let currentUser = null;       // "we checked, there is no user"
+console.log(typeof currentUser); // "object" — the famous 1995 bug
+console.log(typeof undefined);   // "undefined"`}
+</CodeExample>
+
+<CodeExample title="The equality and conversion traps" language="javascript">
+{`// == treats them as equal, === does not
+console.log(null == undefined);   // true  (loose — the one == most teams allow)
+console.log(null === undefined);  // false (strict — different types)
+
+// They convert differently
+console.log(Number(null));        // 0
+console.log(Number(undefined));   // NaN
+console.log(Boolean(null));       // false
+console.log(Boolean(undefined));  // false
+
+// Neither one autoboxes — no method calls
+// null.toString();      // TypeError
+// undefined.toString(); // TypeError`}
+</CodeExample>
+
+<CodeExample title="?? vs || — the default-value trap" language="javascript">
+{`function withTimeout(timeout) {
+  const withOr = timeout || 5000;   // 0 becomes 5000 — wrong if 0 is valid!
+  const withNullish = timeout ?? 5000; // 0 stays 0, null/undefined become 5000
+  return [withOr, withNullish];
+}
+
+console.log(withTimeout(0));         // [5000, 0]
+console.log(withTimeout(undefined)); // [5000, 5000]
+
+// ?. short-circuits on null OR undefined
+const user = null;
+console.log(user?.profile?.name ?? 'anonymous'); // "anonymous"`}
 </CodeExample>
 
 <Callout type="tip">
-Re-read the key takeaways, then try explaining Null & Undefined out loud in under 30 seconds.
+Re-read the key takeaways, then try explaining the null/undefined difference out loud in under 30 seconds — lead with "intentional vs not set yet."
 </Callout>
 
 </TopicTab>
@@ -79,13 +124,19 @@ Re-read the key takeaways, then try explaining Null & Undefined out loud in unde
 
 ### What to focus on
 
-- Definition and mental model
-- One gotcha interviewers love
-- How it connects to prerequisites in this track
+- The mental model: `null` is an assigned "nothing," `undefined` is the language's "not set yet"
+- The three classic traps: `typeof null === 'object'`, `null == undefined` vs `===`, and `??` vs `||` for defaults
+- The `typeof` guard: safe on undeclared variables where direct comparison throws
+
+### When to use null
+
+- A function result meaning "looked, found nothing" (`findUser()` returns `null`)
+- Resetting state to a known empty: `selection = null`
+- APIs that distinguish "absent" from "never provided"
 
 ### Senior follow-ups
 
-Be ready to compare alternatives and describe when **not** to use this feature.
+Be ready to explain why `undefined` shouldn't be **assigned** explicitly (prefer leaving things unset or using `null`), the `void 0` idiom from minified code, and how `?.` and `??` work together as the modern null-safe pattern.
 
 </TopicTab>
 
@@ -102,7 +153,41 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<OutputPrediction
+  title="typeof and equality traps"
+  expected="object true false"
+  hint="Three console.log values — what does typeof null say, and how do == and === compare them?"
+  explanation="typeof null is 'object' (the 1995 bug), null == undefined is true (loose equality special-cases them), and null === undefined is false (different types)."
+  code={`console.log(typeof null, null == undefined, null === undefined);`}
+/>
+
+<OutputPrediction
+  title="?? vs || with zero"
+  expected="0 default"
+  hint="One value is a real 0 — which operator keeps it?"
+  explanation="?? only falls back on null/undefined, so 0 survives. || falls back on any falsy value, so 0 becomes 'default'. Interviewers ask exactly this."
+  code={`console.log(0 ?? 'default', 0 || 'default');`}
+/>
+
+<CodingChallenge
+  title="Safe nested property lookup"
+  prompt="Implement get(obj, path, fallback) — like a tiny lodash.get. Walk dot-separated keys; if any step is null or undefined, return fallback. A final value of 0, '', or false is real and must NOT be replaced by the fallback."
+  starterCode={`function get(obj, path, fallback) {
+  // your code
+}`}
+  tests={[
+    { label: 'resolves a nested value', code: `if (get({ a: { b: 2 } }, 'a.b', 0) !== 2) throw new Error('expected 2');` },
+    { label: 'keeps falsy-but-real values', code: `if (get({ a: { b: 0 } }, 'a.b', 5) !== 0) throw new Error('0 is a real value, not missing');` },
+    { label: 'missing path returns fallback', code: `if (get({}, 'a.b.c', 'missing') !== 'missing') throw new Error('expected missing');` },
+    { label: 'null mid-path returns fallback', code: `if (get({ a: null }, 'a.b', 'missing') !== 'missing') throw new Error('expected missing');` },
+    { label: 'empty string survives', code: `if (get({ a: '' }, 'a', 'fallback') !== '') throw new Error("'' is a real value");` },
+  ]}
+  hint="Loop over path.split('.'). Use current == null to catch both null and undefined in one check — this is the one place loose equality shines."
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 
