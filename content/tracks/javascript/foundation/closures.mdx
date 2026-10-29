@@ -84,6 +84,67 @@ console.log(counter.getCount()); // 1`}
 Walk through **why** `var` fails in the loop: one shared binding updated to 3 before timeouts run.
 </Callout>
 
+### The lexical environment record
+
+When a function is created, the engine records a reference to the lexical environment where it was defined, not where it is called. A closure is that function plus that record. The record holds the bindings the function actually references, so those bindings stay alive as long as the closure is reachable, even after the outer function has returned and its execution context is gone.
+
+```javascript
+function makeGreeter(name) {
+  const greeting = `Hello, ${name}`;
+  return function greet() {
+    return greeting;
+  };
+}
+
+const greetAisha = makeGreeter('Aisha');
+greetAisha(); // "Hello, Aisha" — greeting survived makeGreeter returning
+```
+
+Two closures created by two calls to the same outer function get two separate environments. That is why the private counter in the examples tab keeps its own `count`: each `createCounter()` call allocates a fresh binding, and only the returned methods can reach it.
+
+### Loop: var vs let, mechanically
+
+`var` is function-scoped, so a `for (var i = 0; ...)` loop has one binding for `i`, shared by every iteration. Each `setTimeout` callback closes over that same binding. By the time any callback runs, the loop has finished and `i` is 3, so all three callbacks log 3.
+
+`let` is block-scoped, and a `for` loop with `let` creates a fresh binding per iteration. Each callback closes over its own iteration's binding, so the callbacks log 0, 1, 2. The older workarounds do the same job by hand: an IIFE creates a new function scope per iteration, and `bind` passes the current value as an argument instead of sharing a binding.
+
+```javascript
+for (var i = 0; i < 3; i++) {
+  setTimeout(() => console.log(i), 0);
+}
+// 3, 3, 3 — one shared binding
+
+for (let i = 0; i < 3; i++) {
+  setTimeout(() => console.log(i), 0);
+}
+// 0, 1, 2 — one binding per iteration
+```
+
+### Private state, factories, and partial application
+
+Closures are how JavaScript gets encapsulation without classes. A factory returns functions that share enclosed state, and nothing outside the factory can touch that state except through the returned functions. The same mechanism powers partial application: a function returns a new function with some arguments already bound.
+
+```javascript
+function multiplyBy(factor) {
+  return function (n) {
+    return n * factor;
+  };
+}
+
+const double = multiplyBy(2);
+double(21); // 42 — factor is enclosed, not passed each call
+```
+
+The module pattern is this idea at file scale: an immediately invoked function keeps its internals private and returns only the public API. Event handlers, callbacks, and debounce wrappers all rely on the same trick: a function that remembers the context it was created in.
+
+### Retention and garbage collection
+
+A closure keeps its referenced bindings alive. That is the feature and the risk. If a closure retains a large object, a long list, or a DOM node, that memory cannot be reclaimed while the closure is reachable, for example while it is registered as an event listener or held in a cache. The fix is the same as the cause: remove the listener, clear the cache entry, or null the reference when the closure is no longer needed. In a long-lived page, a closure created inside a loop that captures a whole array when it only needs one element is a classic accidental retention.
+
+### What interviewers probe
+
+Interviewers rarely ask only "what is a closure". They probe the mechanism: why the `var` loop logs 3 three times, how private state works without classes, what happens when a closure outlives its outer function, and when retention becomes a leak. A strong answer names the lexical environment record, walks the `var` vs `let` binding difference, gives a private-state example, and names one retention risk with its fix.
+
 </TopicTab>
 
 <TopicTab value="questions">
