@@ -101,7 +101,28 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<CodingChallenge
+  title="Map, filter, reduce"
+  prompt="Finish analyze using only map, filter, and reduce: evens keeps the even numbers, doubled doubles every number, and sum totals them. No loops: each method states what it produces, and chaining them replaces the manual accumulate-and-push loop."
+  hint="Filter for evens, map for doubled, reduce with a 0 start for the sum."
+  starterCode={`function analyze(numbers) {
+  return {
+    evens: null,
+    doubled: null,
+    sum: null,
+  };
+}`}
+  tests=[
+    { label: 'evens filtered', code: `console.assert(JSON.stringify(analyze([1, 2, 3, 4]).evens) === '[2,4]');` },
+    { label: 'doubled mapped', code: `console.assert(JSON.stringify(analyze([1, 2, 3, 4]).doubled) === '[2,4,6,8]');` },
+    { label: 'sum reduced', code: `console.assert(analyze([1, 2, 3, 4]).sum === 10);` },
+    { label: 'empty input is safe', code: `const e = analyze([]); console.assert(e.evens.length === 0 && e.sum === 0);` },
+  ]
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 

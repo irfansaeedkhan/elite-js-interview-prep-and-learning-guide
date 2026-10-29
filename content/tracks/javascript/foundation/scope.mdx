@@ -101,7 +101,25 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<CodingChallenge
+  title="One binding per iteration"
+  prompt="Finish createIndexedFunctions so it returns n functions where function i returns i. The classic scope trap is var: one shared binding means every function returns n. let in the for header creates a fresh binding per iteration, so each function closes over its own index."
+  hint="Declare the loop variable with let, and push a function that returns it."
+  starterCode={`function createIndexedFunctions(n) {
+  const fns = [];
+  // your code here: loop and push () => i
+  return fns;
+}
+
+const fns = createIndexedFunctions(3);`}
+  tests=[
+    { label: 'each function keeps its own index', code: `console.assert(fns[0]() === 0 && fns[1]() === 1 && fns[2]() === 2);` },
+  ]
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 

@@ -101,7 +101,46 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<CodingChallenge
+  title="Storage-shaped API with JSON helpers"
+  prompt="Finish createStorage with the localStorage shape: set and get for strings, remove and clear, plus setJSON and getJSON for objects. localStorage stores only strings, so objects must be stringified on save and parsed on read, and a missing key reads back as null, not undefined."
+  hint="Store strings as-is; setJSON should JSON.stringify, getJSON should JSON.parse and return null for a missing key."
+  starterCode={`function createStorage() {
+  const store = new Map();
+  return {
+    set(key, value) {
+      // your code here
+    },
+    get(key) {
+      // your code here
+    },
+    remove(key) {
+      // your code here
+    },
+    clear() {
+      // your code here
+    },
+    setJSON(key, value) {
+      // your code here
+    },
+    getJSON(key) {
+      // your code here
+    },
+  };
+}
+
+const storage = createStorage();`}
+  tests=[
+    { label: 'string round-trip', code: `storage.set('theme', 'dark'); console.assert(storage.get('theme') === 'dark');` },
+    { label: 'missing key is null', code: `console.assert(storage.get('nope') === null);` },
+    { label: 'object round-trip through JSON', code: `storage.setJSON('user', { name: 'Aisha' }); console.assert(storage.getJSON('user').name === 'Aisha');` },
+    { label: 'remove then clear', code: `storage.remove('theme'); console.assert(storage.get('theme') === null); storage.clear(); console.assert(storage.getJSON('user') === null);` },
+  ]
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 

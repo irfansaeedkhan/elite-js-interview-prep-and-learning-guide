@@ -101,7 +101,34 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<CodingChallenge
+  title="Metadata without blocking collection"
+  prompt="Use the WeakMap and WeakSet provided: attachMeta stores metadata for an object, getMeta reads it back, and the seen set tracks objects already processed. Weak keys mean the metadata never keeps an object alive on its own, and only objects (never strings) can be keys."
+  hint="WeakMap.set and WeakMap.get take the object itself as the key; WeakSet.add and WeakSet.has work the same way."
+  starterCode={`const meta = new WeakMap();
+const seen = new WeakSet();
+
+function attachMeta(obj, data) {
+  // your code here
+}
+
+function getMeta(obj) {
+  // your code here
+}
+
+const a = {};
+const b = {};`}
+  tests=[
+    { label: 'metadata round-trips for the same object', code: `attachMeta(a, { visits: 2 }); console.assert(getMeta(a).visits === 2);` },
+    { label: 'another object has no metadata', code: `console.assert(getMeta(b) === undefined);` },
+    { label: 'WeakSet tracks seen objects only', code: `seen.add(a); console.assert(seen.has(a) === true && seen.has(b) === false);` },
+    { label: 'a string key throws', code: `let threw = false; try { meta.set('str', 1); } catch (e) { threw = true; } console.assert(threw === true);` },
+  ]
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 

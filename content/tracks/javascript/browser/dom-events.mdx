@@ -101,7 +101,36 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<CodingChallenge
+  title="Mini event emitter"
+  prompt="Finish createEmitter with on, off, and emit, the same shape as addEventListener and removeEventListener. The DOM is not available in this playground, so this emitter is the testable stand-in: handlers register per type, emit calls them in order, off removes exactly one handler."
+  hint="Keep handlers in a Map from type to array; off should filter out only the given function."
+  starterCode={`function createEmitter() {
+  const handlers = new Map();
+  return {
+    on(type, fn) {
+      // your code here
+    },
+    off(type, fn) {
+      // your code here
+    },
+    emit(type, payload) {
+      // your code here
+    },
+  };
+}
+
+const emitter = createEmitter();`}
+  tests=[
+    { label: 'emit calls the handler with the payload', code: `const got = []; emitter.on('click', (p) => got.push(p)); emitter.emit('click', 'x'); console.assert(got.length === 1 && got[0] === 'x');` },
+    { label: 'off stops later emits', code: `const h = (p) => got.push(p); emitter.on('hover', h); emitter.off('hover', h); emitter.emit('hover', 'y'); console.assert(got.length === 1);` },
+    { label: 'emitting with no handlers does not throw', code: `emitter.emit('nothing'); console.assert(true);` },
+  ]
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 

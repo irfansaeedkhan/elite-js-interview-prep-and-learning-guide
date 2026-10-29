@@ -101,7 +101,25 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<CodingChallenge
+  title="Build a range iterable"
+  prompt="Finish range so it returns an object with a Symbol.iterator method that yields start up to but not including end. That is the whole iterable protocol: for...of and spread both just call Symbol.iterator and read next() until done is true."
+  hint="Symbol.iterator should return an object with a next method; each call returns { value, done }."
+  starterCode={`function range(start, end) {
+  return {
+    // your code here: add a [Symbol.iterator] method
+  };
+}`}
+  tests=[
+    { label: 'spread collects the range', code: `console.assert(JSON.stringify([...range(2, 5)]) === '[2,3,4]');` },
+    { label: 'for...of sums the range', code: `let sum = 0; for (const n of range(1, 4)) { sum += n; } console.assert(sum === 6);` },
+    { label: 'empty range yields nothing', code: `console.assert([...range(3, 3)].length === 0);` },
+  ]
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 

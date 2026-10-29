@@ -101,7 +101,29 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<CodingChallenge
+  title="Memoize by arguments"
+  prompt="Finish memoize so it caches results by argument list: the first call with a given set of arguments runs the function, later calls with the same arguments return the cached result without running it again. The cache key must capture all arguments, not just the first."
+  hint="Key the cache with JSON.stringify of the args array, and store the result on a miss."
+  starterCode={`function memoize(fn) {
+  const cache = new Map();
+  return function (...args) {
+    // your code here
+  };
+}
+
+let runs = 0;
+const add = memoize((a, b) => { runs++; return a + b; });`}
+  tests=[
+    { label: 'first call runs once', code: `console.assert(add(2, 3) === 5 && runs === 1);` },
+    { label: 'repeat call uses the cache', code: `console.assert(add(2, 3) === 5 && runs === 1);` },
+    { label: 'new arguments run again', code: `console.assert(add(2, 4) === 6 && runs === 2);` },
+  ]
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 

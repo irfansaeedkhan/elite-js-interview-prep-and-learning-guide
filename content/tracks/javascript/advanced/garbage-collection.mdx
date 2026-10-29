@@ -101,7 +101,36 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<CodingChallenge
+  title="Drop the reference"
+  prompt="Finish createRegistry so add stores a value, release drops it, and size reports what is still reachable. Garbage collection frees only what nothing references: the fix for most leaks is dropping the reference, not a fancier API."
+  hint="release should delete the id from the Map; size should return the Map size."
+  starterCode={`function createRegistry() {
+  const items = new Map();
+  return {
+    add(id, value) {
+      // your code here
+    },
+    release(id) {
+      // your code here: drop the reference
+    },
+    size() {
+      // your code here
+    },
+  };
+}
+
+const registry = createRegistry();`}
+  tests=[
+    { label: 'add grows the registry', code: `registry.add('a', { big: 'data' }); registry.add('b', { big: 'data' }); console.assert(registry.size() === 2);` },
+    { label: 'release shrinks it', code: `registry.release('a'); console.assert(registry.size() === 1);` },
+    { label: 'releasing a missing id is a no-op', code: `registry.release('missing'); console.assert(registry.size() === 1);` },
+  ]
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 

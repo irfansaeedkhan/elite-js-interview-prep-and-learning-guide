@@ -101,7 +101,27 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<CodingChallenge
+  title="Typed throws, safe wrapper"
+  prompt="Finish parsePositiveInt so it throws a TypeError for a non-number and a RangeError for a negative number, then finish safeParse so it returns { ok: true, value } on success and { ok: false, error } with the error name on failure. Callers should be able to tell the failure kind without parsing a message string."
+  hint="Use Number and Number.isNaN for the type check, and catch the error name in the wrapper."
+  starterCode={`function parsePositiveInt(str) {
+  // your code here
+}
+
+function safeParse(str) {
+  // your code here: try parsePositiveInt, catch into { ok: false, error }
+}`}
+  tests=[
+    { label: 'valid input parses', code: `console.assert(safeParse('42').value === 42 && safeParse('42').ok === true);` },
+    { label: 'non-number is a TypeError', code: `console.assert(safeParse('abc').error === 'TypeError');` },
+    { label: 'negative is a RangeError', code: `console.assert(safeParse('-5').error === 'RangeError');` },
+  ]
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 

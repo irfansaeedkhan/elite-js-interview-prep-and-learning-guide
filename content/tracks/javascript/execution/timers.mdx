@@ -101,7 +101,41 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<CodingChallenge
+  title="Stopwatch with a fake clock"
+  prompt="Finish createStopwatch so start, stop, reset, and elapsedMs measure elapsed time, taking now as an injected clock function. Real timers make tests wait, so the tests pass a fake clock they can advance by hand: the same injection trick makes debounce and throttle testable too."
+  hint="start records now only if not already running; stop adds now minus startedAt to elapsed; elapsedMs adds the running stretch when started."
+  starterCode={`function createStopwatch(now) {
+  let startedAt = null;
+  let elapsed = 0;
+  return {
+    start() {
+      // your code here
+    },
+    stop() {
+      // your code here
+    },
+    reset() {
+      // your code here
+    },
+    elapsedMs() {
+      // your code here
+    },
+  };
+}
+
+let clock = 1000;
+const stopwatch = createStopwatch(() => clock);`}
+  tests=[
+    { label: 'elapsed grows while running', code: `stopwatch.start(); clock = 1500; console.assert(stopwatch.elapsedMs() === 500);` },
+    { label: 'stop freezes elapsed', code: `stopwatch.stop(); clock = 2000; console.assert(stopwatch.elapsedMs() === 500);` },
+    { label: 'reset clears it', code: `stopwatch.reset(); console.assert(stopwatch.elapsedMs() === 0);` },
+  ]
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 

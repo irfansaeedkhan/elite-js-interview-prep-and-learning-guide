@@ -101,7 +101,33 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<CodingChallenge
+  title="Merge, sum, clone without mutating"
+  prompt="Finish mergeSettings with spread so overrides win, sumAll with rest parameters so it takes any count of numbers, and cloneWith with spread so the original object is never mutated. Spread copies the top level only, which is exactly why the original stays untouched here."
+  hint="Spread defaults then overrides; collect rest args and reduce them; spread the object then the patch."
+  starterCode={`function mergeSettings(defaults, overrides) {
+  // your code here
+}
+
+function sumAll(...nums) {
+  // your code here
+}
+
+function cloneWith(obj, patch) {
+  // your code here
+}
+
+const original = { a: 1 };`}
+  tests=[
+    { label: 'overrides win the merge', code: `console.assert(JSON.stringify(mergeSettings({ a: 1, b: 2 }, { b: 9 })) === '{"a":1,"b":9}');` },
+    { label: 'rest sums any count, including none', code: `console.assert(sumAll(1, 2, 3, 4) === 10 && sumAll() === 0);` },
+    { label: 'clone does not mutate the original', code: `const copy = cloneWith(original, { b: 2 }); console.assert(original.b === undefined && copy.a === 1 && copy.b === 2);` },
+  ]
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 

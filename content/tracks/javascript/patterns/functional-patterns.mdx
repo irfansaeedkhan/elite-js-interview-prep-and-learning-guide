@@ -102,7 +102,26 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<CodingChallenge
+  title="Pipe functions together"
+  prompt="Finish pipe so it returns a function that runs the given functions left to right, feeding each result into the next. With no functions it is the identity. Pipe is the functional alternative to nesting calls: pipe(add1, double)(3) reads in the order it runs."
+  hint="Reduce over the functions starting from the input value."
+  starterCode={`function pipe(...fns) {
+  // your code here: return (value) => ...
+}
+
+const add1 = (n) => n + 1;
+const double = (n) => n * 2;`}
+  tests=[
+    { label: 'runs left to right', code: `console.assert(pipe(add1, double)(3) === 8);` },
+    { label: 'no functions is the identity', code: `console.assert(pipe()(7) === 7);` },
+    { label: 'single function applies', code: `console.assert(pipe(double)(5) === 10);` },
+  ]
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 

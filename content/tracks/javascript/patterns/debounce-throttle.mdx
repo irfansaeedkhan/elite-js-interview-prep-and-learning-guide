@@ -102,7 +102,42 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<CodingChallenge
+  title="Debounce with fake timers"
+  prompt="Finish debounce so rapid calls wait: each call resets the timer, and only the latest arguments run once the wait passes, while cancel drops the pending call entirely. Real timers make tests wait, so the tests inject fake setTimeout and clearTimeout they control by hand."
+  hint="Store the timer id, clear it on each new call, and clear it in cancel; run the latest args when the timer fires."
+  starterCode={`function debounce(fn, wait, timers) {
+  let id = null;
+  let latestArgs = null;
+  return {
+    call(...args) {
+      // your code here
+    },
+    cancel() {
+      // your code here
+    },
+  };
+}
+
+const pending = new Map();
+let nextId = 1;
+const fakeTimers = {
+  setTimeout(cb) { const id = nextId++; pending.set(id, cb); return id; },
+  clearTimeout(id) { pending.delete(id); },
+};
+function flushTimers() { const cbs = [...pending.entries()]; pending.clear(); cbs.forEach((entry) => entry[1]()); }
+const calls = [];
+const debounced = debounce((v) => calls.push(v), 100, fakeTimers);`}
+  tests=[
+    { label: 'rapid calls do not run yet', code: `debounced.call('a'); debounced.call('b'); debounced.call('c'); console.assert(calls.length === 0);` },
+    { label: 'flush runs once with the latest args', code: `flushTimers(); console.assert(calls.length === 1 && calls[0] === 'c');` },
+    { label: 'cancel drops the pending call', code: `debounced.call('d'); debounced.cancel(); flushTimers(); console.assert(calls.length === 1);` },
+  ]
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 

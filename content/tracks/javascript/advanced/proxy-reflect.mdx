@@ -101,7 +101,30 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<CodingChallenge
+  title="Validated user proxy"
+  prompt="Finish createValidatedUser so it returns a Proxy whose set trap rejects a non-string name and a negative age, and otherwise forwards the set with Reflect.set. The trap must throw before the bad value lands, so the old value survives."
+  hint="Check prop and value inside set, throw on invalid input, otherwise return Reflect.set(target, prop, value)."
+  starterCode={`function createValidatedUser() {
+  const target = { name: '', age: 0 };
+  return new Proxy(target, {
+    set(t, prop, value) {
+      // your code here
+    },
+  });
+}
+
+const user = createValidatedUser();`}
+  tests=[
+    { label: 'valid sets land', code: `user.name = 'Aisha'; user.age = 30; console.assert(user.name === 'Aisha' && user.age === 30);` },
+    { label: 'non-string name throws and old value survives', code: `let threw = false; try { user.name = 42; } catch (e) { threw = true; } console.assert(threw === true && user.name === 'Aisha');` },
+    { label: 'negative age throws and old value survives', code: `let threw2 = false; try { user.age = -1; } catch (e) { threw2 = true; } console.assert(threw2 === true && user.age === 30);` },
+  ]
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 

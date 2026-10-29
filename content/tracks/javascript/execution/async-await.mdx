@@ -101,7 +101,22 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<CodingChallenge
+  title="Await, then handle the error"
+  prompt="Finish getFirstUserName so it awaits getUsers, returns the first user's name, and returns 'Unknown' when getUsers rejects. The point of async and await is exactly this shape: asynchronous code that reads top to bottom, with try and catch doing the error handling instead of nested callbacks."
+  hint="Await getUsers inside try, return users[0].name, and return 'Unknown' in catch."
+  starterCode={`async function getFirstUserName(getUsers) {
+  // your code here
+}`}
+  tests=[
+    { label: 'returns the first name', code: `(async () => { const name = await getFirstUserName(async () => [{ name: 'Aisha' }, { name: 'Bilal' }]); console.assert(name === 'Aisha'); })();` },
+    { label: 'rejection becomes Unknown', code: `(async () => { const name = await getFirstUserName(async () => { throw new Error('down'); }); console.assert(name === 'Unknown'); })();` },
+  ]
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 

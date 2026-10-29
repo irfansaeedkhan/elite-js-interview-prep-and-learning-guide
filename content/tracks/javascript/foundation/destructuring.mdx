@@ -102,7 +102,23 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<CodingChallenge
+  title="Summarize with defaults"
+  prompt="Finish summarizeUser using destructuring: rename name to displayName with a 'Guest' default, and read a nested city with an 'Unknown' default that also survives a missing address object. The defaults belong in the pattern, not in if statements after it."
+  hint="Destructure with rename and defaults, and default the nested address to an empty object so missing address does not throw."
+  starterCode={`function summarizeUser(user) {
+  // your code here: destructure, then return displayName + ' from ' + city
+}`}
+  tests=[
+    { label: 'full user', code: `console.assert(summarizeUser({ name: 'Aisha', address: { city: 'Lahore' } }) === 'Aisha from Lahore');` },
+    { label: 'missing city defaults', code: `console.assert(summarizeUser({ name: 'Bilal' }) === 'Bilal from Unknown');` },
+    { label: 'missing everything defaults', code: `console.assert(summarizeUser({}) === 'Guest from Unknown');` },
+  ]
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 

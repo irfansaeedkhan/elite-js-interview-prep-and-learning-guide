@@ -101,7 +101,35 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<CodingChallenge
+  title="One handler for the whole list"
+  prompt="Finish createDelegatedList so click routes through a single parent-level handler: register handlers per item type with on, and click(id) finds the item and calls only the handler for that item's type. That is event delegation: one listener instead of one per row."
+  hint="click should look the item up by id, then look up its type in the routes map and call it with the item."
+  starterCode={`function createDelegatedList(items) {
+  const routes = new Map();
+  return {
+    on(type, fn) {
+      // your code here
+    },
+    click(id) {
+      // your code here
+    },
+  };
+}
+
+const list = createDelegatedList([
+  { id: 'a', type: 'edit', label: 'A' },
+  { id: 'b', type: 'delete', label: 'B' },
+]);`}
+  tests=[
+    { label: 'clicks route by item type', code: `const acted = []; list.on('edit', (item) => acted.push('edit:' + item.label)); list.on('delete', (item) => acted.push('delete:' + item.label)); list.click('a'); list.click('b'); console.assert(acted.join(',') === 'edit:A,delete:B');` },
+    { label: 'unknown id does nothing', code: `list.click('missing'); console.assert(acted.length === 2);` },
+  ]
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 

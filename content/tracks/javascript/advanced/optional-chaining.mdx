@@ -101,7 +101,24 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<CodingChallenge
+  title="Safe city lookup"
+  prompt="Finish getCity so it returns the nested city when present and 'Unknown' when any link is null or missing, without throwing. Use ?. for the chain and ?? for the default: || would wrongly replace a real empty-string city, but ?? only replaces null and undefined."
+  hint="Chain with ?. and default with ??, not ||."
+  starterCode={`function getCity(user) {
+  // your code here
+}`}
+  tests=[
+    { label: 'full user returns the city', code: `console.assert(getCity({ address: { city: 'Lahore' } }) === 'Lahore');` },
+    { label: 'missing address returns Unknown', code: `console.assert(getCity({}) === 'Unknown');` },
+    { label: 'null user returns Unknown', code: `console.assert(getCity(null) === 'Unknown');` },
+    { label: 'empty-string city is kept, not replaced', code: `console.assert(getCity({ address: { city: '' } }) === '');` },
+  ]
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 

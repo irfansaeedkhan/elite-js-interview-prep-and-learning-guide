@@ -101,7 +101,34 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<CodingChallenge
+  title="Module registry with exports"
+  prompt="Finish createModuleRegistry with define and require, the shape of a module system: define stores an exports object under a name, require returns it, and requiring an unknown name throws. Modules are isolated scope plus explicit exports, and this registry is that contract in miniature."
+  hint="Keep modules in a Map; require should throw when the name was never defined."
+  starterCode={`function createModuleRegistry() {
+  const modules = new Map();
+  return {
+    define(name, exports) {
+      // your code here
+    },
+    require(name) {
+      // your code here
+    },
+  };
+}
+
+const registry = createModuleRegistry();
+registry.define('math', { add: (a, b) => a + b, default: (a, b) => a * b });`}
+  tests=[
+    { label: 'named export works', code: `console.assert(registry.require('math').add(2, 3) === 5);` },
+    { label: 'default export works', code: `console.assert(registry.require('math').default(2, 3) === 6);` },
+    { label: 'unknown module throws', code: `let threw = false; try { registry.require('missing'); } catch (e) { threw = true; } console.assert(threw === true);` },
+  ]
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 

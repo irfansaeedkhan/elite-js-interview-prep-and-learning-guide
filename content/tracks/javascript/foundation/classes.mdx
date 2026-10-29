@@ -101,7 +101,40 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<CodingChallenge
+  title="Guarded bank account"
+  prompt="Finish the BankAccount class: deposit adds only positive amounts, withdraw subtracts and throws a RangeError on insufficient funds without changing the balance, and getBalance reports it. The class is the boundary: invalid state is rejected at the method, not left for callers to check."
+  hint="Validate before mutating, so a rejected withdraw leaves the balance untouched."
+  starterCode={`class BankAccount {
+  constructor(owner) {
+    this.owner = owner;
+    this.balance = 0;
+  }
+
+  deposit(amount) {
+    // your code here
+  }
+
+  withdraw(amount) {
+    // your code here
+  }
+
+  getBalance() {
+    // your code here
+  }
+}
+
+const account = new BankAccount('Aisha');`}
+  tests=[
+    { label: 'deposit and withdraw move the balance', code: `account.deposit(100); account.withdraw(30); console.assert(account.getBalance() === 70);` },
+    { label: 'overdraw throws and balance survives', code: `let threw = false; try { account.withdraw(1000); } catch (e) { threw = true; } console.assert(threw === true && account.getBalance() === 70);` },
+    { label: 'non-positive deposit throws', code: `let threw2 = false; try { account.deposit(0); } catch (e) { threw2 = true; } console.assert(threw2 === true);` },
+  ]
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 

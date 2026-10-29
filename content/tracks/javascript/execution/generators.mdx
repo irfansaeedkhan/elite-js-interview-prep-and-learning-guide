@@ -101,7 +101,23 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<CodingChallenge
+  title="Lazy Fibonacci generator"
+  prompt="Finish fibonacci as a generator function that yields the first n Fibonacci numbers, starting 0, 1. Generators are lazy: nothing runs until next() is called, and each yield pauses the function with its state intact, which is why [...gen] and for...of can both consume it."
+  hint="Use function* and yield inside a loop; track the pair a and b and advance them each step."
+  starterCode={`function* fibonacci(n) {
+  // your code here
+}`}
+  tests=[
+    { label: 'first five values', code: `console.assert(JSON.stringify([...fibonacci(5)]) === '[0,1,1,2,3]');` },
+    { label: 'zero yields nothing', code: `console.assert([...fibonacci(0)].length === 0);` },
+    { label: 'next steps one value at a time', code: `const it = fibonacci(3); console.assert(it.next().value === 0 && it.next().value === 1 && it.next().done === false);` },
+  ]
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 

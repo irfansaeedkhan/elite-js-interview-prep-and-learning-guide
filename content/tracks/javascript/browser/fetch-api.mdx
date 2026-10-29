@@ -101,7 +101,23 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicTab value="playground">
 
-<TopicPlayground />
+<TopicPlayground>
+
+<CodingChallenge
+  title="Check the status yourself"
+  prompt="Finish normalizeResponse so it returns the body for a 2xx status and throws an Error with the status for anything else. The trap this teaches: fetch only rejects on network failure, not on a 404 or 500, so production code must check response.ok or the status before trusting the body."
+  hint="Throw when status is below 200 or at least 300; otherwise return the body unchanged."
+  starterCode={`function normalizeResponse(status, body) {
+  // your code here
+}`}
+  tests=[
+    { label: '200 returns the body', code: `console.assert(normalizeResponse(200, { name: 'Aisha' }).name === 'Aisha');` },
+    { label: '201 returns the body', code: `console.assert(normalizeResponse(201, 'created') === 'created');` },
+    { label: '404 throws with the status', code: `let threw = false; try { normalizeResponse(404, { error: 'nope' }); } catch (e) { threw = e.message === 'HTTP 404'; } console.assert(threw === true);` },
+  ]
+/>
+
+</TopicPlayground>
 
 </TopicTab>
 
