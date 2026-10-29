@@ -100,13 +100,34 @@ Pair your answer with **when not to use** this pattern — interviewers reward j
 <TopicPlayground>
 
 <CodingChallenge
-  title="Explain Concurrent React in code"
-  prompt="Write a minimal example that demonstrates the core idea of Concurrent React."
-  hint="Keep it small — one component or hook is enough."
-  starterCode={`// Concurrent React example
-console.log('Implement a minimal demo');`}
+  title="Urgent vs transition updates"
+  prompt="Finish createScheduler so it behaves like a transition: urgent(value) applies immediately and clears any pending transition, transition(value) defers the update and sets isPending, and flush() applies only the latest deferred value once and clears isPending. This is the core idea behind startTransition: urgent input stays responsive while a heavy, low-priority update waits and coalesces."
+  hint="transition should store the value and set isPending without touching current; flush should apply the stored value once, then clear it and isPending."
+  starterCode={`function createScheduler() {
+  let current = '';
+  let pending = null;
+  let isPending = false;
+  return {
+    get current() { return current; },
+    get isPending() { return isPending; },
+    urgent(value) {
+      // your code here: apply immediately
+    },
+    transition(value) {
+      // your code here: defer, do not apply yet
+    },
+    flush() {
+      // your code here: apply the latest deferred value once
+    },
+  };
+}
+
+const scheduler = createScheduler();`}
   tests={[
-    { label: 'runs without error', code: 'console.assert(true);' },
+    { label: 'urgent update applies immediately', code: `scheduler.urgent('typed'); console.assert(scheduler.current === 'typed'); console.assert(scheduler.isPending === false);` },
+    { label: 'transition defers and sets isPending', code: `scheduler.transition('heavy'); console.assert(scheduler.current === 'typed'); console.assert(scheduler.isPending === true);` },
+    { label: 'transitions coalesce to the latest value on flush', code: `scheduler.transition('heavy-2'); scheduler.flush(); console.assert(scheduler.current === 'heavy-2'); console.assert(scheduler.isPending === false);` },
+    { label: 'urgent clears a pending transition', code: `scheduler.transition('slow'); scheduler.urgent('fast'); console.assert(scheduler.current === 'fast'); console.assert(scheduler.isPending === false); scheduler.flush(); console.assert(scheduler.current === 'fast');` },
   ]}
 />
 
