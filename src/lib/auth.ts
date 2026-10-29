@@ -40,7 +40,16 @@ export const auth = betterAuth({
 
   rateLimit: {
     enabled: env.NODE_ENV === 'production',
-    storage: 'database',
+    // NOTE: never 'database' here unless a rateLimit model is added to
+    // the drizzle schema and pushed to the database. With 'database',
+    // better-auth queries the rateLimit model on EVERY auth request
+    // (router onRequest, before routing), and the adapter throws
+    // 'model "rateLimit" was not found in the schema object' because
+    // no such model exists in src/db/schema. That crash turned every
+    // production /api/auth/* request into an empty 500, which the
+    // client shows as the generic 'Sign up failed' / 'Sign in failed'.
+    // 'memory' is better-auth's default storage and needs no table.
+    storage: 'memory',
   },
 });
 
