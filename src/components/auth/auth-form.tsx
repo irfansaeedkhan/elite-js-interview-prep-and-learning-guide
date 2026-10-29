@@ -108,6 +108,38 @@ export function AuthForm({ mode }: AuthFormProps) {
         </Button>
       </form>
 
+      {!isSignup ? (
+        <div className="mt-6 rounded-md border border-border bg-muted/30 p-4 text-sm">
+          {/* Demo account panel. DO NOT MERGE until the demo account
+              itself exists: sign-ups through this form create it, and
+              until then these credentials fail to sign in. Account
+              creation is tracked as an Irfan-decision item, not done
+              by this branch. */}
+          <p className="font-medium">Try the demo account</p>
+          <p className="mt-1 text-muted-foreground">
+            Explore with saved progress, points, and streaks. Copy the credentials below, or fill
+            the form and check it before signing in.
+          </p>
+          <p className="mt-3">
+            Email: <code className="rounded bg-muted px-1.5 py-0.5">demo@elitejs.demo</code>
+          </p>
+          <p className="mt-1">
+            Password: <code className="rounded bg-muted px-1.5 py-0.5">Demo1234!</code>
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-3 w-full cursor-pointer"
+            onClick={() => {
+              setEmail('demo@elitejs.demo');
+              setPassword('Demo1234!');
+            }}
+          >
+            Fill demo credentials
+          </Button>
+        </div>
+      ) : null}
+
       <p className="mt-6 text-center text-sm text-muted-foreground">
         {isSignup ? 'Already have an account?' : "Don't have an account?"}{' '}
         <Link href={isSignup ? '/login' : '/signup'} className="underline-offset-2 hover:underline">
