@@ -117,11 +117,11 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 }
 
 const user = createValidatedUser();`}
-  tests=[
+  tests={[
     { label: 'valid sets land', code: `user.name = 'Aisha'; user.age = 30; console.assert(user.name === 'Aisha' && user.age === 30);` },
     { label: 'non-string name throws and old value survives', code: `let threw = false; try { user.name = 42; } catch (e) { threw = true; } console.assert(threw === true && user.name === 'Aisha');` },
     { label: 'negative age throws and old value survives', code: `let threw2 = false; try { user.age = -1; } catch (e) { threw2 = true; } console.assert(threw2 === true && user.age === 30);` },
-  ]
+  ]}
 />
 
 </TopicPlayground>

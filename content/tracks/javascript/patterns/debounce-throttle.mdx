@@ -130,11 +130,11 @@ const fakeTimers = {
 function flushTimers() { const cbs = [...pending.entries()]; pending.clear(); cbs.forEach((entry) => entry[1]()); }
 const calls = [];
 const debounced = debounce((v) => calls.push(v), 100, fakeTimers);`}
-  tests=[
+  tests={[
     { label: 'rapid calls do not run yet', code: `debounced.call('a'); debounced.call('b'); debounced.call('c'); console.assert(calls.length === 0);` },
     { label: 'flush runs once with the latest args', code: `flushTimers(); console.assert(calls.length === 1 && calls[0] === 'c');` },
     { label: 'cancel drops the pending call', code: `debounced.call('d'); debounced.cancel(); flushTimers(); console.assert(calls.length === 1);` },
-  ]
+  ]}
 />
 
 </TopicPlayground>

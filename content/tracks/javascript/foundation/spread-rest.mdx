@@ -120,11 +120,11 @@ function cloneWith(obj, patch) {
 }
 
 const original = { a: 1 };`}
-  tests=[
+  tests={[
     { label: 'overrides win the merge', code: `console.assert(JSON.stringify(mergeSettings({ a: 1, b: 2 }, { b: 9 })) === '{"a":1,"b":9}');` },
     { label: 'rest sums any count, including none', code: `console.assert(sumAll(1, 2, 3, 4) === 10 && sumAll() === 0);` },
     { label: 'clone does not mutate the original', code: `const copy = cloneWith(original, { b: 2 }); console.assert(original.b === undefined && copy.a === 1 && copy.b === 2);` },
-  ]
+  ]}
 />
 
 </TopicPlayground>

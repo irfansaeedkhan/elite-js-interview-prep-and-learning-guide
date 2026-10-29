@@ -110,10 +110,10 @@ Be ready to compare alternatives and describe when **not** to use this feature.
   starterCode={`async function getFirstUserName(getUsers) {
   // your code here
 }`}
-  tests=[
+  tests={[
     { label: 'returns the first name', code: `(async () => { const name = await getFirstUserName(async () => [{ name: 'Aisha' }, { name: 'Bilal' }]); console.assert(name === 'Aisha'); })();` },
     { label: 'rejection becomes Unknown', code: `(async () => { const name = await getFirstUserName(async () => { throw new Error('down'); }); console.assert(name === 'Unknown'); })();` },
-  ]
+  ]}
 />
 
 </TopicPlayground>

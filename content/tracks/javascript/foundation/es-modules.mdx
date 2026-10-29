@@ -121,11 +121,11 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 const registry = createModuleRegistry();
 registry.define('math', { add: (a, b) => a + b, default: (a, b) => a * b });`}
-  tests=[
+  tests={[
     { label: 'named export works', code: `console.assert(registry.require('math').add(2, 3) === 5);` },
     { label: 'default export works', code: `console.assert(registry.require('math').default(2, 3) === 6);` },
     { label: 'unknown module throws', code: `let threw = false; try { registry.require('missing'); } catch (e) { threw = true; } console.assert(threw === true);` },
-  ]
+  ]}
 />
 
 </TopicPlayground>

@@ -120,12 +120,12 @@ function getMeta(obj) {
 
 const a = {};
 const b = {};`}
-  tests=[
+  tests={[
     { label: 'metadata round-trips for the same object', code: `attachMeta(a, { visits: 2 }); console.assert(getMeta(a).visits === 2);` },
     { label: 'another object has no metadata', code: `console.assert(getMeta(b) === undefined);` },
     { label: 'WeakSet tracks seen objects only', code: `seen.add(a); console.assert(seen.has(a) === true && seen.has(b) === false);` },
     { label: 'a string key throws', code: `let threw = false; try { meta.set('str', 1); } catch (e) { threw = true; } console.assert(threw === true);` },
-  ]
+  ]}
 />
 
 </TopicPlayground>

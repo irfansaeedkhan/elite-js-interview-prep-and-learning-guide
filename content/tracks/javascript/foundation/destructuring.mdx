@@ -111,11 +111,11 @@ Be ready to compare alternatives and describe when **not** to use this feature.
   starterCode={`function summarizeUser(user) {
   // your code here: destructure, then return displayName + ' from ' + city
 }`}
-  tests=[
+  tests={[
     { label: 'full user', code: `console.assert(summarizeUser({ name: 'Aisha', address: { city: 'Lahore' } }) === 'Aisha from Lahore');` },
     { label: 'missing city defaults', code: `console.assert(summarizeUser({ name: 'Bilal' }) === 'Bilal from Unknown');` },
     { label: 'missing everything defaults', code: `console.assert(summarizeUser({}) === 'Guest from Unknown');` },
-  ]
+  ]}
 />
 
 </TopicPlayground>

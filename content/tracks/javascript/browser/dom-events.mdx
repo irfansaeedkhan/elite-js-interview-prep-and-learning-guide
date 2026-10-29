@@ -123,11 +123,11 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 }
 
 const emitter = createEmitter();`}
-  tests=[
+  tests={[
     { label: 'emit calls the handler with the payload', code: `const got = []; emitter.on('click', (p) => got.push(p)); emitter.emit('click', 'x'); console.assert(got.length === 1 && got[0] === 'x');` },
     { label: 'off stops later emits', code: `const h = (p) => got.push(p); emitter.on('hover', h); emitter.off('hover', h); emitter.emit('hover', 'y'); console.assert(got.length === 1);` },
     { label: 'emitting with no handlers does not throw', code: `emitter.emit('nothing'); console.assert(true);` },
-  ]
+  ]}
 />
 
 </TopicPlayground>

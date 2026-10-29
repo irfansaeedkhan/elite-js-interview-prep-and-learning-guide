@@ -123,10 +123,10 @@ const list = createDelegatedList([
   { id: 'a', type: 'edit', label: 'A' },
   { id: 'b', type: 'delete', label: 'B' },
 ]);`}
-  tests=[
+  tests={[
     { label: 'clicks route by item type', code: `const acted = []; list.on('edit', (item) => acted.push('edit:' + item.label)); list.on('delete', (item) => acted.push('delete:' + item.label)); list.click('a'); list.click('b'); console.assert(acted.join(',') === 'edit:A,delete:B');` },
     { label: 'unknown id does nothing', code: `list.click('missing'); console.assert(acted.length === 2);` },
-  ]
+  ]}
 />
 
 </TopicPlayground>

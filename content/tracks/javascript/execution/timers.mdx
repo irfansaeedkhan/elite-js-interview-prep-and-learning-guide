@@ -128,11 +128,11 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 let clock = 1000;
 const stopwatch = createStopwatch(() => clock);`}
-  tests=[
+  tests={[
     { label: 'elapsed grows while running', code: `stopwatch.start(); clock = 1500; console.assert(stopwatch.elapsedMs() === 500);` },
     { label: 'stop freezes elapsed', code: `stopwatch.stop(); clock = 2000; console.assert(stopwatch.elapsedMs() === 500);` },
     { label: 'reset clears it', code: `stopwatch.reset(); console.assert(stopwatch.elapsedMs() === 0);` },
-  ]
+  ]}
 />
 
 </TopicPlayground>

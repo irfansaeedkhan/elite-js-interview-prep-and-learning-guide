@@ -127,11 +127,11 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 }
 
 const account = new BankAccount('Aisha');`}
-  tests=[
+  tests={[
     { label: 'deposit and withdraw move the balance', code: `account.deposit(100); account.withdraw(30); console.assert(account.getBalance() === 70);` },
     { label: 'overdraw throws and balance survives', code: `let threw = false; try { account.withdraw(1000); } catch (e) { threw = true; } console.assert(threw === true && account.getBalance() === 70);` },
     { label: 'non-positive deposit throws', code: `let threw2 = false; try { account.deposit(0); } catch (e) { threw2 = true; } console.assert(threw2 === true);` },
-  ]
+  ]}
 />
 
 </TopicPlayground>

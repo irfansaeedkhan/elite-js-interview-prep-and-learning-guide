@@ -132,12 +132,12 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 }
 
 const storage = createStorage();`}
-  tests=[
+  tests={[
     { label: 'string round-trip', code: `storage.set('theme', 'dark'); console.assert(storage.get('theme') === 'dark');` },
     { label: 'missing key is null', code: `console.assert(storage.get('nope') === null);` },
     { label: 'object round-trip through JSON', code: `storage.setJSON('user', { name: 'Aisha' }); console.assert(storage.getJSON('user').name === 'Aisha');` },
     { label: 'remove then clear', code: `storage.remove('theme'); console.assert(storage.get('theme') === null); storage.clear(); console.assert(storage.getJSON('user') === null);` },
-  ]
+  ]}
 />
 
 </TopicPlayground>

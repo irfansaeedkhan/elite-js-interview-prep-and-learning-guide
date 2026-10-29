@@ -110,11 +110,11 @@ Be ready to compare alternatives and describe when **not** to use this feature.
   starterCode={`function* fibonacci(n) {
   // your code here
 }`}
-  tests=[
+  tests={[
     { label: 'first five values', code: `console.assert(JSON.stringify([...fibonacci(5)]) === '[0,1,1,2,3]');` },
     { label: 'zero yields nothing', code: `console.assert([...fibonacci(0)].length === 0);` },
     { label: 'next steps one value at a time', code: `const it = fibonacci(3); console.assert(it.next().value === 0 && it.next().value === 1 && it.next().done === false);` },
-  ]
+  ]}
 />
 
 </TopicPlayground>

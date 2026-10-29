@@ -110,11 +110,11 @@ Be ready to compare alternatives and describe when **not** to use this feature.
   starterCode={`function normalizeResponse(status, body) {
   // your code here
 }`}
-  tests=[
+  tests={[
     { label: '200 returns the body', code: `console.assert(normalizeResponse(200, { name: 'Aisha' }).name === 'Aisha');` },
     { label: '201 returns the body', code: `console.assert(normalizeResponse(201, 'created') === 'created');` },
     { label: '404 throws with the status', code: `let threw = false; try { normalizeResponse(404, { error: 'nope' }); } catch (e) { threw = e.message === 'HTTP 404'; } console.assert(threw === true);` },
-  ]
+  ]}
 />
 
 </TopicPlayground>

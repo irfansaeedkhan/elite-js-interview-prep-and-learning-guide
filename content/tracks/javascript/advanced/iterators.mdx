@@ -112,11 +112,11 @@ Be ready to compare alternatives and describe when **not** to use this feature.
     // your code here: add a [Symbol.iterator] method
   };
 }`}
-  tests=[
+  tests={[
     { label: 'spread collects the range', code: `console.assert(JSON.stringify([...range(2, 5)]) === '[2,3,4]');` },
     { label: 'for...of sums the range', code: `let sum = 0; for (const n of range(1, 4)) { sum += n; } console.assert(sum === 6);` },
     { label: 'empty range yields nothing', code: `console.assert([...range(3, 3)].length === 0);` },
-  ]
+  ]}
 />
 
 </TopicPlayground>

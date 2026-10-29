@@ -116,11 +116,11 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 let runs = 0;
 const add = memoize((a, b) => { runs++; return a + b; });`}
-  tests=[
+  tests={[
     { label: 'first call runs once', code: `console.assert(add(2, 3) === 5 && runs === 1);` },
     { label: 'repeat call uses the cache', code: `console.assert(add(2, 3) === 5 && runs === 1);` },
     { label: 'new arguments run again', code: `console.assert(add(2, 4) === 6 && runs === 2);` },
-  ]
+  ]}
 />
 
 </TopicPlayground>

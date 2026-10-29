@@ -110,12 +110,12 @@ Be ready to compare alternatives and describe when **not** to use this feature.
   starterCode={`function getCity(user) {
   // your code here
 }`}
-  tests=[
+  tests={[
     { label: 'full user returns the city', code: `console.assert(getCity({ address: { city: 'Lahore' } }) === 'Lahore');` },
     { label: 'missing address returns Unknown', code: `console.assert(getCity({}) === 'Unknown');` },
     { label: 'null user returns Unknown', code: `console.assert(getCity(null) === 'Unknown');` },
     { label: 'empty-string city is kept, not replaced', code: `console.assert(getCity({ address: { city: '' } }) === '');` },
-  ]
+  ]}
 />
 
 </TopicPlayground>

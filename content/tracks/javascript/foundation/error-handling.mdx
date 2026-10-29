@@ -114,11 +114,11 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 function safeParse(str) {
   // your code here: try parsePositiveInt, catch into { ok: false, error }
 }`}
-  tests=[
+  tests={[
     { label: 'valid input parses', code: `console.assert(safeParse('42').value === 42 && safeParse('42').ok === true);` },
     { label: 'non-number is a TypeError', code: `console.assert(safeParse('abc').error === 'TypeError');` },
     { label: 'negative is a RangeError', code: `console.assert(safeParse('-5').error === 'RangeError');` },
-  ]
+  ]}
 />
 
 </TopicPlayground>

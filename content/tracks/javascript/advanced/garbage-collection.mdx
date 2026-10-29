@@ -123,11 +123,11 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 }
 
 const registry = createRegistry();`}
-  tests=[
+  tests={[
     { label: 'add grows the registry', code: `registry.add('a', { big: 'data' }); registry.add('b', { big: 'data' }); console.assert(registry.size() === 2);` },
     { label: 'release shrinks it', code: `registry.release('a'); console.assert(registry.size() === 1);` },
     { label: 'releasing a missing id is a no-op', code: `registry.release('missing'); console.assert(registry.size() === 1);` },
-  ]
+  ]}
 />
 
 </TopicPlayground>
