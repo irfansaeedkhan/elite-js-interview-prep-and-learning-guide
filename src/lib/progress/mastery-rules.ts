@@ -6,6 +6,10 @@ export interface TopicIndexEntry {
   permalink: string;
   slug: string;
   track: string;
+  /** Sidebar group this topic belongs to; footer navigation follows sidebar order. */
+  subCategory: string;
+  /** Order of that group in the sidebar; 999 when the group is unknown. */
+  categoryOrder: number;
   title: string;
   order: number;
   status: string;
@@ -117,8 +121,32 @@ export function getUnmetPrerequisites(
     .filter((t) => !isTopicMastered(index, t.path, progress));
 }
 
-export function getAdjacentFromIndex(index: TopicIndexEntry[], track: string, path: string) {
-  const sorted = index.filter((t) => t.track === track).sort((a, b) => a.order - b.order);
+/**
+ * Sidebar learning order for one track: groups in category order, topics
+ * in topic order inside each group. The caller supplies the category
+ * order map (category slug -> category order) so this file stays free of
+ * the Velite content import. Without it, footer Previous/Next sorted by
+ * global topic order alone: Event Loop (order 9) got Previous = Prototypes
+ * and Promises (order 10) got Next = Null and Undefined, while the
+ * sidebar reads Execution as Event Loop, Promises, Callbacks, Async/Await,
+ * Timers, Generators. Footer navigation must match the sidebar.
+ */
+export function sortIndexBySidebarOrder(index: TopicIndexEntry[]): TopicIndexEntry[] {
+  return [...index].sort(
+    (a, b) =>
+      a.categoryOrder - b.categoryOrder ||
+      a.order - b.order ||
+      a.title.localeCompare(b.title),
+  );
+}
+
+export function getAdjacentFromIndex(
+  index: TopicIndexEntry[],
+  track: string,
+  path: string,
+) {
+  const filtered = index.filter((t) => t.track === track);
+  const sorted = sortIndexBySidebarOrder(filtered);
   const i = sorted.findIndex((t) => t.path === path);
   return {
     prev: i > 0 ? sorted[i - 1] : null,

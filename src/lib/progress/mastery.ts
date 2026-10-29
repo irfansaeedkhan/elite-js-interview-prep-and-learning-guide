@@ -1,4 +1,4 @@
-import { topics } from '#site/content';
+import { categories, topics } from '#site/content';
 import {
   canAccessTopic as canAccess,
   countKnowAnswers,
@@ -18,11 +18,16 @@ export type { TopicIndexEntry };
 export type ProgressTopic = TopicMeta & { path: string; permalink: string };
 
 function toIndex(topic: (typeof topics)[number]): TopicIndexEntry {
+  const category = categories.find(
+    (c) => c.track === topic.track && c.subCategory === topic.subCategory,
+  );
   return {
     path: topic.path,
     permalink: topic.permalink,
     slug: topic.slug,
     track: topic.track,
+    subCategory: topic.subCategory,
+    categoryOrder: category?.order ?? 999,
     title: topic.title,
     order: topic.order,
     status: topic.status ?? 'published',

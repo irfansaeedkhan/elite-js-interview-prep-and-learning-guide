@@ -23,7 +23,7 @@ export const LANDING_FAQ: LandingFaqItem[] = [
   {
     question: 'Which interview prep tracks are available today?',
     answer:
-      'JavaScript (40 topics) and React (17 topics) are fully published. Additional tracks — Next.js, Node.js, Express, Hono, NestJS, and more — are on the roadmap with the same structure.',
+      'JavaScript and React tracks are fully published, with the exact topic count shown on each track card. Additional tracks — Next.js, Node.js, Express, Hono, NestJS, and more — are on the roadmap with the same structure.',
   },
   {
     question: 'How should I prepare for JavaScript interview questions?',

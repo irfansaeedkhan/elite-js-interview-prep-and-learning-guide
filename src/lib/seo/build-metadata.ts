@@ -21,10 +21,18 @@ export function buildPageMetadata({
 }: PageMetadataOptions): Metadata {
   const siteUrl = getSiteUrl();
   const url = `${siteUrl}${path.startsWith('/') ? path : `/${path}`}`;
+  // Do NOT append the site name to `title` here: the root metadata
+  // template (`%s | SITE_NAME`) appends it once. Appending it here
+  // too produced duplicated browser titles on every topic page, e.g.
+  // "Closures — … | Elite Interview Prep | Elite Interview Prep".
+  // Open Graph and Twitter titles keep the full display title, since
+  // they have no template.
   const fullTitle = path === '' || path === '/' ? title : `${title} | ${SITE_NAME}`;
 
   return {
-    title: fullTitle,
+    // The home page title IS the site name; the template would
+    // duplicate it, so use an absolute title there.
+    title: title === SITE_NAME ? { absolute: title } : title,
     description,
     metadataBase: new URL(siteUrl),
     alternates: { canonical: url },

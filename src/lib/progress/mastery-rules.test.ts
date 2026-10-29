@@ -16,6 +16,8 @@ const index: TopicIndexEntry[] = [
     permalink: '/learn/javascript/foundation/scope',
     slug: 'scope',
     track: 'javascript',
+    subCategory: 'foundation',
+    categoryOrder: 2,
     title: 'Scope',
     order: 1,
     status: 'published',
@@ -27,6 +29,8 @@ const index: TopicIndexEntry[] = [
     permalink: '/learn/javascript/foundation/closures',
     slug: 'closures',
     track: 'javascript',
+    subCategory: 'foundation',
+    categoryOrder: 2,
     title: 'Closures',
     order: 2,
     status: 'published',
@@ -38,6 +42,8 @@ const index: TopicIndexEntry[] = [
     permalink: '/learn/react/components/jsx',
     slug: 'jsx',
     track: 'react',
+    subCategory: 'components',
+    categoryOrder: 1,
     title: 'JSX',
     order: 1,
     status: 'preview',
@@ -93,5 +99,83 @@ describe('mastery rules', () => {
     const adjacent = getAdjacentFromIndex(index, 'javascript', 'javascript/foundation/scope');
     expect(adjacent.prev).toBeNull();
     expect(adjacent.next?.slug).toBe('closures');
+  });
+});
+
+describe('footer navigation follows sidebar order', () => {
+  const navIndex: TopicIndexEntry[] = [
+    {
+      path: 'javascript/foundation/prototypes',
+      permalink: '/learn/javascript/foundation/prototypes',
+      slug: 'prototypes',
+      track: 'javascript',
+      title: 'Prototypes',
+      subCategory: 'foundation',
+      categoryOrder: 2,
+      order: 8,
+      status: 'published',
+      prerequisites: [],
+      masteryCriteria: { minQuestionsCorrect: 1 },
+    },
+    {
+      path: 'javascript/execution/event-loop',
+      permalink: '/learn/javascript/execution/event-loop',
+      slug: 'event-loop',
+      track: 'javascript',
+      title: 'Event Loop',
+      subCategory: 'execution',
+      categoryOrder: 3,
+      order: 9,
+      status: 'published',
+      prerequisites: [],
+      masteryCriteria: { minQuestionsCorrect: 1 },
+    },
+    {
+      path: 'javascript/execution/promises',
+      permalink: '/learn/javascript/execution/promises',
+      slug: 'promises',
+      track: 'javascript',
+      title: 'Promises',
+      subCategory: 'execution',
+      categoryOrder: 3,
+      order: 10,
+      status: 'published',
+      prerequisites: [],
+      masteryCriteria: { minQuestionsCorrect: 1 },
+    },
+    {
+      path: 'javascript/data-types/null-and-undefined',
+      permalink: '/learn/javascript/data-types/null-and-undefined',
+      slug: 'null-and-undefined',
+      track: 'javascript',
+      title: 'Null and Undefined',
+      subCategory: 'data-types',
+      categoryOrder: 1,
+      order: 11,
+      status: 'published',
+      prerequisites: [],
+      masteryCriteria: { minQuestionsCorrect: 1 },
+    },
+    {
+      path: 'javascript/execution/callbacks',
+      permalink: '/learn/javascript/execution/callbacks',
+      slug: 'callbacks',
+      track: 'javascript',
+      title: 'Callbacks',
+      subCategory: 'execution',
+      categoryOrder: 3,
+      order: 24,
+      status: 'published',
+      prerequisites: [],
+      masteryCriteria: { minQuestionsCorrect: 1 },
+    },
+  ];
+
+  it('puts Execution topics adjacent in sidebar order, not global order', () => {
+    const { prev, next } = getAdjacentFromIndex(navIndex, 'javascript', 'javascript/execution/event-loop');
+    expect(prev?.slug).toBe('prototypes');
+    expect(next?.slug).toBe('promises');
+    const after = getAdjacentFromIndex(navIndex, 'javascript', 'javascript/execution/promises');
+    expect(after.next?.slug).toBe('callbacks');
   });
 });

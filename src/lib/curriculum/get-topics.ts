@@ -38,7 +38,15 @@ export function getTopicPathSegments(topic: VeliteTopic): string[] {
 }
 
 export function getAdjacentTopics(track: string, currentPath: string) {
-  const sorted = getTopicsForTrack(track);
+  // Sidebar order, not global topic order: groups in category order,
+  // topics in topic order inside each group. See mastery-rules.
+  const categoryOrder = getCategoryOrderMap(track);
+  const sorted = [...getTopicsForTrack(track)].sort(
+    (a, b) =>
+      (categoryOrder.get(a.subCategory) ?? 999) - (categoryOrder.get(b.subCategory) ?? 999) ||
+      a.order - b.order ||
+      a.title.localeCompare(b.title),
+  );
   const index = sorted.findIndex((t) => t.path === currentPath);
   return {
     prev: index > 0 ? sorted[index - 1] : null,
@@ -130,15 +138,12 @@ export function buildTrackNav(trackTopics: TopicNavItem[]): NavSubCategory[] {
 }
 
 export function getTrackNavItems() {
-  return getActiveTracks().map((track) => {
-    const firstTopic = getTopicsForTrack(track.slug)[0];
-    return {
-      id: track.slug,
-      title: track.title,
-      icon: track.icon,
-      href: firstTopic?.permalink ?? `/learn/${track.slug}`,
-    };
-  });
+  return getActiveTracks().map((track) => ({
+    id: track.slug,
+    title: track.title,
+    icon: track.icon,
+    href: `/learn/${track.slug}`,
+  }));
 }
 
 /** Tracks with at least one published topic (hide preview-only placeholders). */
@@ -149,6 +154,8 @@ export function getActiveTracks(): TrackMeta[] {
 }
 
 export function getDefaultTrackHref(trackSlug: string): string {
-  const firstTopic = getTopicsForTrack(trackSlug)[0];
-  return firstTopic?.permalink ?? `/learn/${trackSlug}`;
+  // The track index page, not the first topic: opening a track should
+  // show the track overview and topic list, not jump straight into
+  // the first topic (the sidebar jump that confused the React track).
+  return `/learn/${trackSlug}`;
 }

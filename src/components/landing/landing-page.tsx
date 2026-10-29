@@ -85,6 +85,12 @@ function FaqJsonLd() {
 
 export function LandingPage() {
   const activeTracks = getActiveTracks();
+  // Exact published JavaScript count, computed like the track cards
+  // below, so the feature copy can never drift from the sidebar
+  // count again (it said "40+" while the card, FAQ, and sidebar said 40).
+  const jsTopicCount = getTopicsForTrack('javascript').filter(
+    (t) => (t.status ?? 'published') === 'published',
+  ).length;
   const siteUrl = getSiteUrl();
 
   return (
@@ -203,7 +209,7 @@ export function LandingPage() {
                 {
                   icon: BookOpen,
                   title: 'Structured curriculum',
-                  body: '40+ JavaScript topics and a full React track — ordered for interview readiness, not random blog order.',
+                  body: `${jsTopicCount} JavaScript topics and a full React track — ordered for interview readiness, not random blog order.`,
                 },
                 {
                   icon: Code2,
