@@ -17,8 +17,8 @@ export const SandpackPlayground = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex min-h-[280px] items-center justify-center rounded-xl border bg-muted/20 text-sm text-muted-foreground">
-        Loading editor…
+      <div className="flex min-h-[280px] items-center justify-center rounded-xl border bg-muted/20 px-4 text-center text-sm text-muted-foreground">
+        Loading editor… The first playground on a page downloads the code runner once, so the first Run may take a few seconds.
       </div>
     ),
   },

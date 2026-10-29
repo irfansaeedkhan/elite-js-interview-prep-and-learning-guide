@@ -99,14 +99,25 @@ function SandpackPlaygroundInner({
             style={{ minHeight: editorHeight, maxHeight: editorHeight }}
           />
           {showConsole ? (
-            <SandpackConsole
-              ref={consoleRef}
-              standalone
-              showHeader
-              showResetConsoleButton
-              resetOnPreviewRestart
-              showRestartButton={false}
-            />
+            <>
+              {/* Own deterministic header, labelled Console: Sandpack's
+                  built-in console header renders its own label, which
+                  the walk found reading Terminal while every other
+                  piece of copy says Console. Hiding it and labelling
+                  the pane ourselves keeps header and copy in agreement
+                  regardless of the Sandpack version. */}
+              <div className="border-t bg-muted/20 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+                Console
+              </div>
+              <SandpackConsole
+                ref={consoleRef}
+                standalone
+                showHeader={false}
+                showResetConsoleButton
+                resetOnPreviewRestart
+                showRestartButton={false}
+              />
+            </>
           ) : null}
         </SandpackStack>
       </SandpackLayout>
