@@ -193,3 +193,20 @@ html {
 .sandpack-shell .sp-code-editor {
   font-size: 0.875rem !important;
 }
+
+/* Sandpack console — terminal text stays white in dark theme.
+   Sandpack colors console output with its syntax tokens (numbers render as
+   sp-syntax-static, dark red #C64640 in its default dark theme), which is
+   near-invisible on the dark console background. Forcing the token colors to
+   white inside the console only — the editor keeps its own token colors. */
+.dark .sandpack-shell .sp-console .sp-syntax-string,
+.dark .sandpack-shell .sp-console .sp-syntax-plain,
+.dark .sandpack-shell .sp-console .sp-syntax-comment,
+.dark .sandpack-shell .sp-console .sp-syntax-keyword,
+.dark .sandpack-shell .sp-console .sp-syntax-definition,
+.dark .sandpack-shell .sp-console .sp-syntax-punctuation,
+.dark .sandpack-shell .sp-console .sp-syntax-property,
+.dark .sandpack-shell .sp-console .sp-syntax-tag,
+.dark .sandpack-shell .sp-console .sp-syntax-static {
+  color: #ffffff;
+}
