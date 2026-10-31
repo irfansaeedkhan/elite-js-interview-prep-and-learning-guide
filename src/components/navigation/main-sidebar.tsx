@@ -14,6 +14,7 @@ import {
   Route,
   Server,
   Table,
+  Timer,
   Zap,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -137,6 +138,18 @@ export function MainSidebar({ mode, selectedTrack, tracks, onCollapse }: MainSid
           >
             <Clock className="size-5 shrink-0" />
             {!isRail && <span>Due for review</span>}
+          </Link>
+          <Link
+            href="/mocks"
+            title="Mock interviews"
+            className={cn(
+              'flex w-full cursor-pointer items-center rounded-lg text-sm font-medium transition-colors',
+              isRail ? 'justify-center p-3' : 'gap-3 px-4 py-3 text-left',
+              'text-foreground hover:bg-muted',
+            )}
+          >
+            <Timer className="size-5 shrink-0" />
+            {!isRail && <span>Mock interviews</span>}
           </Link>
         </nav>
       </ScrollArea>
