@@ -197,22 +197,34 @@ export function MockSessionClient({
     setSubmitting(true);
     setError(null);
     try {
-      // Manual submit saves the current draft first (when it has
-      // saveable content), then finishes the mock. The timeout path
-      // is different: it submits saved answers only.
-      if (current) {
-        const draft = drafts[current.id] ?? {};
-        const { answer, error: buildError } = buildAnswer(current, draft);
-        if (buildError) {
-          setError(buildError);
+      // Manual submit saves every changed draft first, then finishes
+      // the mock — so no valid unsaved work is dropped. Drafts that
+      // buildAnswer rejects (empty, or content the server would
+      // reject, e.g. rubric without an answer) are left unsaved:
+      // they are unsaveable via Save for the same reason. A
+      // non-terminal save failure surfaces its error and aborts the
+      // submit instead of submitting partial work; a terminal error
+      // refreshes, exactly as handleSave does. The timeout path is
+      // different: it submits saved answers only.
+      for (const question of pack.questions) {
+        const draft = drafts[question.id] ?? {};
+        const { answer, error: buildError } = buildAnswer(question, draft);
+        if (buildError || !answer) continue;
+        const saved = savedAnswers[question.id];
+        if (JSON.stringify(answer) === JSON.stringify(saved ?? {})) continue;
+        try {
+          const dto = await saveMockAnswer(session.id, question.id, answer);
+          setSavedAnswers(dto.answers);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Could not save the answer.';
+          if (isTerminalError(message)) {
+            router.refresh();
+            return;
+          }
+          setError(message);
           setSubmitting(false);
           setConfirmSubmit(false);
           return;
-        }
-        const saved = savedAnswers[current.id];
-        if (answer && JSON.stringify(answer) !== JSON.stringify(saved ?? {})) {
-          const dto = await saveMockAnswer(session.id, current.id, answer);
-          setSavedAnswers(dto.answers);
         }
       }
       await submitMock(session.id, {});
