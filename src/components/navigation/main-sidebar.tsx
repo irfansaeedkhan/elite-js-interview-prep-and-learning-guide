@@ -19,6 +19,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { UserAuthNav } from '@/components/auth/user-auth-nav';
 import { CrossTrackProgress } from '@/components/progress/cross-track-progress';
+import { ReadinessDashboard } from '@/components/progress/readiness-dashboard';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { MainSidebarMode } from '@/hooks/use-learn-sidebar';
@@ -91,6 +92,10 @@ export function MainSidebar({ mode, selectedTrack, tracks, onCollapse }: MainSid
           compact={isRail}
           selectedTrack={selectedTrack}
           tracks={tracks.map((track) => ({ slug: track.id, title: track.title, href: track.href }))}
+        />
+        <ReadinessDashboard
+          compact={isRail}
+          tracks={tracks.map((track) => ({ slug: track.id, title: track.title }))}
         />
         <nav className={cn('space-y-1', isRail ? 'p-2' : 'p-4')}>
           {!isRail ? (
