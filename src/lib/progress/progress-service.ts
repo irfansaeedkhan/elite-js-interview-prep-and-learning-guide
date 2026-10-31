@@ -7,6 +7,7 @@ import {
   type QaResultsJson,
 } from '@/db/schema/progress.schema';
 import { isTopicMastered as checkTopicMastered, getTopicByPath } from '@/lib/progress/mastery';
+import { reviewService } from '@/lib/progress/review-service';
 import type { TopicProgressEntry, TopicProgressMap } from '@/lib/progress/types';
 
 export interface UserStatsDto {
@@ -99,6 +100,30 @@ async function addPoints(userId: string, delta: number) {
     .where(eq(userStats.userId, userId));
 }
 
+/**
+ * Rollout guard (gap 2): scheduling a graded prompt must never break QA
+ * recording itself — for example if the review_items table has not been
+ * created yet at deploy time. The failure is logged, not swallowed
+ * silently, and the next grade retries the schedule.
+ */
+async function scheduleQaReview(
+  userId: string,
+  topicPath: string,
+  questionId: string,
+  result: 'know' | 'review',
+) {
+  try {
+    await reviewService.recordReview(userId, {
+      topicPath,
+      promptId: questionId,
+      kind: 'qa',
+      grade: result,
+    });
+  } catch (error) {
+    console.error('Failed to schedule review item', error);
+  }
+}
+
 export const progressService = {
   async getSnapshot(userId: string): Promise<ProgressSnapshot> {
     await ensureUserStats(userId);
@@ -181,6 +206,7 @@ export const progressService = {
 
       if (result === 'know' && !previousKnow) await addPoints(userId, 1);
       if (masteredAt && !existing.masteredAt) await addPoints(userId, 10);
+      await scheduleQaReview(userId, topicPath, questionId, result);
       return rowToEntry(row);
     }
 
@@ -197,6 +223,7 @@ export const progressService = {
 
     if (result === 'know') await addPoints(userId, 1);
     if (entry.masteredAt) await addPoints(userId, 10);
+    await scheduleQaReview(userId, topicPath, questionId, result);
     return rowToEntry(row);
   },
 

@@ -5,6 +5,7 @@ import {
   BookOpen,
   Braces,
   ChevronLeft,
+  Clock,
   Database,
   Globe,
   Hexagon,
@@ -21,6 +22,7 @@ import { UserAuthNav } from '@/components/auth/user-auth-nav';
 import { CrossTrackProgress } from '@/components/progress/cross-track-progress';
 import { ReadinessDashboard } from '@/components/progress/readiness-dashboard';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import type { MainSidebarMode } from '@/hooks/use-learn-sidebar';
 
@@ -123,6 +125,19 @@ export function MainSidebar({ mode, selectedTrack, tracks, onCollapse }: MainSid
               </Link>
             );
           })}
+          <Separator className={cn(isRail ? 'my-2' : 'my-3')} />
+          <Link
+            href="/review"
+            title="Due for review"
+            className={cn(
+              'flex w-full cursor-pointer items-center rounded-lg text-sm font-medium transition-colors',
+              isRail ? 'justify-center p-3' : 'gap-3 px-4 py-3 text-left',
+              'text-foreground hover:bg-muted',
+            )}
+          >
+            <Clock className="size-5 shrink-0" />
+            {!isRail && <span>Due for review</span>}
+          </Link>
         </nav>
       </ScrollArea>
 
