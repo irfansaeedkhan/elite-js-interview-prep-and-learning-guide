@@ -1,0 +1,243 @@
+---
+title: Design a checkout flow
+slug: checkout
+track: system-design
+subCategory: surfaces
+order: 10
+estimatedMinutes: 45
+keyTakeaways:
+  - "Checkout is a state machine, not a form: every step has a valid next state and a defined failure state"
+  - "Money rules out optimism: the order is confirmed only when the server confirms payment, never before"
+  - Prices are computed server-side; the client shows estimates, never totals the server trusts
+  - "Idempotency keys make retry safe: the same key, the same outcome, never a second charge"
+  - Abandoned checkouts are normal, so drafts persist and resume instead of vanishing
+masteryCriteria:
+  minQuestionsCorrect: 4
+  requireChallenge: false
+difficulty: hard
+status: published
+interviewQuestions:
+  - id: co-1
+    question: How would you design a checkout flow?
+    answer: I would model checkout as a state machine over cart, shipping, payment, review, and confirmation, with a server-side draft that persists every step. The client renders the current step and collects input, but every transition that matters (price, payment, order creation) runs through the server, so a refresh, a back button, or a dropped connection never loses the checkout or corrupts it.
+    difficulty: hard
+    followUps:
+      - Why a state machine instead of a long form?
+      - What state survives a page refresh?
+  - id: co-2
+    question: How do you prevent double charges?
+    answer: I would give every payment attempt an idempotency key generated once per checkout, send it with the payment request, and let the server return the original result for a repeated key instead of charging again. The submit button disables on first click, but the key is the real guard, because buttons cannot stop retries, refreshes, or duplicate network requests.
+    difficulty: hard
+    followUps:
+      - Why is disabling the button not enough?
+      - What happens when the same key arrives with different contents?
+  - id: co-3
+    question: How do you handle payment failure and retry?
+    answer: "I would classify the failure first: a declined card shows a clear reason and lets the user retry with a different method without re-entering everything, a 3D Secure challenge resumes the same draft after authentication, and a network failure during payment reconciles by the idempotency key instead of assuming success or failure. Retry never re-enters data the user already gave."
+    difficulty: medium
+    followUps:
+      - How do you retry a 3D Secure challenge that the user abandoned?
+      - When should retry be blocked instead of offered?
+  - id: co-4
+    question: Where does price calculation live, and why?
+    answer: "I would compute every total server-side: items, discounts, tax, and shipping, from server data at payment time. The client shows an estimate for responsiveness, but the server never trusts it, because client totals can be edited, go stale when prices change mid-checkout, and disagree with tax rules. If the server total differs from what the user saw, the review step shows the new total and asks for confirmation before charging."
+    difficulty: medium
+    followUps:
+      - What happens when a price changes mid-checkout?
+      - Why recompute at payment time instead of at cart time?
+  - id: co-5
+    question: How do you handle a user leaving mid-checkout?
+    answer: I would persist the draft server-side at every step, so returning restores the cart, shipping, and payment selections exactly. Reserved inventory carries an expiry, and an expired reservation releases the items and tells the user plainly on return instead of failing at payment. Abandonment is a normal path, so the design treats it as one.
+    difficulty: medium
+    followUps:
+      - How long should an inventory reservation last?
+      - What does the user see when a reservation expires?
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+If someone asks me to design a checkout flow, I would say it is a state machine where money changes hands, and every transition must be safe to retry. The steps are familiar: cart, shipping, payment, review, confirmation. The design problem is what happens between them when networks fail, users refresh, and cards decline.
+
+Interviewers care because checkout is where frontend shortcuts become real losses. A client-confirmed order, a client-computed total, or a retry without an idempotency key each fail in ways that cost money or trust. The question tests whether you treat payment as a correctness problem, not a form problem.
+
+The senior nuance is pessimism in the right places. The client is optimistic about display and pessimistic about money: it shows estimates instantly, but it never confirms an order, never trusts its own totals, and never assumes a payment result it has not heard from the server.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+## How a strong candidate opens
+
+"Assume a storefront selling physical goods with shipping and card payment. For this interview, I will design the frontend checkout: the step state machine, the server draft, payment with idempotency, and the failure paths. I will assume a payment endpoint that accepts an idempotency key and returns a payment result, plus an order endpoint that creates the order only after payment confirms. Assume single-currency pricing and a small catalog, as interview assumptions, not facts about any real store."
+
+Then name the money rule before any step. Nothing is confirmed client-side. Every step that moves money goes through the server, and every retry carries the same idempotency key. The steps themselves are the easy part once that rule is fixed.
+
+<MermaidDiagram caption="Checkout state machine" size="section">
+{`flowchart LR
+  A["Cart"] --> B["Shipping"]
+  B --> C["Payment"]
+  C --> D["Review"]
+  D --> E["Payment confirmed"]
+  E --> F["Order created"]
+  C --> G["Payment failed"]
+  G --> C
+  D --> H["Total changed"]
+  H --> D
+`}
+</MermaidDiagram>
+
+## Idempotent submit with a submit guard
+
+The sketch below generates one idempotency key per checkout, sends it with the payment request, and disables submission while the request is in flight. The key is the correctness mechanism; the disabled button is only polish, because it cannot stop refreshes or duplicate network requests.
+
+<CodeExample title="Idempotent payment submit" language="javascript">
+{`function createIdempotencyKey() {
+  return 'key-' + Date.now().toString(36) + '-' +
+    Math.random().toString(36).slice(2, 10);
+}
+
+async function submitPayment(checkoutId, key, pay) {
+  let inFlight = false;
+  return async function () {
+    if (inFlight) return { status: 'already-submitted' };
+    inFlight = true;
+    try {
+      const result = await pay(checkoutId, key);
+      return result;
+    } finally {
+      inFlight = false;
+    }
+  };
+}
+`}
+</CodeExample>
+
+<Callout type="gotcha">
+Disabling the submit button does not prevent double charges. Refreshes, back-button resubmits, and retried network requests all bypass it. Only a server-side idempotency key turns "submitted twice" into "charged once", and that is why the key, not the button, is the design.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+## Requirements
+
+Functional requirements:
+
+- Walk the user through cart, shipping, payment, review, and confirmation, in order, with back navigation that keeps entered data.
+- Collect a shipping address with validation, and a payment method with 3D Secure support.
+- Show an order summary with items, discounts, tax, and shipping before charging.
+- Persist the checkout draft so refresh or return restores it.
+- Confirm the order only after the server confirms payment, and show the confirmation with an order reference.
+
+Non-functional requirements, stated as interview assumptions:
+
+- Assume payment calls can fail, hang, or return late, so every payment path must be retry-safe.
+- Assume prices can change between cart and payment, so totals must be recomputed at payment time.
+- Assume users abandon checkouts often, so drafts and reservations must expire cleanly instead of corrupting later attempts.
+- Assume the client is untrusted for money, so no total, discount, or tax value from the client is ever accepted as truth.
+
+## API surface
+
+Illustrative frontend contracts:
+
+- `POST /checkouts` creates a server draft from the cart and returns a checkout id plus the server-computed estimate.
+- `PATCH /checkouts/<id>` saves one step (shipping, payment method selection) to the draft.
+- `GET /checkouts/<id>` returns the draft with the current step, items, and server totals.
+- `POST /checkouts/<id>/pay` accepts an `Idempotency-Key` header, runs the payment, and returns the payment result; a repeated key returns the original result unchanged.
+- `GET /checkouts/<id>/order` returns the created order after payment confirms, with its reference and summary.
+- Address validation is an illustrative `POST /addresses/validate` that returns corrections or an invalid reason, never a guarantee of deliverability.
+
+## Component tree
+
+- `CheckoutPage` owns the current step state and the draft id. It owns no money logic.
+- `StepNav` renders the steps with completed, current, and upcoming states, and blocks jumping ahead past uncompleted required steps.
+- `ShippingForm` collects and validates the address, and shows server corrections before the user proceeds.
+- `PaymentForm` collects the payment method, hosts the card element, and runs the 3D Secure challenge inside the same draft.
+- `ReviewStep` shows items, discounts, tax, shipping, and the server total, and requires explicit confirmation when the total changed since the user last saw it.
+- `ConfirmationView` renders only after the server confirms payment, with the order reference and summary. It never renders on client assumption.
+
+## Data flow
+
+The cart creates a server draft, and each step saves to that draft as the user proceeds. The review step fetches fresh server totals, and if they differ from what the user saw, it shows the new total and asks for confirmation before any charge. Payment submits with the idempotency key generated once for the checkout. On success, the server creates the order and the client shows confirmation. On a declined card, the draft returns to the payment step with the reason and the entered data intact. On a network failure during payment, the client reconciles by re-fetching the checkout with the same key instead of guessing, so the user sees paid, failed, or still-processing exactly as the server knows it. A refresh at any point reloads the draft and lands on its saved step.
+
+<MermaidDiagram caption="Payment reconciliation flow" size="section">
+{`flowchart TD
+  A["Review confirmed"] --> B["Pay with idempotency key"]
+  B --> C["Payment succeeds"]
+  C --> D["Order created"]
+  B --> E["Card declined"]
+  E --> F["Back to payment step"]
+  B --> G["Network fails"]
+  G --> H["Reconcile by same key"]
+  H --> C
+  H --> E
+`}
+</MermaidDiagram>
+
+## Trade-offs
+
+| Decision | Option A | Option B | Pick |
+| --- | --- | --- | --- |
+| Step layout | One long page | Multi-step with saved draft | Multi-step with draft. Long forms lose users, and a draft makes refresh and return safe. |
+| Totals | Client computes, server accepts | Server computes, client estimates | Server computes. Client totals can be edited and go stale, and money must not depend on them. |
+| Confirmation | Client confirms on submit | Server confirms after payment | Server confirms. A client confirmation before payment is a promise the store has not kept. |
+| Retry | New request per retry | Same idempotency key per checkout | Same key. New requests per retry are how double charges happen. |
+| Inventory | Reserve at cart time | Reserve at payment time with expiry | Reserve at payment time with a short expiry. Cart-time holds waste stock on abandonment, and no hold risks selling out at payment. |
+| Address | Accept anything, fail later | Validate before payment | Validate before payment, with corrections shown. A failed delivery discovered after charging is the worst failure order. |
+| Payment methods | Re-enter every time | Saved methods with re-authentication | Saved methods with re-authentication for payment. Convenience without re-authentication is a fraud door. |
+
+## Failure and edge cases
+
+- The card is declined: the draft returns to the payment step with the reason, entered data intact, and a different-method option. Nothing is charged and nothing is lost.
+- The 3D Secure challenge is abandoned: the draft stays at payment with the challenge resumable, and no order is created.
+- The network drops during payment: the client reconciles by the same idempotency key instead of assuming success or failure, so the user never pays twice and never sees a false failure.
+- The same key arrives twice: the server returns the original result, so a duplicate request is a no-op, not a second charge.
+- A price changes mid-checkout: the review step shows the new server total and requires confirmation before charging, instead of charging a total the user never saw.
+- An item sells out before payment: the review step flags it, removes or replaces it with user consent, and recomputes totals before any charge.
+- The inventory reservation expires: the draft tells the user plainly on return, releases the hold, and re-checks availability before payment proceeds.
+- The session expires mid-checkout: the draft persists server-side by id, so re-authentication restores the checkout instead of discarding it.
+
+## If they push deeper
+
+Name the next levels honestly. Payment provider integrations, fraud scoring, and payout reconciliation are backend and payments topics, and the frontend contract is the idempotent payment endpoint above. Subscription billing adds recurring payment state on top of the same draft model. Multi-currency and tax jurisdiction rules change the server totals but not the frontend shape: estimates on the client, truth on the server, confirmation only after payment. On the frontend, the next level is measurement: step drop-off rates, payment failure reasons, and time from review to confirmation, each tracked without ever logging card data.
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['co-1', 'co-2', 'co-3', 'co-4', 'co-5']} />
+
+<InterviewQuestionBlock id="co-1" />
+
+<InterviewQuestionBlock id="co-2" />
+
+<InterviewQuestionBlock id="co-3" />
+
+<InterviewQuestionBlock id="co-4" />
+
+<InterviewQuestionBlock id="co-5" />
+
+<Callout type="interview">
+The classic trap is the client-confirmed order. Candidates submit payment, show a confirmation screen on submit, and treat the server response as a formality. Interviewers ask about checkout specifically to hear the opposite: confirmation only after the server confirms payment, totals only from the server, and retries only under the same idempotency key. A confirmation screen that renders before payment is the answer that fails.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground />
+
+</TopicTab>
+
+</TopicTabs>

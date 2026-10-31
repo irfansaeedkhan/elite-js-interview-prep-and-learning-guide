@@ -1,0 +1,248 @@
+---
+title: Design a photo gallery with upload
+slug: media-gallery
+track: system-design
+subCategory: surfaces
+order: 9
+estimatedMinutes: 40
+prerequisites:
+  - news-feed
+keyTakeaways:
+  - "A gallery is two problems: a grid that renders fast, and an upload pipeline that survives real networks"
+  - Large uploads must be chunked and resumable, or one dropped connection restarts the whole file
+  - "Progress must count server-acknowledged bytes, not bytes sent: bytes sent is a promise, not a result"
+  - Thumbnails are separate small images, never the full file squeezed by CSS
+  - "Upload state is per file and explicit: queued, uploading, processing, ready, failed"
+masteryCriteria:
+  minQuestionsCorrect: 4
+  requireChallenge: false
+difficulty: medium
+status: published
+interviewQuestions:
+  - id: mg-1
+    question: How would you design a photo gallery with upload?
+    answer: I would build a virtualized grid over thumbnail variants, fed by a paginated media list, plus an upload pipeline that chunks files, uploads with retry, and tracks each file through queued, uploading, processing, and ready states. The grid reuses the windowing from the feed work, and the upload side owns progress honestly, because a gallery that loses uploads loses trust faster than one that renders slowly.
+    difficulty: medium
+    followUps:
+      - What makes upload the hard part, not the grid?
+      - How does the gallery change when uploads happen in the background?
+  - id: mg-2
+    question: How do you make large uploads survive flaky networks?
+    answer: I would split each file into fixed-size chunks, upload chunks with an idempotency key per chunk, retry failed chunks with backoff, and resume from the last acknowledged chunk after any interruption. The server assembles the file only when every chunk is present, so a dropped connection costs one chunk, never the whole file.
+    difficulty: hard
+    followUps:
+      - How do you pick a chunk size?
+      - What happens when the same chunk uploads twice?
+  - id: mg-3
+    question: How do you render a grid of thousands of photos without jank?
+    answer: I would window the grid so only visible rows mount, serve a small thumbnail variant per cell, lazy-load images near the viewport, and reserve each cell size up front so loading never shifts the layout. The full-resolution file loads only when the user opens a photo, never for the grid itself.
+    difficulty: medium
+    followUps:
+      - Why is a thumbnail variant better than CSS-shrinking the full file?
+      - What breaks if cell sizes are not reserved?
+  - id: mg-4
+    question: How do you report upload progress honestly?
+    answer: "I would count only chunks the server has acknowledged, aggregate them into per-file and overall progress, and keep the states distinct: uploading, processing, ready, failed. Bytes sent is not progress, because the server may still be assembling or transcoding, and a bar that hits 100 percent early is a lie the user notices."
+    difficulty: medium
+    followUps:
+      - Why is processing a separate state from uploading?
+      - How do you show progress for many files at once?
+  - id: mg-5
+    question: How do you handle failed or duplicate uploads?
+    answer: I would hash each file client-side, skip re-upload when the server already holds that hash, retry failed chunks with backoff and a manual retry action, and keep failed files visible with their error instead of silently dropping them. Delete cancels in-flight chunks and removes the server record, so a deleted upload never finishes into the gallery later.
+    difficulty: medium
+    followUps:
+      - When is hash dedupe wrong?
+      - What happens to a delete issued mid-upload?
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+If someone asks me to design a photo gallery with upload, I would say it is a fast grid over small thumbnails plus an upload pipeline that survives real networks. The grid is the visible part. The pipeline is the hard part.
+
+Interviewers care because upload is where frontend optimism meets reality. Files are large, connections drop, and users watch progress bars. A design that uploads in one request, reports bytes sent as progress, and drops failed files silently fails all three tests at once.
+
+The senior nuance is state honesty. Every file is always in exactly one visible state, progress counts only server-acknowledged work, and the gallery never shows a photo the server has not confirmed. That discipline is what makes the feature feel reliable.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+## How a strong candidate opens
+
+"Assume a gallery where users upload photos from phones and browsers. For this interview, I will design the frontend: the grid, the upload pipeline, and the per-file states. I will assume an upload endpoint that accepts chunks and returns thumbnail variants, plus a media list endpoint with pagination. Assume files up to a few hundred megabytes and galleries up to tens of thousands of photos, as interview assumptions, not facts about any real product."
+
+Then name the split before any component. Grid rendering is a solved problem with windowing and thumbnails. Upload is a state machine with retries. Everything else follows from keeping those two concerns separate.
+
+<MermaidDiagram caption="Gallery upload architecture" size="section">
+{`flowchart LR
+  A["Gallery page"] --> B["Grid window"]
+  A --> C["Upload queue"]
+  C --> D["Chunk uploader"]
+  D --> E["Upload API"]
+  E --> F["Thumbnail variants"]
+  B --> G["Media list API"]
+  G --> F
+`}
+</MermaidDiagram>
+
+## Chunked upload with retry
+
+The sketch below splits a file into chunks and uploads each one with retry, tracking only acknowledged chunks. It is the mechanism behind resumable upload: the retry loop, not the chunking alone, is what survives a dropped connection.
+
+<CodeExample title="Chunked upload with acknowledged progress" language="javascript">
+{`async function uploadFile(file, chunkSize, uploadChunk) {
+  const chunks = [];
+  for (let offset = 0; offset < file.size; offset += chunkSize) {
+    chunks.push(file.slice(offset, offset + chunkSize));
+  }
+  let acknowledged = 0;
+  for (let i = 0; i < chunks.length; i++) {
+    let attempt = 0;
+    while (true) {
+      try {
+        await uploadChunk(i, chunks[i]);
+        acknowledged += chunks[i].size;
+        break;
+      } catch (error) {
+        attempt += 1;
+        if (attempt >= 3) throw error;
+        await new Promise(function (resolve) {
+          setTimeout(resolve, 200 * attempt);
+        });
+      }
+    }
+  }
+  return acknowledged;
+}
+`}
+</CodeExample>
+
+<Callout type="gotcha">
+Bytes sent is not progress. A bar driven by bytes leaving the browser hits 100 percent while the server is still assembling chunks and generating thumbnails, and the user watches a finished bar with no photo. Count acknowledged chunks, and keep processing as its own visible state.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+## Requirements
+
+Functional requirements:
+
+- Show a grid of the user's photos with titles, newest first, paginated as the user scrolls.
+- Upload one or many files, with per-file progress, pause, cancel, and resume.
+- Open a photo at full resolution from the grid, with next and previous navigation.
+- Delete a photo, including cancelling an in-flight upload.
+- Deduplicate identical files instead of uploading them twice.
+
+Non-functional requirements, stated as interview assumptions:
+
+- Assume files up to a few hundred megabytes and galleries up to tens of thousands of photos, so neither upload nor grid can assume small data.
+- Assume mobile networks that drop mid-upload, so resume is a requirement, not a nicety.
+- Assume users judge the feature by its progress bars, so progress must be honest even when it is slow.
+- Assume thumbnail generation takes time, so a photo is not "ready" until its variants exist.
+
+## API surface
+
+Illustrative frontend contracts:
+
+- `POST /uploads` starts an upload session and returns an upload id plus the expected chunk count.
+- `PUT /uploads/<id>/chunks/<n>` uploads one chunk, idempotent by chunk index, and returns the acknowledged byte count.
+- `POST /uploads/<id>/complete` assembles the file and starts thumbnail generation, returning a processing state.
+- `GET /media?cursor=<c>` returns a page of media items with thumbnails, newest first.
+- `GET /media/<id>` returns one photo with its full-resolution URL and variant list.
+- `DELETE /media/<id>` removes the record and its variants, and cancels any in-flight upload for that id.
+
+## Component tree
+
+- `GalleryPage` owns the grid state, the upload queue state, and the layout. It owns no upload bytes.
+- `PhotoGrid` windows the rows, reserves cell sizes, and lazy-loads thumbnails near the viewport.
+- `PhotoCell` renders one thumbnail with its title and a placeholder until the image decodes.
+- `UploadQueue` lists every file with its state, progress, and actions (pause, cancel, retry).
+- `ChunkUploader` owns chunking, retry with backoff, and acknowledged-byte accounting for one file.
+- `PhotoViewer` opens the full-resolution image with next and previous navigation, loading only the current photo at full size.
+
+## Data flow
+
+The user picks files, and each file enters the queue in a queued state with a client-side hash. The uploader starts an upload session, then uploads chunks in order, retrying failed chunks with backoff. Each acknowledged chunk advances honest progress. When every chunk is acknowledged, the client calls complete, and the file moves to processing while the server generates variants. Only when variants exist does the file become ready and appear in the grid. A dropped connection pauses the file at its last acknowledged chunk, and resume continues from there. A delete during upload cancels remaining chunks and removes the server record, so the file never lands in the grid later.
+
+<MermaidDiagram caption="Upload lifecycle" size="section">
+{`flowchart TD
+  A["File picked"] --> B["Hash and queue"]
+  B --> C["Upload chunks with retry"]
+  C --> D["All chunks acknowledged"]
+  D --> E["Server processes variants"]
+  E --> F["Photo ready in grid"]
+  C --> G["Connection drops"]
+  G --> H["Resume from last chunk"]
+  H --> C
+`}
+</MermaidDiagram>
+
+## Trade-offs
+
+| Decision | Option A | Option B | Pick |
+| --- | --- | --- | --- |
+| Upload shape | One request per file | Chunked with resume | Chunked. One dropped connection must not restart a large file. |
+| Chunk size | Small chunks | Large chunks | Medium chunks, tuned per file size. Tiny chunks drown in request overhead, huge chunks re-send too much on failure. |
+| Progress | Bytes sent | Server-acknowledged bytes | Acknowledged bytes. Bytes sent overstates progress and lies during processing. |
+| Thumbnails | CSS-shrunk full files | Server-generated variants | Variants. Shipping full files to a grid wastes bandwidth and decode time on every scroll. |
+| Grid rendering | Render all rows | Window visible rows | Window. Tens of thousands of mounted images is not a grid, it is a memory problem. |
+| Dedupe | Upload everything | Hash and skip known files | Hash and skip, with a manual re-upload action. Identical bytes should not cost a second upload. |
+| Failure display | Drop failed files silently | Keep failed files with error and retry | Keep with retry. A vanished file reads as data loss, and the user cannot fix what they cannot see. |
+
+## Failure and edge cases
+
+- The connection drops mid-chunk: only that chunk retries, from the last acknowledged chunk. Nothing re-uploads.
+- The same chunk uploads twice: chunk uploads are idempotent by index, so the duplicate is harmless.
+- The file type is unsupported: reject it before any upload starts, with a clear message, instead of failing after minutes of progress.
+- Storage quota is exceeded: the server rejects the session start, and the queue shows the quota error on the file, not a generic failure.
+- Thumbnail generation fails: the file stays in processing with a retry action, and never appears in the grid as a broken image.
+- The user deletes a photo mid-upload: remaining chunks cancel and the server record is removed, so the upload cannot complete into the gallery later.
+- The user closes the tab mid-upload: the session persists server-side by upload id, and reopening resumes from acknowledged chunks instead of starting over.
+- Two identical files upload at once: the hash check collapses them to one server file, and both queue entries resolve to it.
+
+## If they push deeper
+
+Name the next levels honestly. Video transcoding and live-photo formats add pipelines of their own, with their own variant and processing models. Shared albums add permissions and collaboration on top of the same media records. Client-side image editing (crop, filter) is a canvas topic that feeds the same upload pipeline. On the frontend, the next level is measurement: time from pick to first visible thumbnail, resume success rate after dropped connections, and grid scroll frame rate at ten thousand photos.
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['mg-1', 'mg-2', 'mg-3', 'mg-4', 'mg-5']} />
+
+<InterviewQuestionBlock id="mg-1" />
+
+<InterviewQuestionBlock id="mg-2" />
+
+<InterviewQuestionBlock id="mg-3" />
+
+<InterviewQuestionBlock id="mg-4" />
+
+<InterviewQuestionBlock id="mg-5" />
+
+<Callout type="interview">
+The classic trap is the single-request upload with a bytes-sent progress bar. Candidates describe one POST per file, report upload progress from the browser send event, and call it done. Interviewers ask about galleries specifically to hear chunking, resume, acknowledged progress, and explicit per-file states. One POST, one bar, and silent failure is the answer that fails.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground />
+
+</TopicTab>
+
+</TopicTabs>
