@@ -1,0 +1,222 @@
+---
+title: Design a social news feed
+slug: news-feed
+track: system-design
+subCategory: feeds
+order: 1
+estimatedMinutes: 40
+keyTakeaways:
+  - A feed is a ranked, paginated list, not a timeline dump
+  - Cursor pagination beats offset pagination once items insert at the top
+  - Virtualized rendering is what keeps a long feed fast, not smaller payloads
+  - New posts arrive as a "new posts available" affordance, never as a silent jump
+  - Rank, dedupe, and read state are frontend jobs even when the server helps
+masteryCriteria:
+  minQuestionsCorrect: 4
+  requireChallenge: false
+difficulty: medium
+status: published
+interviewQuestions:
+  - id: nf-1
+    question: How would you design a social news feed?
+    answer: I would start with a ranked, paginated list rendered as a virtualized list. The client asks for a page with a cursor, merges new pages without duplicates, and shows a "new posts" button instead of jumping the scroll when fresh items arrive.
+    difficulty: medium
+    followUps:
+      - How do you keep the scroll position stable when new posts arrive?
+      - What breaks if you use offset pagination here?
+  - id: nf-2
+    question: Why cursor pagination instead of offset pagination for a feed?
+    answer: Offset pagination counts from the top, so when new posts insert at the top, every offset shifts and the user sees duplicates or skipped posts. A cursor points at a specific item, so pages stay stable even while the feed grows.
+    difficulty: medium
+    followUps:
+      - What does the cursor need to contain for a ranked feed?
+      - How do you handle a post that gets deleted mid-scroll?
+  - id: nf-3
+    question: How do you render a feed with thousands of posts without slowing the page?
+    answer: I would render only the visible window plus a small overscan buffer, and recycle row elements as the user scrolls. The DOM stays roughly constant no matter how many posts are loaded, and row heights are measured or estimated so the scrollbar stays honest.
+    difficulty: medium
+    followUps:
+      - What goes wrong with variable-height rows?
+      - When would you choose infinite scroll over a "load more" button?
+  - id: nf-4
+    question: Where does feed ranking happen, and what does the frontend still own?
+    answer: Ranking usually happens on the server, but the frontend still owns merging pages, deduping by post id, hiding posts the user dismissed, applying local filters, and keeping read state consistent across re-renders and tabs.
+    difficulty: hard
+    followUps:
+      - How do you reconcile server rank with a locally dismissed post?
+      - What happens to ranking when the user pulls to refresh?
+  - id: nf-5
+    question: How do you handle new posts arriving while the user is reading?
+    answer: I would never insert them above the viewport and shift what the user is reading. I would poll or subscribe for a count, show a "new posts available" button, and prepend only when the user taps it or is already at the very top.
+    difficulty: easy
+    followUps:
+      - Polling, websockets, or server-sent events for the new-post count?
+      - How do you avoid the button appearing for posts the user already saw?
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+If someone asks me to design a news feed, I would say it is a ranked list of posts that loads in pages and renders only what is on screen. The hard parts are not the post cards. They are pagination that survives new posts, scroll that stays stable, and rendering that stays fast at thousands of items.
+
+Interviewers care because a feed touches almost every frontend skill at once. Data fetching, list rendering, caching, realtime updates, and performance all show up in one question. A candidate who jumps straight to the card layout has missed the question.
+
+The senior nuance is restraint. A feed should not jump, should not duplicate, and should not re-render the world on every new post. Most of the design is about what you refuse to do to the user's scroll position.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+## How a strong candidate opens
+
+A strong opening takes about a minute. "For this interview, assume a social app with a home feed of text and image posts, roughly a million daily readers, and posts arriving constantly. I will design the frontend: the feed list, pagination, rendering, and the new-posts flow. I will assume the server returns ranked pages and a new-post count endpoint."
+
+That opening does three things. It states scale as an assumption. It scopes the answer to the frontend. And it names the pieces before diving into any of them. Interviewers reward that shape.
+
+<MermaidDiagram caption="News feed architecture" size="section">
+{`flowchart LR
+  A["Feed screen"] --> B["Virtual list"]
+  B --> C["Post card"]
+  A --> D["Feed cache"]
+  D --> E["Feed API"]
+  E --> F["New post count"]
+  F --> A
+`}
+</MermaidDiagram>
+
+## The windowing idea in code
+
+The core mechanism is a window. Given a scroll offset, a row height, and a viewport height, only the rows inside the window render. Everything else is empty space with the same total height, so the scrollbar behaves normally.
+
+<CodeExample title="Visible window calculation" language="javascript">
+{`function visibleWindow(scrollTop, viewportHeight, rowHeight, totalRows, overscan) {
+  const first = Math.floor(scrollTop / rowHeight);
+  const visibleCount = Math.ceil(viewportHeight / rowHeight);
+  const start = Math.max(0, first - overscan);
+  const end = Math.min(totalRows, first + visibleCount + overscan);
+  return { start, end };
+}
+
+const window = visibleWindow(1200, 800, 200, 5000, 3);
+console.log(window.start, window.end);
+`}
+</CodeExample>
+
+<Callout type="tip">
+Variable-height rows break the simple math above. Real virtualized lists measure each row after it renders and keep a running offset map. Say that out loud in the interview before the interviewer has to ask.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+## Requirements
+
+Functional requirements, the contract the design must meet:
+
+- Show a ranked list of posts with author, text, media, and actions (like, comment, share).
+- Load more posts as the user scrolls, without a full page reload.
+- Surface newly arrived posts without moving what the user is reading.
+- Support like, dismiss, and hide actions that feel instant.
+- Remember roughly where the user left off when they return.
+
+Non-functional requirements, stated as interview assumptions, not facts about any real product:
+
+- Assume roughly a million daily readers and posts arriving constantly.
+- Assume the feed must stay interactive at 60 frames per second while scrolling.
+- Assume images are the dominant payload cost, so media loading needs its own strategy.
+- Assume the user may be on a slow connection, so the first paint cannot wait for the whole first page.
+
+## API surface
+
+These are illustrative frontend contracts. The interview question is about how the frontend uses them, not about inventing a backend.
+
+- `GET /feed?cursor=<opaque>&limit=20` returns a page of ranked posts, a next cursor, and a flag for whether more pages exist.
+- `GET /feed/new-count?since=<postId>` returns how many posts arrived after the newest post the client has.
+- `POST /posts/:id/like` and `POST /posts/:id/dismiss` apply actions, with the client updating optimistically and rolling back on failure.
+- Media arrives as a set of sized URLs per post (thumbnail, standard, full) so the client picks the size it actually needs.
+
+## Component tree
+
+- `FeedScreen` owns the page state: the post list, the cursor, the new-post count, and the scroll container.
+- `VirtualList` owns the window math, the overscan buffer, and row recycling.
+- `PostCard` renders one post and nothing else. It takes a post object and action callbacks, and it memoizes on post id plus a version stamp.
+- `NewPostsButton` renders only when the count is above zero and the user is not at the top.
+- `MediaLoader` handles progressive image loading: a blurred thumbnail first, then the standard size, then full size on tap.
+
+## Data flow
+
+The client fetches page one with no cursor. Each page merges into the cache keyed by post id, so duplicates from overlapping pages collapse. When the scroll nears the bottom, the client fetches the next cursor. Likes and dismisses update the cache immediately and sync in the background. The new-post count refreshes on an interval or a lightweight subscription, and tapping the button prepends the fresh page and resets the count.
+
+<MermaidDiagram caption="Feed data flow" size="section">
+{`flowchart TD
+  A["Scroll near bottom"] --> B["Fetch next cursor"]
+  B --> C["Merge by post id"]
+  C --> D["Virtual list renders window"]
+  E["New post count updates"] --> F["Show new posts button"]
+  F --> G["User taps button"]
+  G --> H["Prepend fresh page"]
+`}
+</MermaidDiagram>
+
+## Trade-offs
+
+| Decision | Option A | Option B | Pick |
+| --- | --- | --- | --- |
+| Pagination | Offset, simple to implement | Cursor, stable under inserts | Cursor. Feeds grow at the top, and offset breaks exactly there. |
+| Loading more | Infinite scroll, no friction | Load more button, user control | Infinite scroll for the main feed, with a button as the fallback when fetch fails repeatedly. |
+| New posts | Insert immediately | Count button, insert on tap | Count button. Inserting above the viewport moves the content the user is reading, which is the worst feed sin. |
+| Rendering | Render everything, simple | Virtualize, constant DOM | Virtualize once the list can exceed a few dozen rows. Below that, plain rendering is fine and simpler. |
+| Media | Full size immediately | Progressive sizes | Progressive. Thumbnails first keeps scroll smooth, and most users never open the full size. |
+| State | Local component state | Normalized cache | Normalized cache keyed by post id, because the same post appears in the feed, in search, and in profiles. |
+
+## Failure and edge cases
+
+- A page fetch fails: keep the old posts, show a retry row at the bottom, and do not lose the cursor.
+- A like fails after the optimistic update: roll the count back and show a small inline error on that card only, never a page-level alert.
+- A post is deleted server-side mid-scroll: the next page merge drops the missing id, and the list reflows without jumping, because row heights are measured, not assumed.
+- The user returns after a day: restore the last read position if it is still in the cache window, otherwise start at the top with the newest page. Do not pretend to restore a position you no longer have.
+- Duplicate posts across pages: dedupe by id at merge time, always. If duplicates still appear, the merge key is wrong, not the renderer.
+
+## If they push deeper
+
+Say where you would go next without bluffing through it. Ranking quality (what the ranker weighs) is a backend and machine learning topic, and you would ask the interviewer how deep they want that. Real-time delivery at scale (fan-out, connection counts) is a backend scaling topic. On the frontend, the next level is measurement: scroll jank traces, image decode cost, and time to first meaningful post, with budgets for each.
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['nf-1', 'nf-2', 'nf-3', 'nf-4', 'nf-5']} />
+
+<InterviewQuestionBlock id="nf-1" />
+
+<InterviewQuestionBlock id="nf-2" />
+
+<InterviewQuestionBlock id="nf-3" />
+
+<InterviewQuestionBlock id="nf-4" />
+
+<InterviewQuestionBlock id="nf-5" />
+
+<Callout type="interview">
+The classic trap is the silent jump. Many candidates insert new posts at the top the moment they arrive and proudly call it realtime. Interviewers mark that down, because it moves the text the user is mid-sentence on. The count button is the answer they want to hear, and the reason matters more than the button.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground />
+
+</TopicTab>
+
+</TopicTabs>

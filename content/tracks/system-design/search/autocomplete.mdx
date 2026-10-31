@@ -1,0 +1,237 @@
+---
+title: Design typeahead autocomplete
+slug: autocomplete
+track: system-design
+subCategory: search
+order: 2
+estimatedMinutes: 40
+keyTakeaways:
+  - Debounce input, then cancel stale requests, or suggestions will arrive out of order
+  - "Every keystroke is not a request: cache prefixes and reuse them"
+  - Keyboard navigation is part of the design, not an accessibility extra
+  - Highlight the matching text so the user can scan suggestions at a glance
+  - A suggestion list must close predictably on blur, escape, and selection
+masteryCriteria:
+  minQuestionsCorrect: 4
+  requireChallenge: false
+difficulty: medium
+status: published
+interviewQuestions:
+  - id: ac-1
+    question: How would you design typeahead autocomplete?
+    answer: I would debounce the input, fetch suggestions for the debounced query, cancel any in-flight request when a newer query starts, and render a keyboard-navigable list with the matching text highlighted. Cached prefixes answer repeat queries without a network round trip.
+    difficulty: medium
+    followUps:
+      - Why debounce instead of throttling here?
+      - How do you stop an older, slower response from overwriting newer results?
+  - id: ac-2
+    question: How do you handle out-of-order responses?
+    answer: I would tag each request with the query it was sent for and ignore any response whose query no longer matches the input. The cleaner version is an AbortController per request, so stale requests are cancelled instead of merely ignored.
+    difficulty: medium
+    followUps:
+      - When is ignoring enough, and when do you need real cancellation?
+      - What happens to the loading indicator when a request is aborted?
+  - id: ac-3
+    question: How do you keep autocomplete fast on slow networks?
+    answer: I would cache results by query prefix, so typing one more character reuses the shorter prefix result as a starting point. I would also cap the suggestion count, keep payloads small, and prefetch the most likely next prefix only when the connection is good.
+    difficulty: hard
+    followUps:
+      - How large can the prefix cache grow before it hurts?
+      - When does prefetching backfire?
+  - id: ac-4
+    question: What does keyboard navigation need to cover?
+    answer: Arrow keys move an active descendant through the list, Enter selects it, Escape closes the list and returns focus to the input, and the active item is announced to screen readers. Mouse hover and keyboard active state must stay in sync, or the list feels broken.
+    difficulty: medium
+    followUps:
+      - How do you keep hover and keyboard state from fighting?
+      - What should Enter do when no suggestion is active?
+  - id: ac-5
+    question: Debounce, throttle, or neither for the input handler?
+    answer: Debounce, because autocomplete only cares about the settled query, not every intermediate keystroke. Throttle would still fire for queries the user has already typed past. The wait is usually around 150 to 300 milliseconds, tuned so fast typists see no lag and slow networks see fewer wasted requests.
+    difficulty: easy
+    followUps:
+      - What breaks if the debounce wait is too long?
+      - When would you skip debouncing entirely?
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+If someone asks me to design autocomplete, I would say it is a text input that suggests completions as you type, and the whole design is about not fetching too much, not showing stale results, and letting the keyboard do the work. The input looks simple. The race conditions underneath it are not.
+
+Interviewers care because autocomplete is the smallest question that exposes async discipline. Debouncing, cancellation, caching, and keyboard handling all fit in one component, and every one of them has a visible failure mode when done wrong.
+
+The senior nuance is ordering. A slow response for an old query must never overwrite results for the current query. If you can explain exactly how you guarantee that, you have answered the hardest part of the question.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+## How a strong candidate opens
+
+"Assume a search box on a content site. For this interview, I will design the frontend: the input, the suggestion fetch, the list rendering, and keyboard handling. I will assume a suggestions endpoint that returns up to eight matches for a query string, and I will state my debounce wait and caching policy up front instead of letting them stay implicit."
+
+Then sketch the flow before writing any code. Input change, debounce, cache check, fetch with cancellation, render list, keyboard nav. That order is the design.
+
+<MermaidDiagram caption="Autocomplete request flow" size="section">
+{`flowchart LR
+  A["User types"] --> B["Debounce wait"]
+  B --> C["Cache hit"]
+  C --> D["Render suggestions"]
+  B --> E["Cache miss"]
+  E --> F["Fetch with abort signal"]
+  F --> D
+  F --> G["Newer query starts"]
+  G --> H["Abort stale request"]
+`}
+</MermaidDiagram>
+
+## The debounce plus abort sketch
+
+Debounce alone is not enough. The sketch below pairs a debounce timer with an AbortController, so a newer query cancels the older request instead of racing it.
+
+<CodeExample title="Debounced fetch with cancellation" language="javascript">
+{`function createSuggestFetcher(fetchSuggestions, wait) {
+  let timer = null;
+  let controller = null;
+
+  return function onInput(query, render) {
+    if (timer !== null) clearTimeout(timer);
+    timer = setTimeout(async function run() {
+      if (controller !== null) controller.abort();
+      controller = new AbortController();
+      try {
+        const results = await fetchSuggestions(query, controller.signal);
+        render(results);
+      } catch (error) {
+        if (error.name === 'AbortError') return;
+        render([]);
+      }
+    }, wait);
+  };
+}
+`}
+</CodeExample>
+
+<Callout type="gotcha">
+Aborting a request does not abort the render. If you only abort the fetch but still render whatever resolves last, stale results still win. Guard the render with the current query, or render only from the latest controller, and say which one you chose.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+## Requirements
+
+Functional requirements:
+
+- Suggest completions as the user types, updating with each settled query.
+- Support mouse and full keyboard selection, including escape to close.
+- Highlight the matching portion of each suggestion.
+- Submit the query on Enter when no suggestion is active, and select on Enter when one is active.
+- Show a clear empty state when nothing matches, rather than a stale list.
+
+Non-functional requirements, stated as interview assumptions:
+
+- Assume suggestions must appear within about 200 milliseconds of the settled query on a good connection.
+- Assume the endpoint can handle the request rate only if the client debounces and caches, so the client owns that responsibility.
+- Assume the list must work with a screen reader, which means real list semantics and an announced active item.
+- Assume mobile keyboards, where the list must not fight the virtual keyboard for viewport space.
+
+## API surface
+
+Illustrative frontend contracts:
+
+- `GET /suggest?q=<query>&limit=8` returns an array of suggestion objects with a display string and a target (a search URL or an entity id).
+- Responses are small and cacheable by exact query string. The client treats the query string as the cache key.
+- No request is sent for an empty query or for a query shorter than the agreed minimum length, usually two characters.
+- Errors return an empty suggestion list on the client, never an error banner inside the dropdown.
+
+## Component tree
+
+- `SearchInput` owns the input value, the debounce timer, and the open and closed state of the list.
+- `SuggestionList` renders the list, the active descendant, and the empty state. It takes suggestions and the active index as props and nothing else.
+- `SuggestionItem` renders one row with highlighted matches. Highlighting is computed from the query, not stored.
+- `useSuggestions` (a hook in the design, not a new library) owns fetching, caching, and cancellation, so the components stay presentational.
+
+## Data flow
+
+A keystroke updates the input value immediately, so typing never feels laggy, and restarts the debounce timer. When the timer fires, the hook checks the prefix cache first. On a hit, it renders from cache. On a miss, it aborts the previous request, fetches, stores the result under the exact query, and renders only if the query still matches the input. Arrow keys move the active index, Enter selects, Escape closes and restores focus. Blur closes the list after a short delay so a mouse click on a suggestion still lands.
+
+<MermaidDiagram caption="Autocomplete data flow" size="section">
+{`flowchart TD
+  A["Keystroke"] --> B["Update input immediately"]
+  B --> C["Restart debounce timer"]
+  C --> D["Timer fires"]
+  D --> E["Prefix cache hit"]
+  E --> F["Render from cache"]
+  D --> G["Prefix cache miss"]
+  G --> H["Abort previous request"]
+  H --> I["Fetch suggestions"]
+  I --> J["Render if query still current"]
+`}
+</MermaidDiagram>
+
+## Trade-offs
+
+| Decision | Option A | Option B | Pick |
+| --- | --- | --- | --- |
+| Input handling | Debounce, fewer requests | Fire on every keystroke, freshest | Debounce at 150 to 300 milliseconds. Keystroke firing wastes requests the user has already typed past. |
+| Stale results | Ignore outdated responses | Abort outdated requests | Abort, with a query guard on render as backup. Aborting saves bandwidth; the guard saves correctness. |
+| Caching | Exact query cache | Prefix cache | Prefix cache. Typing one more character reuses the shorter result set as a filter base. Cap its size. |
+| List size | Many suggestions | Capped at 8 | Capped. Users scan the first few; a long list costs render time and attention. |
+| Highlighting | Bold the match | Show plain text | Bold the match. Scanning speed is the point of the list. |
+| Empty state | Keep old suggestions | Show explicit empty state | Explicit empty state. A stale list after a no-match query is misinformation. |
+| Prefetch | Prefetch likely prefixes | Never prefetch | Prefetch only on a good connection and only the single most likely next prefix. Otherwise it is wasted traffic. |
+
+## Failure and edge cases
+
+- The fetch fails: render an empty list, keep the input usable, and do not show an error inside the dropdown. Retry happens naturally on the next keystroke.
+- The user types, deletes, and retypes fast: the debounce timer restarts each time, the abort cancels the in-flight request, and the guard blocks any late render.
+- The user pastes a long query: treat it like typed input, debounce once, and fetch once. Do not fire per character for a paste.
+- The suggestion list is open and the window resizes: reposition the list under the input, and close it if the input leaves the viewport.
+- Two suggestions have identical display text: key rows by suggestion id, never by display text, or selection will jump between them.
+- The user submits with Enter while a fetch is in flight: submit the current input text, and let the late response die against the guard.
+
+## If they push deeper
+
+Name the next levels honestly. Ranking suggestions (popularity, personalization, typo tolerance) is a backend search problem, and the frontend contract is just the ordered list it returns. Multilingual input and composing characters (IME) change the input handling, because keystrokes during composition should not trigger fetches. Distributed suggestion indexes and their consistency are backend topics. On the frontend, the next level is measurement: time from keystroke to suggestion paint, and abort rate as a health metric.
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['ac-1', 'ac-2', 'ac-3', 'ac-4', 'ac-5']} />
+
+<InterviewQuestionBlock id="ac-1" />
+
+<InterviewQuestionBlock id="ac-2" />
+
+<InterviewQuestionBlock id="ac-3" />
+
+<InterviewQuestionBlock id="ac-4" />
+
+<InterviewQuestionBlock id="ac-5" />
+
+<Callout type="interview">
+The classic trap is debouncing and stopping there. A debounced fetch with no cancellation still races: a slow response for "jav" can land after the fast response for "java" and overwrite it. Interviewers wait for the candidate to name that race and kill it with abort plus a render guard. Debounce without cancellation is half an answer.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground />
+
+</TopicTab>
+
+</TopicTabs>

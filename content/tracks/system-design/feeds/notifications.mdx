@@ -1,0 +1,242 @@
+---
+title: Design a notification center
+slug: notifications
+track: system-design
+subCategory: feeds
+order: 7
+estimatedMinutes: 40
+prerequisites:
+  - news-feed
+keyTakeaways:
+  - A notification center is a feed with read state, grouping, and routing
+  - Grouping by actor and action prevents a like storm from burying real updates
+  - Unread counts must be exact and consistent everywhere, or users stop trusting them
+  - Marking read is a user action with a server round trip, not a local paint
+  - Preferences (what notifies, where) are part of the design, not a settings afterthought
+masteryCriteria:
+  minQuestionsCorrect: 4
+  requireChallenge: false
+difficulty: medium
+status: published
+interviewQuestions:
+  - id: nt-1
+    question: How would you design a notification center?
+    answer: I would build a grouped, paginated feed of notification items with exact unread counts, read and unread states, and routing to the relevant content on tap. Items group by actor and action so a burst of likes becomes one row, and the unread badge stays consistent across the bell, the list, and the document title.
+    difficulty: medium
+    followUps:
+      - What makes a notification different from a feed post?
+      - How do you route a tap to content that no longer exists?
+  - id: nt-2
+    question: How do you keep the unread count correct?
+    answer: I would treat the server count as the source of truth, update it optimistically only for explicit mark-read actions, and reconcile on every fetch. The badge, the list, and any other surface read the same count from one store, so they can never disagree.
+    difficulty: medium
+    followUps:
+      - What happens to the count when the user reads on another device?
+      - Why is a locally decremented count dangerous?
+  - id: nt-3
+    question: How do you group notifications without hiding important ones?
+    answer: I would group only identical actions by the same actor on the same target, like several likes on one post, and expand the group on tap. Different actions, different targets, or high-priority types like mentions never group, because grouping those hides the one item the user needed to see.
+    difficulty: hard
+    followUps:
+      - What grouping rule would you never apply to mentions?
+      - How do you order items inside a group?
+  - id: nt-4
+    question: How do notifications arrive in real time?
+    answer: "I would deliver a lightweight count and item stream over the existing realtime connection, or poll on an interval when no connection exists. The payload is small: an id, a type, and a count delta. The full item loads when the user opens the center, so the realtime path never carries heavy content."
+    difficulty: medium
+    followUps:
+      - Why should the realtime payload stay small?
+      - "Polling interval: what sets it, and what breaks if it is too short?"
+  - id: nt-5
+    question: How do notification preferences fit the design?
+    answer: I would model preferences per notification type and per channel (in-app, email, push), store them server-side so they follow the user across devices, and render the settings as toggles grouped by type. A preference change applies to future notifications only, and the UI says so, so users do not expect it to erase history.
+    difficulty: easy
+    followUps:
+      - Why must preferences live on the server, not in local storage?
+      - What happens to in-flight notifications when a preference flips?
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+If someone asks me to design a notification center, I would say it is a feed where every item has a read state, a destination, and a reason to exist. The bell, the list, and the unread count are one system. When they disagree, users stop trusting all three.
+
+Interviewers care because notifications look trivial and fail in specific ways. Counts that drift, like storms that bury mentions, and read states that reset on refresh are all frontend state bugs, not backend mysteries. The question tests whether you treat the count as a correctness requirement.
+
+The senior nuance is grouping with restraint. Grouping is what keeps a busy user sane, and over-grouping is what hides the one mention they needed. The rule for what groups and what never groups is the design.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+## How a strong candidate opens
+
+"Assume a social app with likes, comments, mentions, and follows. For this interview, I will design the frontend notification center: the bell and badge, the grouped list, read-state handling, and preferences. I will assume an endpoint for paged notifications, a count endpoint, and a realtime count stream. Ranking and delivery infrastructure are backend topics."
+
+Then name the invariant first: one unread count, one store, every surface reads it. Candidates who start with the bell icon and never state the invariant will drift into inconsistent counts halfway through.
+
+<MermaidDiagram caption="Notification center architecture" size="section">
+{`flowchart LR
+  A["Bell and badge"] --> B["Notification store"]
+  B --> C["Grouped list"]
+  B --> D["Unread count"]
+  E["Realtime count stream"] --> B
+  F["Notifications API"] --> B
+  C --> G["Route to content"]
+`}
+</MermaidDiagram>
+
+## Grouping before rendering
+
+The grouping rule is the mechanism worth sketching. Identical action, same actor, same target, within a window: one row. Everything else stays separate.
+
+<CodeExample title="Grouping rule sketch" language="javascript">
+{`function groupKey(item) {
+  if (item.type === 'mention') return 'single-' + item.id;
+  if (item.type === 'like' || item.type === 'follow') {
+    return item.type + '-' + item.actorId + '-' + item.targetId;
+  }
+  return 'single-' + item.id;
+}
+
+function groupNotifications(items) {
+  const groups = new Map();
+  items.forEach(function (item) {
+    const key = groupKey(item);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(item);
+  });
+  return Array.from(groups.values());
+}
+
+const items = [
+  { id: 'n1', type: 'like', actorId: 'u1', targetId: 'p9' },
+  { id: 'n2', type: 'like', actorId: 'u1', targetId: 'p9' },
+  { id: 'n3', type: 'mention', actorId: 'u1', targetId: 'p9' },
+];
+console.log(groupNotifications(items).length);
+`}
+</CodeExample>
+
+<Callout type="tip">
+Mentions never group in this design, even from the same actor on the same target. A mention is a direct address to the user, and collapsing two of them into one row hides the second message. Say the exception out loud: it shows you thought about what grouping costs.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+## Requirements
+
+Functional requirements:
+
+- Show notifications grouped sensibly, newest first, paginated.
+- Show an exact unread count on the bell and keep it consistent everywhere.
+- Mark items read on open, on tap, and with mark-all-read, with server confirmation.
+- Route each tap to the relevant content, or to a graceful missing-content state.
+- Let users control which types notify and through which channel.
+
+Non-functional requirements, stated as interview assumptions:
+
+- Assume notifications arrive constantly for active users, so the list must handle bursts without burying important items.
+- Assume the unread count is trust-critical: a wrong count is worse than a slow list.
+- Assume users read on multiple devices, so read state must converge across them.
+- Assume the center opens often and briefly, so its first paint must be fast, ideally from cache.
+
+## API surface
+
+Illustrative frontend contracts:
+
+- `GET /notifications?cursor=<c>&limit=30` returns paged items with type, actor, target, timestamp, and read state, plus a next cursor.
+- `GET /notifications/unread-count` returns the exact unread count as a single number.
+- `POST /notifications/read` accepts item ids or an up-to timestamp, and returns the confirmed new count.
+- A realtime stream event carries only an id, a type, and a count delta. Full item bodies load on open, never over the stream.
+- `GET /notifications/preferences` and `PUT /notifications/preferences` manage per-type, per-channel toggles.
+
+## Component tree
+
+- `NotificationBell` renders the badge from the shared store and nothing else. It never fetches its own count.
+- `NotificationCenter` owns the panel: the grouped list, pagination, mark-all-read, and the empty state.
+- `NotificationRow` renders one group or single item, with actor avatars, a summary line, and an unread indicator. Expanding a group shows its members.
+- `NotificationStore` is the single holder of items, groups, and the unread count. The bell, the list, and the title badge all read it.
+- `PreferencePanel` renders per-type toggles grouped by category, with a note that changes apply to future notifications only.
+
+## Data flow
+
+Opening the center fetches the first page and renders from cache first when available. New realtime events bump the store count and, when the center is open, prepend the new item (grouped by the same rule). Marking a single item read sends the id and applies the confirmed count when it returns. Mark-all-read sends an up-to timestamp and clears the badge only on confirmation, never on click alone. When the user reads on another device, the next count fetch reconciles the badge down. Tapping an item marks it read and routes to its target; if the target is gone, the center shows a short "this content is no longer available" state instead of a broken route.
+
+<MermaidDiagram caption="Notification read flow" size="section">
+{`flowchart TD
+  A["User opens center"] --> B["Render cached page"]
+  B --> C["Fetch fresh page"]
+  C --> D["Reconcile count"]
+  E["User taps item"] --> F["Mark read request"]
+  F --> G["Confirmed count applies"]
+  G --> H["Badge updates everywhere"]
+`}
+</MermaidDiagram>
+
+## Trade-offs
+
+| Decision | Option A | Option B | Pick |
+| --- | --- | --- | --- |
+| Count source | Local decrement on click | Server-confirmed count | Server-confirmed. Local decrements drift the moment another device reads, and a wrong badge destroys trust. |
+| Grouping | Group everything by actor | Group only identical action and target | Identical action and target only, with mentions never grouped. Broad grouping hides important items. |
+| Realtime payload | Full item over the stream | Count delta only, fetch on open | Count delta. The stream stays cheap, and the full item loads when the user actually opens the center. |
+| Mark read timing | On view (scroll into sight) | On open or tap | On open for the visible page, on tap for routing. Scroll-based marking reads items the user never saw. |
+| Mark-all-read | Clear badge immediately | Clear on confirmation | Clear on confirmation. An optimistic clear that fails leaves the user believing there is nothing unread. |
+| Preferences location | Local storage | Server-side | Server-side. Preferences must follow the user across devices, and local storage cannot do that. |
+| Cache | Always fetch fresh | Cache first, refresh behind | Cache first for the list, fresh for the count. The list can be briefly stale; the count cannot. |
+
+## Failure and edge cases
+
+- The mark-read request fails: the badge stays, the item stays unread, and a retry happens silently on the next open. Never show a read item as unread after a confirmed read, and never show an unread item as read after a failed one.
+- The realtime stream drops: fall back to polling the count on an interval, and resync fully on reconnect. The badge may lag, but it must not lie.
+- A burst of fifty likes arrives: they group into one row with an expandable member list, and the count rises by the true number. Grouping compresses display, never the count.
+- The target content is deleted: tapping routes to a short missing-content state inside the app, not a dead link or a blank page.
+- The user opens the center on two devices at once: both reconcile to the server count on their next fetch, and the last confirmed read wins. No device keeps a private count.
+- A preference flips mid-burst: already-queued notifications still arrive, and only future ones respect the new setting. The settings copy says so explicitly.
+- The notification list itself is empty: show a calm empty state ("You are all caught up") rather than an error-looking blank panel.
+
+## If they push deeper
+
+Name the next levels honestly. Delivery infrastructure (push services, email digests, rate limiting) is backend work. Ranking notifications by importance is a product and machine learning decision, and the frontend contract is just the ordered list it returns. Digest emails and push notification payloads extend the same preference model to other channels. On the frontend, the next level is measurement: badge accuracy (client count versus server count over time), time from event to badge, and group expansion rate as a signal for whether grouping helps or hides.
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['nt-1', 'nt-2', 'nt-3', 'nt-4', 'nt-5']} />
+
+<InterviewQuestionBlock id="nt-1" />
+
+<InterviewQuestionBlock id="nt-2" />
+
+<InterviewQuestionBlock id="nt-3" />
+
+<InterviewQuestionBlock id="nt-4" />
+
+<InterviewQuestionBlock id="nt-5" />
+
+<Callout type="interview">
+The classic trap is the locally decremented badge. Candidates decrement the count on click and call it done, and the count drifts the first time the user reads on another device or a request fails. Interviewers ask about the count precisely to hear "server-confirmed." A badge that lies is worse than a badge that lags, and the design should say so.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground />
+
+</TopicTab>
+
+</TopicTabs>

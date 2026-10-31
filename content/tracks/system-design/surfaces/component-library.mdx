@@ -1,0 +1,234 @@
+---
+title: Design a component library
+slug: component-library
+track: system-design
+subCategory: surfaces
+order: 4
+estimatedMinutes: 45
+keyTakeaways:
+  - A component library is a versioned contract, not a folder of shared components
+  - "Design tokens are the theming API: color, spacing, and type flow from tokens, not hex codes"
+  - "Composition beats configuration: small primitives combine, mega-props do not scale"
+  - Breaking changes need a migration path, or teams will pin the old version forever
+  - Accessibility is a shipped feature of each component, not a later audit
+masteryCriteria:
+  minQuestionsCorrect: 4
+  requireChallenge: false
+difficulty: hard
+status: published
+interviewQuestions:
+  - id: cl-1
+    question: How would you design a component library?
+    answer: I would build versioned primitives on top of design tokens, with composition over configuration, documented props, and accessibility built into each component. Teams consume it as a package with semantic versioning, and breaking changes ship with codemods or a migration guide.
+    difficulty: hard
+    followUps:
+      - How do you stop teams from forking components locally?
+      - What belongs in the library versus in the app?
+  - id: cl-2
+    question: Why design tokens instead of hard-coded values?
+    answer: Tokens give every visual decision one name and one place to change. Theming, dark mode, and brand changes become token swaps instead of find-and-replace across components, and the same tokens can feed web, mobile, and documentation from one source.
+    difficulty: medium
+    followUps:
+      - What breaks when a team hard-codes a color inside a component?
+      - How do you name tokens so they survive a rebrand?
+  - id: cl-3
+    question: How do you handle versioning and breaking changes?
+    answer: I would use semantic versioning strictly, keep a changelog, and never ship a silent breaking change. For real breaks, I would ship a codemod or a compatibility wrapper with a removal date, and I would announce the migration window before the old API disappears.
+    difficulty: hard
+    followUps:
+      - When is a compatibility wrapper worth its maintenance cost?
+      - How do you find every usage of a deprecated prop?
+  - id: cl-4
+    question: "Composition versus configuration: where do you draw the line?"
+    answer: I would expose small primitives that compose, like a menu built from menu, item, and trigger parts, and keep props for what genuinely varies, like size or variant. When a component gains a prop for every possible layout, it has become a configuration puzzle instead of a component.
+    difficulty: hard
+    followUps:
+      - What is the smell that tells you a component has too many props?
+      - How do you keep composition from becoming verbose boilerplate?
+  - id: cl-5
+    question: How do you make accessibility part of the library?
+    answer: I would bake keyboard behavior, focus management, roles, and labels into the primitives themselves, so a team using them correctly gets accessibility by default. Each component ships with interaction tests for keyboard paths, and the docs show the accessible usage as the primary example.
+    difficulty: medium
+    followUps:
+      - What breaks when accessibility is a wrapper around a component instead of inside it?
+      - How do you test a modal focus trap without a browser?
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+If someone asks me to design a component library, I would say it is a versioned package of primitives built on design tokens, where teams get consistency by default and customization through composition. It is not a folder of shared components. The difference is the contract: versioning, documentation, and a migration path when the contract changes.
+
+Interviewers care because a library is a product with internal customers. The design questions are about governance as much as code. Who decides what enters the library, how breaking changes ship, and what happens when a team needs something the library does not offer.
+
+The senior nuance is restraint again. A library that accepts every request becomes a pile of one-off components with a shared name. The strongest libraries say no often, and give teams a clean escape hatch for the rest.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+## How a strong candidate opens
+
+"Assume a company with several product teams building web apps from one brand. For this interview, I will design the frontend library: the token layer, the primitive components, the versioning and release process, and the governance rules for what enters it. I will assume the apps are React, and I will not design a backend, because a component library has none."
+
+Then name the layers before any component. Tokens, primitives, composed patterns, documentation, release. Candidates who start with a button and never reach governance have answered a different question.
+
+<MermaidDiagram caption="Component library layers" size="section">
+{`flowchart TD
+  A["Design tokens"] --> B["Primitives"]
+  B --> C["Composed patterns"]
+  C --> D["Product apps"]
+  A --> E["Documentation"]
+  B --> E
+  F["Release pipeline"] --> G["Versioned package"]
+  G --> D
+`}
+</MermaidDiagram>
+
+## Tokens before components
+
+The token sketch below is the whole theming idea in miniature. Components reference token names, never raw values, so a theme change touches one file.
+
+<CodeExample title="Tokens as the theming API" language="javascript">
+{`const tokens = {
+  color: {
+    surface: '#ffffff',
+    surfaceDark: '#111827',
+    action: '#2563eb',
+    actionHover: '#1d4ed8',
+  },
+  space: { sm: 4, md: 8, lg: 16, xl: 24 },
+  radius: { sm: 4, md: 8, full: 9999 },
+};
+
+function buttonStyle(theme, variant) {
+  const color = theme === 'dark' ? tokens.color.surfaceDark : tokens.color.surface;
+  const action = variant === 'primary' ? tokens.color.action : color;
+  return { background: action, padding: tokens.space.md, borderRadius: tokens.radius.md };
+}
+
+console.log(buttonStyle('light', 'primary').background);
+`}
+</CodeExample>
+
+<Callout type="tip">
+Name tokens by purpose, not by value. A token called blue500 breaks the day the brand changes blue. A token called action survives it. Interviewers who have maintained a library will ask about naming, and purpose-based names are the answer.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+## Requirements
+
+Functional requirements:
+
+- Provide primitives (button, input, menu, dialog, tabs, tooltip) that work with mouse, keyboard, and screen readers.
+- Support theming, including dark mode, through tokens only.
+- Ship documentation with live examples and prop tables for every component.
+- Version as a package teams install, with a changelog and a deprecation policy.
+- Let teams build what the library lacks without forking library code.
+
+Non-functional requirements, stated as interview assumptions:
+
+- Assume several product teams with different release schedules, so the library cannot force lockstep upgrades.
+- Assume the brand will change at least once, so visual decisions must flow from tokens.
+- Assume bundle size matters, so teams must be able to import one component without the whole library.
+- Assume accessibility failures are release blockers, not follow-up tickets.
+
+## API surface
+
+A component library has no HTTP API, so its API is the package surface. State it as a contract:
+
+- Imports are per component (`library/button`), so tree-shaking drops unused parts.
+- Props follow one convention: `variant` for visual style, `size` for scale, and composition slots for structure, never a prop per layout whim.
+- Tokens ship as CSS variables plus a typed token object, so apps use them in stylesheets and in code from the same source.
+- The version follows semantic versioning: a patch fixes, a minor adds, a major breaks, and the changelog says which, in plain language.
+- Deprecated props warn in development with the replacement name and the removal version, and never warn in production builds.
+
+## Component tree
+
+- `Tokens` is the base layer: color, spacing, type, radius, and motion values, with light and dark sets.
+- `Primitives` are the unstyled-or-lightly-styled behavior layer: focus handling, keyboard maps, positioning, and dismissal logic live here.
+- `Styled components` wrap primitives with the brand styling from tokens. This split is what lets the library restyle without rewriting behavior.
+- `Patterns` are documented compositions (a form row, a data table toolbar, a settings section) built from primitives. They ship as examples and recipes, not as rigid components, so teams can adapt them.
+- `Docs site` is part of the library, not an afterthought: every component gets usage guidance, do and do-not examples, and an accessibility notes section.
+
+## Data flow
+
+There is no runtime data flow to speak of, and saying so is part of the answer. The flow that matters is the release flow. A change lands in the library repo, passes visual regression tests and interaction tests, and publishes a versioned package. Apps upgrade on their own schedule. When a breaking change ships, the migration guide and codemod ship in the same release, and the old API keeps working through one major version behind a deprecation warning. Tokens flow one way: token source generates CSS variables and the typed object, and components consume them. Nothing in a component hard-codes a value the tokens own.
+
+<MermaidDiagram caption="Library release flow" size="section">
+{`flowchart LR
+  A["Change lands"] --> B["Visual and interaction tests"]
+  B --> C["Version and changelog"]
+  C --> D["Publish package"]
+  D --> E["Apps upgrade on their schedule"]
+  C --> F["Codemod and migration guide"]
+  F --> E
+`}
+</MermaidDiagram>
+
+## Trade-offs
+
+| Decision | Option A | Option B | Pick |
+| --- | --- | --- | --- |
+| Styling approach | CSS-in-JS, co-located | CSS variables from tokens | CSS variables from tokens. They theme without runtime cost and work outside React too. |
+| Component shape | Configured mega-component | Composable primitives | Primitives. A mega-component's prop list grows forever; primitives combine for the odd case without a new prop. |
+| Versioning | Lockstep upgrades for all apps | Independent upgrades | Independent. Teams ship on different schedules, and forced upgrades breed forks. |
+| Breaking changes | Break and announce | Compatibility wrapper plus codemod | Wrapper plus codemod for anything widely used; clean break only for rarely used APIs, with a major version bump. |
+| Scope | Library owns every UI need | Library owns primitives, apps own the rest | Primitives plus documented patterns. Owning everything turns the library into a bottleneck. |
+| Docs | Generated prop tables only | Guidance plus examples plus a11y notes | Guidance plus examples. A prop table tells you what exists, not what to use. |
+| Escape hatch | Fork the component | Composition slots and tokens | Slots and tokens. A fork stops receiving fixes, and the team rarely merges back. |
+
+## Failure and edge cases
+
+- A team forks a component locally: treat it as a signal, not a crime. Ask what the library lacked, and either add the capability properly or bless the fork with a removal plan. Silent forks are the failure mode, not forks themselves.
+- A breaking change ships without a codemod: freeze further breaks until the migration tooling exists, because every break without tooling teaches teams to pin old versions.
+- Two apps need conflicting variants of one component: add a variant only if the difference is semantic (a destructive action versus a normal one). If it is cosmetic, it belongs in tokens or in the app, not as a new variant.
+- Bundle size balloons: enforce per-component imports and measure the cost of each new dependency in review. A library that drags in a charting package for one tooltip has failed its contract.
+- A component passes visual tests but fails keyboard tests: block the release. Accessibility is a release gate, and the gate only works if it has actually blocked something.
+- The brand changes: tokens change, components do not. If a component needs a code change for a rebrand, a value leaked out of the token layer, and that leak is the bug.
+
+## If they push deeper
+
+Name the next levels honestly. Multi-framework support (the same library for React and for plain web components) is a real strategy question with real costs, and the honest answer usually starts with "not until a second framework actually needs it." Design tooling integration (tokens generated from a design tool) is a pipeline topic. Micro-frontend composition across teams is an architecture topic beyond the library itself. On the frontend, the next level is measurement: adoption rate per component, version lag across apps, and time from request to shipped primitive.
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['cl-1', 'cl-2', 'cl-3', 'cl-4', 'cl-5']} />
+
+<InterviewQuestionBlock id="cl-1" />
+
+<InterviewQuestionBlock id="cl-2" />
+
+<InterviewQuestionBlock id="cl-3" />
+
+<InterviewQuestionBlock id="cl-4" />
+
+<InterviewQuestionBlock id="cl-5" />
+
+<Callout type="interview">
+The classic trap is describing a folder of shared components and calling it a library. No versioning, no changelog, no deprecation policy, no docs. Interviewers who have lived with shared code will ask how a breaking change ships, and "we just change it and tell everyone" is the answer that fails. The release process is the design.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground />
+
+</TopicTab>
+
+</TopicTabs>

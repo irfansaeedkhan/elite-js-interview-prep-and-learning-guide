@@ -1,0 +1,238 @@
+---
+title: Design a real-time analytics dashboard
+slug: dashboard
+track: system-design
+subCategory: surfaces
+order: 8
+estimatedMinutes: 45
+keyTakeaways:
+  - A dashboard is a set of widgets with independent data lifecycles, not one page fetch
+  - Streaming updates must not re-render the whole dashboard on every tick
+  - "Charts need downsampling: thousands of points cannot all be pixels"
+  - Time ranges, refresh rates, and granularity are one coordinated state
+  - A failing widget must fail alone, never take the dashboard down with it
+masteryCriteria:
+  minQuestionsCorrect: 4
+  requireChallenge: false
+difficulty: medium
+status: published
+interviewQuestions:
+  - id: db-1
+    question: How would you design a real-time analytics dashboard?
+    answer: I would build independent widgets that each own their query, refresh, and error state, fed by a time-range state shared across the page. Streaming updates append to a downsampled series, charts render only their own widget on change, and a failing widget shows its own error while the rest of the dashboard keeps working.
+    difficulty: medium
+    followUps:
+      - Why must widgets own their own fetch state?
+      - What happens to the dashboard when one widget query is slow?
+  - id: db-2
+    question: How do you keep charts fast when data streams constantly?
+    answer: I would downsample the series to roughly the pixel width of the chart, append new points incrementally instead of replacing the whole series, and memoize each chart on its own data slice. The dashboard never re-renders every widget because one widget received a tick.
+    difficulty: hard
+    followUps:
+      - How do you downsample without hiding real spikes?
+      - When is a full series replacement acceptable?
+  - id: db-3
+    question: How do time range, refresh rate, and granularity relate?
+    answer: "I would treat them as one coordinated state: a longer range needs coarser granularity and usually a slower refresh, while a short range can be fine-grained and fast. Changing the range recomputes the other two from a table, so the user never picks a combination the page cannot render."
+    difficulty: medium
+    followUps:
+      - What breaks if granularity stays fine on a year-long range?
+      - "Who owns that coordination: the page or each widget?"
+  - id: db-4
+    question: How do you handle a widget whose data source fails?
+    answer: "I would isolate it: the widget shows its own error with a retry action, keeps its last good data visible with a stale marker, and never blocks the rest of the dashboard. Errors are per widget because data sources fail independently, and the page should reflect that."
+    difficulty: medium
+    followUps:
+      - "Stale data with a marker versus an error screen: when is each right?"
+      - How do you stop one retry storm from hammering a failing source?
+  - id: db-5
+    question: Polling or streaming for dashboard updates?
+    answer: I would stream when the data genuinely changes on a sub-minute cadence and the product needs live values, and poll on a sane interval otherwise. Streaming every widget at high frequency costs connections and renders for data nobody watches tick, so the refresh strategy is per widget, not per page.
+    difficulty: easy
+    followUps:
+      - What decides the refresh interval for a given widget?
+      - How do you pause updates for a hidden tab?
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+If someone asks me to design a real-time dashboard, I would say it is a page of independent widgets that share one time range and update on their own schedules. The page is not one fetch with many charts. It is many small data lifecycles that happen to sit side by side.
+
+Interviewers care because dashboards expose rendering discipline. A page that re-renders every widget on every tick, or that tries to plot ten thousand points as ten thousand DOM nodes, fails visibly. The question tests whether you isolate updates the way you isolate failures.
+
+The senior nuance is coordination without coupling. Widgets share time range state but nothing else. That split is what lets one widget fail, refresh, or lag without dragging the rest of the page with it.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+## How a strong candidate opens
+
+"Assume an analytics product showing traffic, conversions, and errors over time. For this interview, I will design the frontend dashboard: the widget layout, the shared time-range state, streaming updates, and chart rendering. I will assume a metrics endpoint that returns time series for a range and granularity, plus a stream for live values. Aggregation itself is a backend topic."
+
+Then name the isolation principle before any widget. One widget, one query, one error boundary, one render scope. Everything else in the design follows from it.
+
+<MermaidDiagram caption="Dashboard widget architecture" size="section">
+{`flowchart LR
+  A["Dashboard page"] --> B["Time range state"]
+  B --> C["Widget A"]
+  B --> D["Widget B"]
+  B --> E["Widget C"]
+  C --> F["Metrics API"]
+  D --> F
+  E --> G["Live stream"]
+  C --> H["Own error boundary"]
+`}
+</MermaidDiagram>
+
+## Downsampling to the chart width
+
+A chart only has as many pixels as it is wide. The sketch below buckets a series into at most one point per bucket, keeping the maximum in each bucket so spikes survive the compression.
+
+<CodeExample title="Downsample keeping peaks" language="javascript">
+{`function downsample(series, maxPoints) {
+  if (series.length <= maxPoints) return series;
+  const bucketSize = Math.ceil(series.length / maxPoints);
+  const out = [];
+  for (let i = 0; i < series.length; i += bucketSize) {
+    const bucket = series.slice(i, i + bucketSize);
+    let peak = bucket[0];
+    bucket.forEach(function (point) {
+      if (point.value > peak.value) peak = point;
+    });
+    out.push(peak);
+  }
+  return out;
+}
+
+const series = [10, 12, 90, 11, 13, 14, 88, 12].map(function (v, i) {
+  return { time: i, value: v };
+});
+console.log(downsample(series, 3).map(function (p) { return p.value; }));
+`}
+</CodeExample>
+
+<Callout type="gotcha">
+Downsampling by averaging hides spikes, and spikes are often what the dashboard exists to show. Keeping the maximum per bucket preserves them. If the interviewer asks what downsampling loses, the honest answer is: everything except the peak in each bucket, which is a deliberate trade, not an accident.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+## Requirements
+
+Functional requirements:
+
+- Show multiple widgets (line charts, counters, tables) for a shared time range.
+- Support range presets (last hour, day, week, custom) and per-widget refresh.
+- Stream live values where the product needs them, and poll where it does not.
+- Let users compare ranges, for example this week against last week.
+- Keep working when one data source fails.
+
+Non-functional requirements, stated as interview assumptions:
+
+- Assume series can be long (thousands of points) and updates frequent (seconds), so rendering cost is a first-class concern.
+- Assume the dashboard stays open for hours, so memory must not grow unboundedly with streamed points.
+- Assume a hidden tab should not burn updates, so background refresh pauses.
+- Assume users read numbers, not just shapes, so exact values must be available on hover even when the chart is downsampled.
+
+## API surface
+
+Illustrative frontend contracts:
+
+- `GET /metrics?series=<name>&from=<t>&to=<t>&granularity=<g>` returns a time series with timestamps and values, plus the granularity actually applied.
+- A stream event carries a single new point (series, timestamp, value) for live widgets.
+- `GET /metrics/summary?from=<t>&to=<t>` returns headline counters for the same range, so counters do not need the full series.
+- The server, not the client, decides the maximum granularity for a range. The client requests what it wants and renders what it gets, labeled honestly.
+
+## Component tree
+
+- `DashboardPage` owns the time-range state and the layout grid. It owns no widget data.
+- `TimeRangePicker` writes the shared range state and nothing else. Widgets react to it.
+- `Widget` is a shell: title, refresh indicator, error boundary, and a stale marker. It wraps any visualization and isolates its failure.
+- `LineChart` renders a downsampled series as canvas or SVG, memoized on its own data slice, with hover values from the full-resolution point nearest the cursor when available.
+- `CounterCard` renders a headline number with a delta against the comparison range.
+- `DataTable` renders top rows with pagination, for the widget type that needs exact rows rather than shapes.
+
+## Data flow
+
+The range picker writes one state object: from, to, granularity, and refresh policy. Each widget subscribes to that state and fetches its own series. Streaming widgets append points to a bounded buffer (old points roll off the front as new ones arrive, so memory stays flat over hours). Each append downsamples to chart width and re-renders only that widget. When the tab hides, intervals and stream subscriptions pause; on visible return, widgets refetch the missed window once instead of replaying every tick. A widget error renders inside its own shell with a retry that backs off, and the rest of the page never notices.
+
+<MermaidDiagram caption="Dashboard update flow" size="section">
+{`flowchart TD
+  A["Range changes"] --> B["Widgets refetch own series"]
+  C["Stream tick arrives"] --> D["Append to bounded buffer"]
+  D --> E["Downsample to chart width"]
+  E --> F["Re-render that widget only"]
+  G["Tab hidden"] --> H["Pause refresh"]
+  H --> I["Tab visible again"]
+  I --> J["Refetch missed window once"]
+`}
+</MermaidDiagram>
+
+## Trade-offs
+
+| Decision | Option A | Option B | Pick |
+| --- | --- | --- | --- |
+| Widget data | One page fetch for all widgets | Each widget fetches itself | Each widget fetches itself. One slow source must not block every widget. |
+| Rendering | Re-render page on every tick | Memoize per widget, render only changed | Per widget. Page-level re-renders on a seconds cadence are the classic dashboard jank. |
+| Series size | Plot every point | Downsample to chart width | Downsample, keeping peaks. A chart cannot show more points than it has pixels. |
+| Update strategy | Stream everything | Stream live widgets, poll the rest | Mixed per widget. Streaming a widget nobody watches tick wastes connections and renders. |
+| Granularity | Client picks freely | Server caps per range | Server caps, client adapts. A year of minute points is not a chart, it is a denial of service on the renderer. |
+| Failure | Page-level error | Per-widget error shell | Per-widget shell with stale data plus a marker. Sources fail independently, and the page should show it. |
+| Background tabs | Keep updating | Pause and catch up | Pause and catch up once. Hours of hidden ticks help nobody and cost battery and memory. |
+
+## Failure and edge cases
+
+- A widget query times out: its shell shows the error with retry, keeps the last good data under a stale marker, and retries with backoff. The dashboard stays up.
+- The stream disconnects: live widgets fall back to polling at their normal interval and show a "live paused" indicator, then resume streaming on reconnect with a single catch-up fetch.
+- A range change arrives mid-fetch: the older response is discarded by request id, so a stale series never overwrites the current range.
+- The series has gaps (missing minutes): render gaps as breaks in the line, not as zeros. Zero is a value, and a gap is not one.
+- Comparison ranges misalign (this week versus a shorter last week): normalize both to the same bucket count before drawing, and label the comparison honestly.
+- The buffer grows over a long session: cap it by time window, dropping the oldest points. A dashboard open for eight hours must not hold eight hours of ticks in memory.
+- Hover values on a downsampled chart: show the nearest full-resolution point when the client has it, and the bucket peak otherwise, and do not pretend the two are the same.
+
+## If they push deeper
+
+Name the next levels honestly. Aggregation engines and metric storage are backend topics, and the frontend contract is the series API above. Anomaly detection and alerting build on the same series but add their own rules and routing. Custom widget builders (users composing their own dashboards) are a product feature with a persistence model of their own. On the frontend, the next level is measurement: render time per widget per tick, memory growth over a long session, and time from range change to first meaningful paint.
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['db-1', 'db-2', 'db-3', 'db-4', 'db-5']} />
+
+<InterviewQuestionBlock id="db-1" />
+
+<InterviewQuestionBlock id="db-2" />
+
+<InterviewQuestionBlock id="db-3" />
+
+<InterviewQuestionBlock id="db-4" />
+
+<InterviewQuestionBlock id="db-5" />
+
+<Callout type="interview">
+The classic trap is the page-level re-render. Candidates wire every widget to one shared state object and re-render the whole dashboard on every stream tick, then wonder why the page janks. Interviewers ask about streaming dashboards specifically to hear isolation: per-widget state, per-widget memoization, per-widget error boundaries. One tick, one widget, nothing else moves.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground />
+
+</TopicTab>
+
+</TopicTabs>

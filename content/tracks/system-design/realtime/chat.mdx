@@ -1,0 +1,244 @@
+---
+title: Design a real-time chat app
+slug: chat
+track: system-design
+subCategory: realtime
+order: 5
+estimatedMinutes: 45
+keyTakeaways:
+  - "Optimistic send is what makes chat feel instant: render first, confirm after"
+  - Message order needs server sequence numbers, not client timestamps
+  - Reconnect must resume from a cursor, or messages get lost or duplicated
+  - Read receipts and typing indicators are presence state, not message content
+  - "A chat list is a virtualized list with one more problem: it grows at the bottom"
+masteryCriteria:
+  minQuestionsCorrect: 4
+  requireChallenge: false
+difficulty: hard
+status: published
+interviewQuestions:
+  - id: ch-1
+    question: How would you design a real-time chat app?
+    answer: I would render sent messages optimistically with a pending state, deliver over a persistent connection, order by server sequence numbers, and resume from a cursor on reconnect. The message list is virtualized, and read receipts and typing indicators travel as lightweight presence events, not as messages.
+    difficulty: hard
+    followUps:
+      - Why can the client not trust its own timestamps for ordering?
+      - What does the pending state need to show while a message sends?
+  - id: ch-2
+    question: How do you make sending feel instant without lying about delivery?
+    answer: I would append the message immediately with a sending indicator, then reconcile it when the server acknowledges with a real id and sequence number. If the send fails, the message stays with a retry action instead of vanishing. The UI never claims delivery it has not confirmed.
+    difficulty: medium
+    followUps:
+      - What happens to the optimistic message if the user closes the tab mid-send?
+      - How do you dedupe the optimistic copy against the server copy?
+  - id: ch-3
+    question: Websockets, server-sent events, or polling for chat?
+    answer: "Websockets, because chat is bidirectional and frequent in both directions. Server-sent events only push one way, so sending would still need requests, and polling wastes requests between messages and adds latency during bursts. The trade is connection management: reconnects, backoff, and resume cursors are now your problem."
+    difficulty: medium
+    followUps:
+      - When would server-sent events be the right pick instead?
+      - How do you keep a websocket connection alive on mobile?
+  - id: ch-4
+    question: How do you handle reconnects without losing or duplicating messages?
+    answer: I would store the last confirmed sequence number per conversation and, on reconnect, ask for everything after it. Messages are merged by server id, so a replayed message collapses into the existing row instead of appearing twice.
+    difficulty: hard
+    followUps:
+      - What if the gap since disconnect is huge?
+      - How do you show the user that history is still catching up?
+  - id: ch-5
+    question: How do you render typing indicators and read receipts without spamming?
+    answer: I would throttle typing events to one every few seconds with a stop event on a pause, and send read receipts only for the latest visible message, debounced. Both are ephemeral presence state with expiry, so a stale indicator disappears on its own even if the stop event is lost.
+    difficulty: medium
+    followUps:
+      - Why is a typing indicator a bad fit for the message store?
+      - How do you avoid receipt storms when a user scrolls fast?
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+If someone asks me to design a chat app, I would say it is a message list where sending feels instant, order is guaranteed by the server, and reconnects lose nothing. The chat window looks like the simplest UI in the world. The hard parts are all invisible: optimistic updates, ordering, delivery states, and resume.
+
+Interviewers care because chat punishes every async shortcut. No cancellation story, no ordering story, and no reconnect story all show up as duplicated messages, lost messages, or a list that jumps while you read it.
+
+The senior nuance is honesty about delivery. A message can be sent, delivered, and read, and those are three different states. A design that shows one checkmark for all three is lying to the user, and interviewers notice.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+## How a strong candidate opens
+
+"Assume a one-to-one and small-group chat product. For this interview, I will design the frontend: the message list, the send flow, the connection lifecycle, and presence. I will assume a websocket gateway, a history endpoint with cursor pagination, and server-assigned sequence numbers. I will not design the backend fan-out."
+
+Then walk one message end to end before touching anything else. Type, send, optimistic render, ack, reconcile, receipt. That single journey contains almost the whole design.
+
+<MermaidDiagram caption="Chat message journey" size="section">
+{`flowchart LR
+  A["User sends"] --> B["Optimistic render"]
+  B --> C["Send over websocket"]
+  C --> D["Server ack with id"]
+  D --> E["Reconcile pending row"]
+  E --> F["Delivery receipt"]
+  F --> G["Read receipt"]
+`}
+</MermaidDiagram>
+
+## The optimistic row and its reconciliation
+
+The mechanism that matters most is the pending row. It renders immediately with a local id, and the server ack swaps the local id for the real one. Everything else in the design protects that swap.
+
+<CodeExample title="Optimistic send and reconcile" language="javascript">
+{`function createChatStore() {
+  let messages = [];
+  let pending = new Map();
+
+  function sendLocal(text) {
+    const localId = 'local-' + Date.now() + '-' + Math.random();
+    const row = { id: localId, text: text, status: 'sending' };
+    messages = messages.concat([row]);
+    pending.set(localId, row);
+    return localId;
+  }
+
+  function reconcile(localId, serverMessage) {
+    const row = pending.get(localId);
+    if (!row) return;
+    messages = messages.map(function (m) {
+      return m.id === localId ? serverMessage : m;
+    });
+    pending.delete(localId);
+  }
+
+  function getMessages() { return messages; }
+  return { sendLocal, reconcile, getMessages };
+}
+
+const store = createChatStore();
+const localId = store.sendLocal('hello');
+store.reconcile(localId, { id: 'msg-42', text: 'hello', status: 'sent' });
+console.log(store.getMessages()[0].id, store.getMessages()[0].status);
+`}
+</CodeExample>
+
+<Callout type="gotcha">
+Never key the list by array index. When the optimistic row reconciles into the server row, or when history pages prepend, index keys make React reuse the wrong DOM nodes and the list glitches. Key by message id, and give pending rows stable local ids.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+## Requirements
+
+Functional requirements:
+
+- Send and receive text messages in one-to-one and small-group conversations.
+- Show sending, sent, delivered, and read states distinctly.
+- Load history when scrolling up, without losing the current scroll position.
+- Show typing indicators and online presence.
+- Work across reconnects without losing or duplicating messages.
+
+Non-functional requirements, stated as interview assumptions:
+
+- Assume messages must feel instant: the optimistic render happens before any network round trip.
+- Assume conversations can grow long, so the list must virtualize.
+- Assume mobile networks drop often, so reconnect and resume are core flows, not edge cases.
+- Assume message order is a correctness requirement, not a cosmetic one.
+
+## API surface
+
+Illustrative frontend contracts:
+
+- `GET /conversations/:id/messages?before=<cursor>&limit=50` returns history pages, newest first, with a cursor for older pages.
+- A websocket connection carries: client-to-server `send` events with a local id, and server-to-client `message`, `ack`, `receipt`, and `typing` events.
+- Every server message carries an id and a strictly increasing sequence number per conversation. The client orders by sequence number, never by client timestamp.
+- `POST /conversations/:id/read` marks up to a given sequence number as read, debounced on the client.
+
+## Component tree
+
+- `ChatScreen` owns the connection state, the message store, and the send box. It shows a connection banner when offline or catching up.
+- `MessageList` is a virtualized list anchored to the bottom. It prepends history pages without moving the viewport, using measured heights and scroll anchoring.
+- `MessageRow` renders one message with its delivery state. Pending rows show a sending indicator, failed rows show a retry action.
+- `SendBox` owns the draft, the send action, and attachment affordances. It clears the draft only after the optimistic row renders, not after the ack.
+- `PresenceBar` renders typing indicators and online state from ephemeral presence events, separate from the message store.
+
+## Data flow
+
+Sending appends an optimistic row and transmits the message with its local id. The server ack returns the real id and sequence number, and the store reconciles the row in place. Incoming messages merge by server id into sequence order. History loads on scroll-up: fetch the page before the oldest cursor, prepend it, and restore the scroll offset so the viewport does not move. On disconnect, the client shows a reconnecting state and backs off exponentially. On reconnect, it resumes from the last confirmed sequence number and merges the gap by id. Typing events throttle to one every few seconds with a stop event on pause, and expire on their own if the stop event is lost.
+
+<MermaidDiagram caption="Chat reconnect flow" size="section">
+{`flowchart TD
+  A["Connection drops"] --> B["Show reconnecting state"]
+  B --> C["Backoff and retry"]
+  C --> D["Reconnect"]
+  D --> E["Resume from last sequence"]
+  E --> F["Merge gap by server id"]
+  F --> G["Clear reconnecting state"]
+`}
+</MermaidDiagram>
+
+## Trade-offs
+
+| Decision | Option A | Option B | Pick |
+| --- | --- | --- | --- |
+| Transport | Websockets | Polling or server-sent events | Websockets. Chat is bidirectional and frequent both ways. |
+| Send feel | Wait for server, then render | Optimistic render, reconcile on ack | Optimistic. Waiting makes every message feel slow, and chat slowness kills the product. |
+| Ordering | Client timestamps | Server sequence numbers | Server sequence numbers. Client clocks skew, and two clients can stamp the same millisecond. |
+| History | Load all on open | Cursor pages on scroll-up | Cursor pages. Conversations are long, and loading all of one blocks the first paint. |
+| List anchoring | Stick to bottom always | Smart stickiness | Smart stickiness: stay pinned only when the user is already at the bottom, otherwise hold position and show a "new messages" button. |
+| Receipts | Per message receipts | Latest-only receipts | Latest-only, debounced. A receipt per message is a storm when the user scrolls fast. |
+| Typing | Send on every keystroke | Throttle plus stop event | Throttle plus stop, with expiry. Keystroke events are chatty and pointless. |
+
+## Failure and edge cases
+
+- The send fails: the row stays with a retry button. Never delete a failed message silently, and never auto-retry forever without telling the user.
+- The ack arrives after the user already saw the message echoed from another device: merge by server id collapses the duplicate, and the pending row reconciles to the same id.
+- The connection drops mid-history-load: the history request aborts, the list keeps what it has, and scrolling up retries. No partial page is ever rendered as complete.
+- Two devices send simultaneously: both messages get server sequence numbers, and both clients order by them, so both views converge to the same order.
+- The gap on reconnect is huge: cap the catch-up page and show a "catching up" state, then let the user scroll up for the rest, rather than blocking the conversation on a giant replay.
+- A message arrives while the user is scrolled up reading history: do not yank them to the bottom. Show a "new messages" button and jump only on tap.
+- Clock skew between devices: irrelevant by design, because ordering never uses client time.
+
+## If they push deeper
+
+Name the next levels honestly. End-to-end encryption changes the message format and key management, and it is a large topic on its own. Media messages add upload, thumbnail, and transcoding flows, which the media gallery topic covers. Message search across conversations is a backend indexing problem with a frontend results page like the search topic. On the frontend, the next level is measurement: send-to-render latency, ack time, reconnect duration, and duplicate rate, each with a budget.
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['ch-1', 'ch-2', 'ch-3', 'ch-4', 'ch-5']} />
+
+<InterviewQuestionBlock id="ch-1" />
+
+<InterviewQuestionBlock id="ch-2" />
+
+<InterviewQuestionBlock id="ch-3" />
+
+<InterviewQuestionBlock id="ch-4" />
+
+<InterviewQuestionBlock id="ch-5" />
+
+<Callout type="interview">
+The classic trap is ordering by client timestamp. It looks obvious and it is wrong: two devices with skewed clocks produce messages that arrive out of order, and no amount of client sorting fixes a clock that lies. Interviewers ask about ordering precisely to hear "server sequence numbers." If you say timestamps, expect a follow-up about clock skew, and have no good answer ready unless you switch.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground />
+
+</TopicTab>
+
+</TopicTabs>

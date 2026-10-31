@@ -1,0 +1,241 @@
+---
+title: Design a collaborative document editor
+slug: collaborative-editor
+track: system-design
+subCategory: realtime
+order: 6
+estimatedMinutes: 50
+prerequisites:
+  - chat
+keyTakeaways:
+  - Shared editing means concurrent operations, and concurrent operations need a merge story
+  - "CRDTs merge by construction, OT transforms against history: pick one and say why"
+  - Presence (cursors, selections) is separate from document state and far more ephemeral
+  - "Every keystroke is not a network event: batch, debounce, and compress local edits"
+  - Undo in a shared document is a design decision, not a free feature
+masteryCriteria:
+  minQuestionsCorrect: 4
+  requireChallenge: false
+difficulty: hard
+status: published
+interviewQuestions:
+  - id: ce-1
+    question: How would you design a collaborative document editor?
+    answer: I would model the document as a CRDT or an OT-managed sequence, sync local edits over a persistent connection in small batches, render remote cursors and selections as ephemeral presence, and keep undo scoped to the local user's own edits. The editor never blocks typing on the network.
+    difficulty: hard
+    followUps:
+      - "CRDT or OT: what decides it for you?"
+      - What happens when two users type in the exact same spot?
+  - id: ce-2
+    question: What breaks when two users edit the same text at once?
+    answer: Without a merge story, one user's edit overwrites the other's, or the document diverges between clients. The fix is a data structure or transform that makes concurrent operations commute, so every client converges to the same document regardless of the order operations arrive in.
+    difficulty: hard
+    followUps:
+      - What does converge mean here, in one sentence?
+      - Why is last-write-wins wrong for text?
+  - id: ce-3
+    question: How do you keep typing responsive while syncing?
+    answer: I would apply local edits to the local document immediately, batch them into small sync messages on a short interval, and never await the network before rendering a keystroke. Remote operations apply as they arrive, transformed or merged against whatever the local user has typed since.
+    difficulty: medium
+    followUps:
+      - How short should the batch interval be, and what breaks if it is too long?
+      - What happens to the caret when a remote edit lands before it?
+  - id: ce-4
+    question: How do cursors and selections work across users?
+    answer: I would send cursor and selection positions as presence events over the same connection, throttled, mapped through document changes so they track the text they point at. Presence expires on its own, so a disconnected user's cursor vanishes without a cleanup message.
+    difficulty: medium
+    followUps:
+      - Why do cursor positions need remapping after remote edits?
+      - What happens to a selection when its text gets deleted by someone else?
+  - id: ce-5
+    question: How does undo work when other people are editing?
+    answer: I would scope undo to the local user's own operations, replayed in reverse against the current document. Global undo that reverts other people's edits is surprising and usually wrong. If the product demands shared undo, that is a product decision to surface, not a default.
+    difficulty: hard
+    followUps:
+      - What breaks if undo simply reverses the last operation, whoever made it?
+      - How do you handle undo of an edit that a remote edit now depends on?
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+If someone asks me to design a collaborative editor, I would say it is a text document that several people edit at once, where every client converges to the same text no matter what order edits arrive in. The editor itself is the easy part. The merge story is the whole question.
+
+Interviewers care because this is the hardest realtime problem in frontend interviews, and it separates candidates who have thought about concurrency from candidates who have only built forms. The answer is not a library name. It is the reasoning about why concurrent edits need help to converge.
+
+The senior nuance is that typing must never wait for the network. Local edits apply instantly, sync happens in the background, and remote edits merge in without moving the local caret to a surprising place. Responsiveness is a correctness requirement here, not polish.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+## How a strong candidate opens
+
+"Assume a plain-text-then-rich-text document editor for small teams editing together. For this interview, I will design the frontend: the document model, the sync protocol, presence, and undo. I will pick a CRDT-based model and say why, and I will assume a websocket gateway that broadcasts operations. I will not design the backend storage."
+
+Picking one model up front matters. Candidates who say "I would use CRDT or OT" and never commit have not answered. Commit, justify, and name what the other choice would have cost.
+
+<MermaidDiagram caption="Collaborative editor sync loop" size="section">
+{`flowchart LR
+  A["Local keystroke"] --> B["Apply locally instantly"]
+  B --> C["Batch operations"]
+  C --> D["Send over websocket"]
+  D --> E["Broadcast to peers"]
+  E --> F["Merge into local document"]
+  F --> G["Remap caret and selections"]
+`}
+</MermaidDiagram>
+
+## The local-first keystroke
+
+The mechanism to name is local-first editing. The keystroke updates the local document model synchronously, the caret moves, and only then does a sync message get queued. The network is never on the typing path.
+
+<CodeExample title="Local edit queue with batching" language="javascript">
+{`function createEditQueue(sendBatch, interval) {
+  let queue = [];
+  let timer = null;
+
+  function localEdit(operation) {
+    queue.push(operation);
+    if (timer === null) {
+      timer = setTimeout(function flush() {
+        sendBatch(queue);
+        queue = [];
+        timer = null;
+      }, interval);
+    }
+  }
+
+  function pendingCount() { return queue.length; }
+  return { localEdit, pendingCount };
+}
+
+const sent = [];
+const editor = createEditQueue(function (batch) { sent.push(batch); }, 100);
+editor.localEdit({ type: 'insert', at: 5, text: 'a' });
+editor.localEdit({ type: 'insert', at: 6, text: 'b' });
+console.log(editor.pendingCount());
+`}
+</CodeExample>
+
+<Callout type="tip">
+Name the batch interval and its trade. Around 100 milliseconds keeps the network quiet without making remote users wait noticeably. A full second of batching saves traffic but makes collaboration feel turn-based instead of live. Say the number, then say what moves it.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+## Requirements
+
+Functional requirements:
+
+- Several users edit the same document concurrently with live updates.
+- Every client converges to the same document content.
+- Cursors and selections of other users are visible and track the text.
+- Undo reverts the local user's own edits without touching others' work.
+- The document persists and reloads, including after a disconnect.
+
+Non-functional requirements, stated as interview assumptions:
+
+- Assume small teams (tens of concurrent editors, not thousands) for this interview, and say so. Scaling to thousands changes the answer.
+- Assume typing latency must feel local: no visible delay between keystroke and character.
+- Assume the network drops, so offline edits must queue and sync on reconnect.
+- Assume rich text eventually (bold, headings, lists), so the model must survive structure, not just flat characters.
+
+## API surface
+
+Illustrative frontend contracts:
+
+- A websocket connection carries `operation` messages (small, idempotent, ordered per sender) and `presence` messages (cursor, selection, viewport) separately.
+- `GET /documents/:id/state` returns a snapshot for a joining client, plus a version vector or revision the client uses to request only newer operations.
+- `POST /documents/:id/snapshot` persists checkpoints so a new joiner does not replay the entire operation history.
+- Operations carry a sender id and a logical clock, so the merge layer can order and dedupe them without trusting wall-clock time.
+
+## Component tree
+
+- `EditorScreen` owns the document model instance, the connection, and the sync queue. It renders the offline and syncing states.
+- `DocumentView` renders the document from the model, not from a plain string. It maps model positions to screen positions for cursors and selections.
+- `RemoteCursors` renders other users' carets and selections from presence state, with names and colors, and expires stale presence on its own.
+- `Toolbar` applies formatting as operations on the model, never as direct DOM edits, so formatting participates in the same merge story as typing.
+- `HistoryPanel` (optional, and worth naming) renders the local user's undo stack and the document's revision checkpoints.
+
+## Data flow
+
+A local keystroke applies to the local model instantly and queues an operation. The batch timer flushes the queue over the websocket. The gateway broadcasts to peers, and each peer merges the operation into its own model copy. Because the model is a CRDT (the pick this track recommends for frontend interviews), merges commute: the order operations arrive does not change the final document. Cursors and selections remap through each applied operation so they keep pointing at the same text. On reconnect, the client sends its last seen revision and receives the operations it missed, then replays its queued local edits on top. Undo pops the local user's last operation and applies its inverse, merged like any other operation.
+
+<MermaidDiagram caption="Merge and convergence flow" size="section">
+{`flowchart TD
+  A["Two users type at once"] --> B["Operations broadcast"]
+  B --> C["Each client merges both"]
+  C --> D["CRDT merge commutes"]
+  D --> E["All clients converge"]
+  E --> F["Cursors remap"]
+  F --> G["Same document everywhere"]
+`}
+</MermaidDiagram>
+
+## Trade-offs
+
+| Decision | Option A | Option B | Pick |
+| --- | --- | --- | --- |
+| Merge model | CRDT, merges by construction | OT, transforms against history | CRDT for this design. No central transform server to keep correct, and offline edits merge naturally. OT is legitimate, but its transform correctness is easier to get wrong. |
+| Sync granularity | Every keystroke as an event | Batched operations | Batched at around 100 milliseconds. Keystroke events flood the connection for no visible benefit. |
+| Presence transport | Same channel as operations | Separate lightweight channel | Same connection, separate message type. One connection to manage, but presence never blocks document sync. |
+| Undo scope | Global undo, last operation wins | Local-only undo | Local-only. Global undo reverts other people's work and surprises everyone. |
+| Join flow | Full operation replay | Snapshot plus delta | Snapshot plus delta. Replay grows with document age, and a new joiner should not pay the full history cost. |
+| Rich text model | HTML strings with diffing | Structured model with typed nodes | Structured model. Diffing HTML strings cannot express concurrent formatting merges safely. |
+| Conflict UI | Show conflicts to users | Converge silently | Converge silently for text. Users should never resolve a merge conflict in a document editor; the model owns it. |
+
+## Failure and edge cases
+
+- The connection drops mid-sentence: local edits queue, typing stays responsive, and reconnect replays the queue after fetching missed operations. Nothing the user typed is lost.
+- Two users type in the exact same spot: both inserts survive, ordered deterministically by the CRDT rules, and both clients converge to the same order. Nobody's text disappears.
+- A remote edit lands before the local caret: the caret remaps forward or backward by the edit's effect, and the user keeps typing in the intended spot. A caret that stays at a raw index is a bug.
+- A presence stop event is lost: presence expires, so the ghost cursor vanishes within seconds without any cleanup message.
+- The document grows huge: snapshots checkpoint the state so a new joiner loads a snapshot plus a short delta, not the entire history.
+- Undo after remote edits: the inverse applies against the current document, merged like any operation, so undo never reverts someone else's text.
+- A client runs an old version of the model: version the operation format, and refuse to sync (with a clear reload prompt) rather than merging incompatible operations into a shared document.
+
+## If they push deeper
+
+Name the next levels honestly. Full rich-text CRDTs with formatting, embeds, and tables are a research-grade topic, and the honest scope for an interview is plain text plus a sketch of how formatting nodes extend the same model. Access control (who can edit, comment, or view) is a product and backend topic. Large-scale collaboration (hundreds of editors on one document) changes the transport and fan-out story. On the frontend, the next level is measurement: keystroke-to-render latency, merge time per operation batch, and time to convergence after reconnect.
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['ce-1', 'ce-2', 'ce-3', 'ce-4', 'ce-5']} />
+
+<InterviewQuestionBlock id="ce-1" />
+
+<InterviewQuestionBlock id="ce-2" />
+
+<InterviewQuestionBlock id="ce-3" />
+
+<InterviewQuestionBlock id="ce-4" />
+
+<InterviewQuestionBlock id="ce-5" />
+
+<Callout type="interview">
+The classic trap is last-write-wins. Candidates propose that the latest edit overwrites, which works for a settings toggle and destroys a document: one user's paragraph vanishes because another user typed a second later. Interviewers ask about same-spot edits specifically to hear a merge story, not a winner. If your design has a loser, it is not a collaborative editor.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground />
+
+</TopicTab>
+
+</TopicTabs>

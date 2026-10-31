@@ -1,0 +1,240 @@
+---
+title: Design a search results experience
+slug: search-experience
+track: system-design
+subCategory: search
+order: 3
+estimatedMinutes: 45
+prerequisites:
+  - autocomplete
+keyTakeaways:
+  - "Search is a URL first: the query, filters, and page belong in the address bar"
+  - Facets are filters with counts, and counts must stay honest as filters combine
+  - Sorting and filtering are server questions, but the UI owns their combined state
+  - Empty results need guidance, not a blank page
+  - A results page must stay usable while the next page is loading
+masteryCriteria:
+  minQuestionsCorrect: 4
+  requireChallenge: false
+difficulty: medium
+status: published
+interviewQuestions:
+  - id: se-1
+    question: How would you design a search results experience?
+    answer: I would make the URL the source of truth for query, filters, sort, and page, render results as a virtualized or paginated list with facet filters beside them, and keep the previous results visible while the next query loads. Filters, sort, and pagination all flow through the same query state.
+    difficulty: medium
+    followUps:
+      - Why does the query belong in the URL instead of component state?
+      - What happens to filters when the user edits the query text?
+  - id: se-2
+    question: How do you keep facet counts honest when filters combine?
+    answer: I would let the server compute counts for each facet against the current query and the other active filters, and render exactly what it returns. The frontend never invents counts from the visible page, because the visible page is only a sample of the result set.
+    difficulty: hard
+    followUps:
+      - What does the user see while facet counts are recomputing?
+      - When is it acceptable to show stale counts?
+  - id: se-3
+    question: How do you handle pagination for search results?
+    answer: I would use numbered pages or a load-more flow backed by cursor pagination, and keep the URL in sync so any page is shareable and the back button restores it. Offset pagination is acceptable here only if the result set is stable during the session, which ranked search often is not.
+    difficulty: medium
+    followUps:
+      - Why is the back button a design requirement, not a nicety?
+      - How do you restore scroll position on back navigation?
+  - id: se-4
+    question: What do you show when a search returns nothing?
+    answer: I would show an explicit empty state with what was searched, one or two concrete next steps like removing a filter or broadening a term, and related suggestions when the server provides them. A blank list reads as a broken page, not as zero results.
+    difficulty: easy
+    followUps:
+      - When should the empty state suggest spelling corrections?
+      - How do you avoid suggesting the same failed query again?
+  - id: se-5
+    question: How do you keep the page responsive while results load?
+    answer: I would keep the previous results on screen with a loading indicator, fetch the new result set in the background, and swap it in atomically. I would also debounce filter changes that trigger refetches, and show skeleton rows only for the first ever load, not for every refinement.
+    difficulty: medium
+    followUps:
+      - "Skeletons on every refinement: why is that worse than keeping old results?"
+      - How do you handle a slow filter response racing a newer one?
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+If someone asks me to design a search results experience, I would say it is a page where the URL holds the query, the filters, the sort, and the page, and the list below it shows what matches. The search box finds things. The results page is where the user judges whether the finding worked.
+
+Interviewers care because search combines state management with user trust. Filters, sorting, pagination, and the back button all share one state, and if any of them disagrees with the URL, the page feels broken even when the results are right.
+
+The senior nuance is that the URL is the state. Component state that cannot be shared, bookmarked, or restored with the back button is a bug in a search experience, not an implementation detail.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+## How a strong candidate opens
+
+"Assume a content site with searchable articles and products. For this interview, I will design the frontend results page: the query state in the URL, the facet filters, the result list, and pagination. I will assume a search endpoint that takes a query, filters, sort, and cursor, and returns results plus facet counts. The ranking itself is a backend topic."
+
+That opening scopes the answer and names the contract. Then walk one user journey: type a query, land on results, add a filter, change the sort, go to page two, hit back. If every step keeps the URL and the list in agreement, the design holds.
+
+<MermaidDiagram caption="Search results architecture" size="section">
+{`flowchart LR
+  A["Search page"] --> B["URL query state"]
+  B --> C["Search API"]
+  C --> D["Result list"]
+  C --> E["Facet counts"]
+  A --> F["Filter panel"]
+  F --> B
+  A --> G["Sort control"]
+  G --> B
+`}
+</MermaidDiagram>
+
+## One state object, many controls
+
+The key mechanism is a single parsed query state. Every control reads it and writes it, and the URL is the serialization. Nothing else holds a competing copy.
+
+<CodeExample title="Search state from the URL" language="javascript">
+{`function parseSearchState(url) {
+  const params = new URLSearchParams(url.split('?')[1] || '');
+  return {
+    query: params.get('q') || '',
+    filters: params.getAll('filter'),
+    sort: params.get('sort') || 'relevance',
+    page: Number(params.get('page') || '1'),
+  };
+}
+
+function serializeSearchState(state) {
+  const params = new URLSearchParams();
+  if (state.query) params.set('q', state.query);
+  state.filters.forEach(function (f) { params.append('filter', f); });
+  params.set('sort', state.sort);
+  params.set('page', String(state.page));
+  return '/search?' + params.toString();
+}
+
+const state = parseSearchState('/search?q=hooks&filter=react&sort=newest&page=2');
+console.log(state.query, state.filters, state.sort, state.page);
+`}
+</CodeExample>
+
+<Callout type="tip">
+Say out loud what resets and what survives. Changing the query text usually resets filters and page to the start, because the old filters may not apply to the new query. Changing a filter keeps the query and resets the page. Changing the sort keeps everything else. Interviewers notice when a candidate has thought about each transition.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+## Requirements
+
+Functional requirements:
+
+- Show results for a query with title, snippet, and metadata per result.
+- Offer facet filters with counts, a sort control, and pagination.
+- Keep the URL in sync with query, filters, sort, and page at all times.
+- Support back and forward navigation restoring the exact prior result set and scroll position.
+- Show spelling suggestions or did-you-mean when the server provides them.
+
+Non-functional requirements, stated as interview assumptions:
+
+- Assume result sets can be large, so the list must page or virtualize rather than render everything.
+- Assume facet counts are expensive to compute, so the client must tolerate them arriving slightly after results.
+- Assume users share result links, so every state must be representable in the URL.
+- Assume slow connections, so refining a search must not blank the page while the new set loads.
+
+## API surface
+
+Illustrative frontend contracts:
+
+- `GET /search?q=<query>&filter=<f>&sort=<s>&cursor=<c>&limit=20` returns a page of results, a next cursor, a total count estimate, and facet groups with counts.
+- `GET /search/suggest?q=<query>` powers did-you-mean and spelling suggestions.
+- Filters are opaque strings from the server (for example `type:article`), so the client never has to understand their semantics to render them.
+- The total count is an estimate: the client renders it as an approximation ("about 12,400 results"), never as a precise promise.
+
+## Component tree
+
+- `SearchPage` owns the parsed URL state and the fetch lifecycle. It renders the previous results while the next set loads.
+- `FilterPanel` renders facet groups and counts exactly as the server returns them, with active filters removable as chips.
+- `ResultList` renders result rows and the pagination control. It does not own filter or sort state.
+- `ResultRow` renders one result and its snippet, with matched terms highlighted from the server-provided match data when available.
+- `EmptyState` renders the no-results guidance, spelling suggestions, and one-click filter removal.
+
+## Data flow
+
+The URL parses into one state object. A state change writes the URL (using history replace for typing-like refinements that should not spam history, and history push for deliberate navigations like page changes), then triggers a fetch. The fetch carries a request id, and only the latest request may swap the list. Facet counts render when they arrive, even if that is after the results. On back navigation, the browser restores the URL, the state re-parses, and the cached page renders immediately while a background refetch confirms freshness.
+
+<MermaidDiagram caption="Search state flow" size="section">
+{`flowchart TD
+  A["User changes filter"] --> B["Update URL state"]
+  B --> C["Fetch with request id"]
+  C --> D["Latest response wins"]
+  D --> E["Swap result list"]
+  C --> F["Facet counts arrive"]
+  F --> G["Render counts"]
+  H["Back button"] --> I["URL restores state"]
+  I --> J["Cached page renders"]
+`}
+</MermaidDiagram>
+
+## Trade-offs
+
+| Decision | Option A | Option B | Pick |
+| --- | --- | --- | --- |
+| State location | Component state, simple | URL state, shareable | URL state. Search results get shared and revisited, and component state cannot do either. |
+| Loading behavior | Blank plus skeletons on every change | Keep old results, swap atomically | Keep old results. Skeletons on every refinement feel like the page keeps breaking. |
+| Pagination | Numbered pages | Infinite scroll | Numbered pages or load more for search, because users compare pages and return to specific ones. Infinite scroll hides position. |
+| Facet counts | Compute client-side from visible rows | Trust server counts | Server counts. Visible rows are a sample, and sample counts lie. |
+| History writes | Push every keystroke | Replace for refinements, push for navigation | Replace for filter and sort changes, push for page changes and new queries. Otherwise the back button becomes a history swamp. |
+| Total count | Exact number | Estimate | Estimate, labeled as one. Exact counts on large sets are expensive and the user does not need them. |
+
+## Failure and edge cases
+
+- The search request fails: keep the previous results, show an inline retry, and do not clear the query. A failed refinement must not destroy a good page.
+- A newer request overtakes an older one: the request id guard drops the older response, so the list never shows results for a query the user already left.
+- Facet counts arrive late: render results first, then counts. A missing count renders as a dash, never as zero, because zero is a claim.
+- The user applies a filter combination with zero results: show the empty state with the active filters listed and one-click removal, not a generic "no results" dead end.
+- The URL contains an unknown filter value: drop it from the state, update the URL, and fetch without it, rather than showing an error page for a stale shared link.
+- Deep pagination: cap the page window or switch to a cursor, because page 10,000 of a shifting ranked set is meaningless anyway.
+
+## If they push deeper
+
+Name the next levels honestly. Ranking quality, typo tolerance, and synonyms are backend search problems; the frontend's job is to render what the ranker returns and to report what users click. Analytics on result clicks and filter usage is how the team learns what to improve, but it is not part of the results page design itself. On the frontend, the next level is perceived performance: prefetching the next page when the user nears the bottom, and caching recent searches so back navigation is instant.
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['se-1', 'se-2', 'se-3', 'se-4', 'se-5']} />
+
+<InterviewQuestionBlock id="se-1" />
+
+<InterviewQuestionBlock id="se-2" />
+
+<InterviewQuestionBlock id="se-3" />
+
+<InterviewQuestionBlock id="se-4" />
+
+<InterviewQuestionBlock id="se-5" />
+
+<Callout type="interview">
+The classic trap is inventing facet counts on the client. Candidates fetch page one, count the visible rows per facet, and display those numbers. They look right for small result sets and are wrong everywhere else, because the visible page is a sample. Interviewers who know search will ask where the counts come from, and "from the server" is the only safe answer.
+</Callout>
+
+</TopicTab>
+
+<TopicTab value="playground">
+
+<TopicPlayground />
+
+</TopicTab>
+
+</TopicTabs>
