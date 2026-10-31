@@ -66,3 +66,42 @@ export async function fetchPracticeAttempts(topicPath: string) {
     }>;
   }>(response);
 }
+
+export interface ActivityDay {
+  date: string;
+  count: number;
+}
+
+export interface ActivityWeekCell {
+  date: string | null;
+  count: number;
+}
+
+export interface ActivitySummary {
+  days: ActivityDay[];
+  weeks: ActivityWeekCell[][];
+  weeklyGoal: {
+    targetDaysPerWeek: number;
+    currentWeekActiveDays: number;
+    goalWeeks: number;
+  };
+}
+
+export interface BadgeItem {
+  id: string;
+  name: string;
+  description: string;
+  category: 'first' | 'streak' | 'mastery' | 'practice' | 'points' | 'consistency';
+  earned: boolean;
+  earnedAt: string | null;
+}
+
+export async function fetchActivity(): Promise<ActivitySummary> {
+  const response = await fetch('/api/progress/activity', { credentials: 'include' });
+  return parseJson<ActivitySummary>(response);
+}
+
+export async function fetchBadges(): Promise<{ badges: BadgeItem[] }> {
+  const response = await fetch('/api/progress/badges', { credentials: 'include' });
+  return parseJson<{ badges: BadgeItem[] }>(response);
+}

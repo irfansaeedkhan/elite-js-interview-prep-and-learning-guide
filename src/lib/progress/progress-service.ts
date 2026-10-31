@@ -1,11 +1,22 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, gte } from 'drizzle-orm';
 import { db } from '@/db/db';
 import {
   practiceAttempts,
   topicProgress,
+  userBadges,
   userStats,
   type QaResultsJson,
 } from '@/db/schema/progress.schema';
+import {
+  aggregateAttemptsByDay,
+  buildHeatmapWeeks,
+  countActiveDaysInWeekContaining,
+  countGoalWeeks,
+  heatmapWindowStart,
+  HEATMAP_DAYS,
+  WEEKLY_GOAL_DAYS,
+} from '@/lib/progress/activity';
+import { evaluateBadges, type AchievementInput } from '@/lib/progress/achievements';
 import { isTopicMastered as checkTopicMastered, getTopicByPath } from '@/lib/progress/mastery';
 import { reviewService } from '@/lib/progress/review-service';
 import type { TopicProgressEntry, TopicProgressMap } from '@/lib/progress/types';
@@ -370,5 +381,92 @@ export const progressService = {
       .where(and(eq(practiceAttempts.userId, userId), eq(practiceAttempts.topicPath, topicPath)))
       .orderBy(desc(practiceAttempts.createdAt))
       .limit(20);
+  },
+
+
+  /**
+   * Activity heatmap data for a signed-in user, from practice attempts only.
+   * Every query is scoped to userId. Days are UTC calendar days; the window
+   * is the last HEATMAP_DAYS days ending today.
+   */
+  async getActivityByDay(userId: string, days: number = HEATMAP_DAYS, today: Date = new Date()) {
+    const windowStart = heatmapWindowStart(days, today);
+    const rows = await db
+      .select({ createdAt: practiceAttempts.createdAt })
+      .from(practiceAttempts)
+      .where(
+        and(eq(practiceAttempts.userId, userId), gte(practiceAttempts.createdAt, windowStart)),
+      );
+
+    const dayCounts = aggregateAttemptsByDay(rows, days, today);
+    const weeks = buildHeatmapWeeks(dayCounts);
+    return {
+      days: dayCounts,
+      weeks,
+      weeklyGoal: {
+        targetDaysPerWeek: WEEKLY_GOAL_DAYS,
+        currentWeekActiveDays: countActiveDaysInWeekContaining(weeks, toDateKey(today)),
+        goalWeeks: countGoalWeeks(weeks),
+      },
+    };
+  },
+
+  /**
+   * Achievement badges for a signed-in user. Qualification is evaluated live
+   * from already-recorded data (topic progress, attempts, stats, goal
+   * weeks); newly qualifying badges are persisted into user_badges, and the
+   * returned earned flag follows the table, not the live evaluation. So a
+   * badge, once earned, stays earned even if the live inputs later fall
+   * below the threshold. Awarding is append-only: no update or delete path
+   * exists. Every query is scoped to userId.
+   */
+  async getBadges(userId: string) {
+    const [progressRows, attemptRows, statsRows, earnedRows] = await Promise.all([
+      db.select().from(topicProgress).where(eq(topicProgress.userId, userId)),
+      db
+        .select({ id: practiceAttempts.id })
+        .from(practiceAttempts)
+        .where(eq(practiceAttempts.userId, userId)),
+      db.select().from(userStats).where(eq(userStats.userId, userId)),
+      db.select().from(userBadges).where(eq(userBadges.userId, userId)),
+    ]);
+
+    const activity = await this.getActivityByDay(userId);
+    const stats = statsRows[0];
+    const input: AchievementInput = {
+      visitedTopicCount: progressRows.length,
+      knownAnswerCount: progressRows.reduce(
+        (total, row) =>
+          total +
+          Object.values(row.qaResults ?? {}).filter((result) => result === 'know').length,
+        0,
+      ),
+      passedChallengeCount: progressRows.filter((row) => row.challengePassed === 1).length,
+      attemptCount: attemptRows.length,
+      longestStreak: stats?.longestStreak ?? 0,
+      masteredTopicCount: progressRows.filter((row) => row.masteredAt !== null).length,
+      points: stats?.points ?? 0,
+      goalWeeks: activity.weeklyGoal.goalWeeks,
+    };
+
+    const states = evaluateBadges(input);
+    const alreadyEarned = new Set(earnedRows.map((row) => row.badgeId));
+    const newlyEarned = states.filter((state) => state.earned && !alreadyEarned.has(state.id));
+    for (const badge of newlyEarned) {
+      await db.insert(userBadges).values({ userId, badgeId: badge.id }).onConflictDoNothing();
+    }
+    const finalRows =
+      newlyEarned.length > 0
+        ? await db.select().from(userBadges).where(eq(userBadges.userId, userId))
+        : earnedRows;
+    const earnedAt = new Map(finalRows.map((row) => [row.badgeId, row.earnedAt.toISOString()]));
+
+    return {
+      badges: states.map((state) => ({
+        ...state,
+        earned: earnedAt.has(state.id),
+        earnedAt: earnedAt.get(state.id) ?? null,
+      })),
+    };
   },
 };

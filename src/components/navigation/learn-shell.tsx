@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { BookOpen } from 'lucide-react';
 import { ResumeLearningPrompt } from '@/components/progress/resume-learning-prompt';
+import { ActivitySection } from '@/components/progress/activity-section';
 import { MainSidebar } from '@/components/navigation/main-sidebar';
 import { SubSidebar } from '@/components/navigation/sub-sidebar';
 import { LearnSidebarToolbar } from '@/components/navigation/learn-sidebar-toolbar';
@@ -70,19 +71,22 @@ export function LearnShell({ track, nav, trackItems, children }: LearnShellProps
 
 export function LearnPlaceholder() {
   return (
-    <div className="flex h-full flex-1 items-center justify-center bg-background">
-      <div className="space-y-4 px-8 text-center">
-        <BookOpen className="mx-auto size-16 text-muted-foreground" />
-        <div>
-          <h2 className="text-2xl font-semibold text-muted-foreground">
-            Select a topic to start learning
-          </h2>
-          <p className="mt-2 max-w-md text-muted-foreground">
-            Choose from the sidebar to view definitions, examples, and interview questions
-          </p>
-          <ResumeLearningPrompt />
+    <div className="flex h-full flex-1 flex-col overflow-y-auto bg-background">
+      <div className="flex flex-1 items-center justify-center">
+        <div className="space-y-4 px-8 text-center">
+          <BookOpen className="mx-auto size-16 text-muted-foreground" />
+          <div>
+            <h2 className="text-2xl font-semibold text-muted-foreground">
+              Select a topic to start learning
+            </h2>
+            <p className="mt-2 max-w-md text-muted-foreground">
+              Choose from the sidebar to view definitions, examples, and interview questions
+            </p>
+            <ResumeLearningPrompt />
+          </div>
         </div>
       </div>
+      <ActivitySection />
     </div>
   );
 }

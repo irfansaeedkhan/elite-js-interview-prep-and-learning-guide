@@ -27,6 +27,22 @@ export const topicProgress = pgTable(
   ],
 );
 
+export const userBadges = pgTable(
+  'user_badges',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    badgeId: text('badge_id').notNull(),
+    earnedAt: timestamp('earned_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('user_badges_user_badge_idx').on(table.userId, table.badgeId),
+    index('user_badges_user_id_idx').on(table.userId),
+  ],
+);
+
 export const userStats = pgTable('user_stats', {
   userId: uuid('user_id')
     .primaryKey()
