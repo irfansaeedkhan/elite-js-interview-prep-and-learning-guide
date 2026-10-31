@@ -105,35 +105,35 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 <TopicPlayground>
 
 <CodingChallenge
-  title="Debounce with fake timers"
-  prompt="Finish debounce so rapid calls wait: each call resets the timer, and only the latest arguments run once the wait passes, while cancel drops the pending call entirely. Real timers make tests wait, so the tests inject fake setTimeout and clearTimeout they control by hand."
-  hint="Store the timer id, clear it on each new call, and clear it in cancel; run the latest args when the timer fires."
-  starterCode={`function debounce(fn, wait, timers) {
-  let id = null;
-  let latestArgs = null;
-  return {
-    call(...args) {
-      // your code here
-    },
-    cancel() {
-      // your code here
-    },
-  };
+  title="Build debounce and throttle"
+  prompt="Implement debounce(fn, wait) and throttle(fn, wait). Debounce waits until calls stop for wait ms, then runs once with the latest arguments. Throttle runs immediately on the first call, then ignores further calls until wait ms pass. The sandbox cannot wait for timers inside tests, so the automated tests check only the synchronous guarantees: debounce must not call fn right away, and throttle must call fn exactly once for a burst of synchronous calls. The delayed behavior is shown by the console demo at the bottom of the starter code: run it and check the output lines. Correct demo output is debounced calls 1 and throttled calls 1."
+  hint="Debounce clears the previous timer on every call and sets a new one. Throttle remembers the last run time and only runs again once wait ms have passed."
+  starterCode={`function debounce(fn, wait) {
+  // DEBOUNCE
 }
 
-const pending = new Map();
-let nextId = 1;
-const fakeTimers = {
-  setTimeout(cb) { const id = nextId++; pending.set(id, cb); return id; },
-  clearTimeout(id) { pending.delete(id); },
-};
-function flushTimers() { const cbs = [...pending.entries()]; pending.clear(); cbs.forEach((entry) => entry[1]()); }
-const calls = [];
-const debounced = debounce((v) => calls.push(v), 100, fakeTimers);`}
+function throttle(fn, wait) {
+  // THROTTLE
+}
+
+let debouncedCalls = 0;
+let throttledCalls = 0;
+const debounced = debounce(() => { debouncedCalls += 1; }, 30);
+const throttled = throttle(() => { throttledCalls += 1; }, 30);
+debounced();
+debounced();
+debounced();
+throttled();
+throttled();
+throttled();
+setTimeout(() => {
+  console.log('debounced calls after quiet period: ' + debouncedCalls);
+  console.log('throttled calls after quiet period: ' + throttledCalls);
+}, 100);`}
   tests={[
-    { label: 'rapid calls do not run yet', code: `debounced.call('a'); debounced.call('b'); debounced.call('c'); console.assert(calls.length === 0);` },
-    { label: 'flush runs once with the latest args', code: `flushTimers(); console.assert(calls.length === 1 && calls[0] === 'c');` },
-    { label: 'cancel drops the pending call', code: `debounced.call('d'); debounced.cancel(); flushTimers(); console.assert(calls.length === 1);` },
+    { label: 'debounce does not call right away', code: `if (debouncedCalls !== 0) throw new Error('expected 0 calls so far, got ' + debouncedCalls);` },
+    { label: 'throttle calls once for a sync burst', code: `if (throttledCalls !== 1) throw new Error('expected 1 call so far, got ' + throttledCalls);` },
+    { label: 'both return functions', code: `if (typeof debounced !== 'function') throw new Error('debounce must return a function'); if (typeof throttled !== 'function') throw new Error('throttle must return a function');` },
   ]}
 />
 

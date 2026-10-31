@@ -104,22 +104,26 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 <TopicPlayground>
 
 <CodingChallenge
-  title="Memoize by arguments"
-  prompt="Finish memoize so it caches results by argument list: the first call with a given set of arguments runs the function, later calls with the same arguments return the cached result without running it again. The cache key must capture all arguments, not just the first."
-  hint="Key the cache with JSON.stringify of the args array, and store the result on a miss."
+  title="Build memoize with a working cache"
+  prompt="Implement memoize(fn) so repeated calls with the same arguments reuse the cached result instead of recomputing. The cache key must cover every argument, not just the first. Count the underlying calls to prove it: the tests check how many times the original function actually ran, and that different arguments still compute fresh results."
+  hint="A Map keyed by a string built from all arguments works for numbers and strings. The topic warns this key strategy has limits: object key order and non-serializable values like functions can collide or break it."
   starterCode={`function memoize(fn) {
-  const cache = new Map();
-  return function (...args) {
-    // your code here
-  };
+  // your code here: return a wrapped function with a cache
 }
 
-let runs = 0;
-const add = memoize((a, b) => { runs++; return a + b; });`}
+let calls = 0;
+function slowAdd(a, b) {
+  calls += 1;
+  return a + b;
+}
+const add = memoize(slowAdd);
+add(2, 3);
+add(2, 3);
+add(2, 4);`}
   tests={[
-    { label: 'first call runs once', code: `console.assert(add(2, 3) === 5 && runs === 1);` },
-    { label: 'repeat call uses the cache', code: `console.assert(add(2, 3) === 5 && runs === 1);` },
-    { label: 'new arguments run again', code: `console.assert(add(2, 4) === 6 && runs === 2);` },
+    { label: 'repeated args compute only once', code: `if (calls !== 2) throw new Error('expected 2 real calls, got ' + calls);` },
+    { label: 'cached result is correct', code: `if (add(2, 3) !== 5) throw new Error('expected cached 5');` },
+    { label: 'different args compute fresh', code: `if (add(2, 4) !== 6) throw new Error('expected 6'); if (calls !== 2) throw new Error('expected still 2 real calls, got ' + calls);` },
   ]}
 />
 

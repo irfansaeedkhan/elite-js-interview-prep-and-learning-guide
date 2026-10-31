@@ -104,17 +104,21 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 <TopicPlayground>
 
 <CodingChallenge
-  title="Safe city lookup"
-  prompt="Finish getCity so it returns the nested city when present and 'Unknown' when any link is null or missing, without throwing. Use ?. for the chain and ?? for the default: || would wrongly replace a real empty-string city, but ?? only replaces null and undefined."
-  hint="Chain with ?. and default with ??, not ||."
+  title="Read deep properties safely with optional chaining and nullish coalescing"
+  prompt="Write getCity(user) returning the user's city, or Unknown when any link in the chain is missing, and getVolume(settings) returning the volume setting, or 10 when it is missing. The trap: volume 0 is a real setting, so the fallback must use the nullish operator and not logical OR, or a muted user gets full volume."
+  hint="user address city with optional chaining plus a nullish fallback never throws on null or undefined. For volume, settings volume with a nullish fallback keeps 0 but replaces null and undefined."
   starterCode={`function getCity(user) {
-  // your code here
+  // CITY
+}
+
+function getVolume(settings) {
+  // VOLUME
 }`}
   tests={[
-    { label: 'full user returns the city', code: `console.assert(getCity({ address: { city: 'Lahore' } }) === 'Lahore');` },
-    { label: 'missing address returns Unknown', code: `console.assert(getCity({}) === 'Unknown');` },
-    { label: 'null user returns Unknown', code: `console.assert(getCity(null) === 'Unknown');` },
-    { label: 'empty-string city is kept, not replaced', code: `console.assert(getCity({ address: { city: '' } }) === '');` },
+    { label: 'full object returns its city', code: `if (getCity({ address: { city: 'Lahore' } }) !== 'Lahore') throw new Error('expected Lahore');` },
+    { label: 'missing links return Unknown', code: `if (getCity({}) !== 'Unknown') throw new Error('expected Unknown for missing address'); if (getCity(null) !== 'Unknown') throw new Error('expected Unknown for null user'); if (getCity(undefined) !== 'Unknown') throw new Error('expected Unknown for undefined user');` },
+    { label: 'volume 0 stays 0', code: `if (getVolume({ volume: 0 }) !== 0) throw new Error('expected 0, not the fallback');` },
+    { label: 'missing volume falls back to 10', code: `if (getVolume({}) !== 10) throw new Error('expected fallback 10'); if (getVolume(null) !== 10) throw new Error('expected fallback 10 for null settings');` },
   ]}
 />
 

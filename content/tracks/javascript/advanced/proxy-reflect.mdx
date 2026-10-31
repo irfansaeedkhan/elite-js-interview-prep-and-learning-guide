@@ -104,23 +104,20 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 <TopicPlayground>
 
 <CodingChallenge
-  title="Validated user proxy"
-  prompt="Finish createValidatedUser so it returns a Proxy whose set trap rejects a non-string name and a negative age, and otherwise forwards the set with Reflect.set. The trap must throw before the bad value lands, so the old value survives."
-  hint="Check prop and value inside set, throw on invalid input, otherwise return Reflect.set(target, prop, value)."
-  starterCode={`function createValidatedUser() {
-  const target = { name: '', age: 0 };
-  return new Proxy(target, {
-    set(t, prop, value) {
-      // your code here
-    },
-  });
+  title="Guard an object with a Proxy and Reflect"
+  prompt="Build createUser(name, age) returning a Proxy that validates every set: name must be a non-empty string and age must be a number at or above 0, otherwise the set throws. Use Reflect.get and Reflect.set inside the traps so the proxy forwards correctly instead of reimplementing property access. Reading an unset property returns undefined, as usual."
+  hint="In the set trap, validate first and throw on bad input, then return Reflect.set(target, prop, value). A failed set must leave the old value in place."
+  starterCode={`function createUser(name, age) {
+  const target = { name, age };
+  // your code here: return a Proxy with a validating set trap
 }
 
-const user = createValidatedUser();`}
+const user = createUser('Ada', 36);`}
   tests={[
-    { label: 'valid sets land', code: `user.name = 'Aisha'; user.age = 30; console.assert(user.name === 'Aisha' && user.age === 30);` },
-    { label: 'non-string name throws and old value survives', code: `let threw = false; try { user.name = 42; } catch (e) { threw = true; } console.assert(threw === true && user.name === 'Aisha');` },
-    { label: 'negative age throws and old value survives', code: `let threw2 = false; try { user.age = -1; } catch (e) { threw2 = true; } console.assert(threw2 === true && user.age === 30);` },
+    { label: 'valid sets work', code: `user.name = 'Grace'; if (user.name !== 'Grace') throw new Error('expected name Grace');` },
+    { label: 'empty name throws and keeps the old value', code: `let threw = false; try { user.name = ''; } catch (e) { threw = true; } if (!threw) throw new Error('expected empty name to throw'); if (user.name !== 'Grace') throw new Error('expected name still Grace');` },
+    { label: 'negative age throws and keeps the old value', code: `threw = false; try { user.age = -1; } catch (e) { threw = true; } if (!threw) throw new Error('expected negative age to throw'); if (user.age !== 36) throw new Error('expected age still 36');` },
+    { label: 'non-number age throws', code: `threw = false; try { user.age = 'old'; } catch (e) { threw = true; } if (!threw) throw new Error('expected non-number age to throw');` },
   ]}
 />
 

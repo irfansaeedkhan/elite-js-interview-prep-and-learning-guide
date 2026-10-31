@@ -104,29 +104,27 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 <TopicPlayground>
 
 <CodingChallenge
-  title="Drop the reference"
-  prompt="Finish createRegistry so add stores a value, release drops it, and size reports what is still reachable. Garbage collection frees only what nothing references: the fix for most leaks is dropping the reference, not a fancier API."
-  hint="release should delete the id from the Map; size should return the Map size."
-  starterCode={`function createRegistry() {
-  const items = new Map();
-  return {
-    add(id, value) {
-      // your code here
-    },
-    release(id) {
-      // your code here: drop the reference
-    },
-    size() {
-      // your code here
-    },
-  };
+  title="Prove a listener can be collected by dropping its reference"
+  prompt="You cannot force garbage collection in this sandbox, and no test can observe it directly. What you CAN prove is the prerequisite: the last strong reference is gone. This exercise models that with a registry: a listener counts as retained while the registry holds it. Write subscribe and unsubscribe so that unsubscribing removes the listener from the registry. Only then is the listener eligible for collection; a forgotten unsubscribe is the classic leak."
+  hint="Keep the registry as a plain array. Unsubscribe must remove exactly that function reference, in place, so every reader sees the same array."
+  starterCode={`const registry = [];
+function subscribe(fn) {
+  // SUBSCRIBE
+}
+function unsubscribe(fn) {
+  // UNSUB
+}
+function dispatch(value) {
+  registry.forEach((fn) => fn(value));
 }
 
-const registry = createRegistry();`}
+let received = [];
+function listener(value) { received.push(value); }`}
   tests={[
-    { label: 'add grows the registry', code: `registry.add('a', { big: 'data' }); registry.add('b', { big: 'data' }); console.assert(registry.size() === 2);` },
-    { label: 'release shrinks it', code: `registry.release('a'); console.assert(registry.size() === 1);` },
-    { label: 'releasing a missing id is a no-op', code: `registry.release('missing'); console.assert(registry.size() === 1);` },
+    { label: 'subscribe registers the listener', code: `subscribe(listener); if (registry.length !== 1) throw new Error('expected 1 registered listener, got ' + registry.length);` },
+    { label: 'dispatch reaches the listener', code: `dispatch(7); if (received.length !== 1 || received[0] !== 7) throw new Error('expected listener called once with 7');` },
+    { label: 'unsubscribe empties the registry', code: `unsubscribe(listener); if (registry.length !== 0) throw new Error('expected empty registry after unsubscribe, got ' + registry.length);` },
+    { label: 'dispatch after unsubscribe calls nobody', code: `dispatch(8); if (received.length !== 1) throw new Error('expected no more calls after unsubscribe');` },
   ]}
 />
 

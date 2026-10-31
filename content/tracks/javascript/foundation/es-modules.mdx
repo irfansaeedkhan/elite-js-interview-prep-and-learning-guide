@@ -104,27 +104,24 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 <TopicPlayground>
 
 <CodingChallenge
-  title="Module registry with exports"
-  prompt="Finish createModuleRegistry with define and require, the shape of a module system: define stores an exports object under a name, require returns it, and requiring an unknown name throws. Modules are isolated scope plus explicit exports, and this registry is that contract in miniature."
-  hint="Keep modules in a Map; require should throw when the name was never defined."
-  starterCode={`function createModuleRegistry() {
-  const modules = new Map();
-  return {
-    define(name, exports) {
-      // your code here
-    },
-    require(name) {
-      // your code here
-    },
-  };
+  title="Write named exports with a live binding"
+  prompt="Finish this module: export a constant LABEL set to 'counter', an exported let count starting at 0, and an exported bump() that increases count by 1. The tests read count after calling bump, which only passes if count is a live binding that bump actually updates — a snapshot copy fails. Note: this single file can show exports and live bindings, but not importing from another file; that part needs a real multi-file project."
+  hint="Export the binding itself, not a copy of its value. bump must assign to the same count the tests read."
+  starterCode={`// your code here: export LABEL, count, and bump
+export const LABEL = 'counter';
+export let count = 0;
+export function bump() {
+  // your code here: increase count by 1
 }
 
-const registry = createModuleRegistry();
-registry.define('math', { add: (a, b) => a + b, default: (a, b) => a * b });`}
+bump();
+const afterOne = count;
+bump();
+const afterTwo = count;`}
   tests={[
-    { label: 'named export works', code: `console.assert(registry.require('math').add(2, 3) === 5);` },
-    { label: 'default export works', code: `console.assert(registry.require('math').default(2, 3) === 6);` },
-    { label: 'unknown module throws', code: `let threw = false; try { registry.require('missing'); } catch (e) { threw = true; } console.assert(threw === true);` },
+    { label: 'LABEL export has the right value', code: `if (LABEL !== 'counter') throw new Error('expected counter, got ' + LABEL);` },
+    { label: 'count is 1 after one bump', code: `if (afterOne !== 1) throw new Error('expected 1, got ' + afterOne);` },
+    { label: 'count is 2 after two bumps (live binding)', code: `if (afterTwo !== 2) throw new Error('expected 2, got ' + afterTwo);` },
   ]}
 />
 

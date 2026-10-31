@@ -104,16 +104,28 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 <TopicPlayground>
 
 <CodingChallenge
-  title="Check the status yourself"
-  prompt="Finish normalizeResponse so it returns the body for a 2xx status and throws an Error with the status for anything else. The trap this teaches: fetch only rejects on network failure, not on a 404 or 500, so production code must check response.ok or the status before trusting the body."
-  hint="Throw when status is below 200 or at least 300; otherwise return the body unchanged."
-  starterCode={`function normalizeResponse(status, body) {
-  // your code here
-}`}
+  title="Load a user and handle a missing one"
+  prompt="The sandbox has no network, so this exercise runs against a mock fetch with the same shape as the real one: it returns a promise of a response with ok, status, and a json() method. Write loadUser(id) so it awaits the response, throws an Error naming the HTTP status when ok is false, and otherwise returns the parsed JSON. There are no automated tests for the async path: results arrive after the test block runs, so check the console output instead. Correct output is the user object for id 1, then Error: HTTP 404 for id 99, in that order."
+  hint="Await the response, check ok before touching the body, and throw on a bad status. Returning the response itself is not enough: the caller wants the parsed JSON."
+  starterCode={`function mockFetch(url) {
+  const users = { 1: { id: 1, name: 'Ada' } };
+  const id = Number(url.split('/').pop());
+  if (users[id]) {
+    return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(users[id]) });
+  }
+  return Promise.resolve({ ok: false, status: 404, json: () => Promise.resolve({ message: 'not found' }) });
+}
+
+// your code here: define loadUser(id) using mockFetch
+
+loadUser(1)
+  .then((user) => console.log('user: ' + JSON.stringify(user)))
+  .catch((e) => console.log('Error: ' + e.message))
+  .then(() => loadUser(99))
+  .then((user) => console.log('user: ' + JSON.stringify(user)))
+  .catch((e) => console.log('Error: ' + e.message));`}
   tests={[
-    { label: '200 returns the body', code: `console.assert(normalizeResponse(200, { name: 'Aisha' }).name === 'Aisha');` },
-    { label: '201 returns the body', code: `console.assert(normalizeResponse(201, 'created') === 'created');` },
-    { label: '404 throws with the status', code: `let threw = false; try { normalizeResponse(404, { error: 'nope' }); } catch (e) { threw = e.message === 'HTTP 404'; } console.assert(threw === true);` },
+    { label: 'loadUser is defined', code: `if (typeof loadUser !== 'function') throw new Error('expected a loadUser function');` },
   ]}
 />
 

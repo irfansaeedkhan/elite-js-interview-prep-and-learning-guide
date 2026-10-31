@@ -104,29 +104,25 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 <TopicPlayground>
 
 <CodingChallenge
-  title="Mini event emitter"
-  prompt="Finish createEmitter with on, off, and emit, the same shape as addEventListener and removeEventListener. The DOM is not available in this playground, so this emitter is the testable stand-in: handlers register per type, emit calls them in order, off removes exactly one handler."
-  hint="Keep handlers in a Map from type to array; off should filter out only the given function."
-  starterCode={`function createEmitter() {
-  const handlers = new Map();
+  title="Wire and unwire a listener on a mock button"
+  prompt="The sandbox has no real DOM, so this exercise runs against a small button mock with the same listener API as a real element: addEventListener, removeEventListener, and click() to dispatch a click. Define a handleClick function that increments count, attach it with addEventListener, and define a detach function that removes it. The mechanism is identical to the real DOM: removeEventListener only works when given the exact same function reference that was added."
+  hint="Store the handler in a named function and pass that same reference to both addEventListener and removeEventListener. An inline arrow function creates a new reference each time, so it can never be removed."
+  starterCode={`function makeButton() {
+  const listeners = new Set();
   return {
-    on(type, fn) {
-      // your code here
-    },
-    off(type, fn) {
-      // your code here
-    },
-    emit(type, payload) {
-      // your code here
-    },
+    addEventListener(type, fn) { if (type === 'click') listeners.add(fn); },
+    removeEventListener(type, fn) { if (type === 'click') listeners.delete(fn); },
+    click() { listeners.forEach((fn) => fn({ type: 'click' })); },
   };
 }
 
-const emitter = createEmitter();`}
+const button = makeButton();
+let count = 0;
+// your code here: define handleClick and attach it, then define detach`}
   tests={[
-    { label: 'emit calls the handler with the payload', code: `const got = []; emitter.on('click', (p) => got.push(p)); emitter.emit('click', 'x'); console.assert(got.length === 1 && got[0] === 'x');` },
-    { label: 'off stops later emits', code: `const h = (p) => got.push(p); emitter.on('hover', h); emitter.off('hover', h); emitter.emit('hover', 'y'); console.assert(got.length === 1);` },
-    { label: 'emitting with no handlers does not throw', code: `emitter.emit('nothing'); console.assert(true);` },
+    { label: 'two clicks count twice', code: `button.click(); button.click(); if (count !== 2) throw new Error('expected 2, got ' + count);` },
+    { label: 'detach stops counting', code: `detach(); button.click(); if (count !== 2) throw new Error('expected still 2 after detach, got ' + count);` },
+    { label: 'handler is a named function', code: `if (typeof handleClick !== 'function') throw new Error('expected a handleClick function'); if (typeof detach !== 'function') throw new Error('expected a detach function');` },
   ]}
 />
 

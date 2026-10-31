@@ -104,33 +104,28 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 <TopicPlayground>
 
 <CodingChallenge
-  title="Guarded bank account"
-  prompt="Finish the BankAccount class: deposit adds only positive amounts, withdraw subtracts and throws a RangeError on insufficient funds without changing the balance, and getBalance reports it. The class is the boundary: invalid state is rejected at the method, not left for callers to check."
-  hint="Validate before mutating, so a rejected withdraw leaves the balance untouched."
-  starterCode={`class BankAccount {
-  constructor(owner) {
-    this.owner = owner;
-    this.balance = 0;
+  title="Extend a class with super and a private field"
+  prompt="Finish Admin, which extends User: call super(name) so name is set, store the level in a private #level field, expose it through getLevel(), set role to 'admin', and override describe() to include both the name and the role. The tests only use public behavior, never the private field directly."
+  hint="You must call super() before touching this in the subclass constructor. A private field is declared with # and only works inside the class body."
+  starterCode={`class User {
+  constructor(name) {
+    this.name = name;
   }
-
-  deposit(amount) {
-    // your code here
-  }
-
-  withdraw(amount) {
-    // your code here
-  }
-
-  getBalance() {
-    // your code here
+  describe() {
+    return 'User: ' + this.name;
   }
 }
 
-const account = new BankAccount('Aisha');`}
+class Admin extends User {
+  // your code here: constructor(name, level), super call, private #level, role, describe override
+}
+
+const admin = new Admin('Ada', 2);`}
   tests={[
-    { label: 'deposit and withdraw move the balance', code: `account.deposit(100); account.withdraw(30); console.assert(account.getBalance() === 70);` },
-    { label: 'overdraw throws and balance survives', code: `let threw = false; try { account.withdraw(1000); } catch (e) { threw = true; } console.assert(threw === true && account.getBalance() === 70);` },
-    { label: 'non-positive deposit throws', code: `let threw2 = false; try { account.deposit(0); } catch (e) { threw2 = true; } console.assert(threw2 === true);` },
+    { label: 'name comes from super', code: `if (admin.name !== 'Ada') throw new Error('expected Ada, got ' + admin.name);` },
+    { label: 'role is admin', code: `if (admin.role !== 'admin') throw new Error('expected admin, got ' + admin.role);` },
+    { label: 'getLevel returns the private level', code: `if (admin.getLevel() !== 2) throw new Error('expected 2, got ' + admin.getLevel());` },
+    { label: 'describe mentions name and role', code: `const d = admin.describe(); if (d.indexOf('Ada') === -1 || d.indexOf('admin') === -1) throw new Error('describe is missing name or role: ' + d);` },
   ]}
 />
 

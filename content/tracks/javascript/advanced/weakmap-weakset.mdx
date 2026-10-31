@@ -104,27 +104,23 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 <TopicPlayground>
 
 <CodingChallenge
-  title="Metadata without blocking collection"
-  prompt="Use the WeakMap and WeakSet provided: attachMeta stores metadata for an object, getMeta reads it back, and the seen set tracks objects already processed. Weak keys mean the metadata never keeps an object alive on its own, and only objects (never strings) can be keys."
-  hint="WeakMap.set and WeakMap.get take the object itself as the key; WeakSet.add and WeakSet.has work the same way."
-  starterCode={`const meta = new WeakMap();
+  title="Hide private state in a WeakMap and track seen objects in a WeakSet"
+  prompt="Build createCounter so each counter keeps its count in a WeakMap keyed by the counter object itself: counts must be independent per counter and never stored as a visible property. Also build markSeen(obj) on a WeakSet so the first call for an object returns true and later calls for the same object return false. Weak collections hold their keys weakly, so entries for discarded objects can be collected; that also means they have no size and cannot be iterated."
+  hint="One WeakMap for counts, one WeakSet for seen. The counter methods close over the shared WeakMap but key by their own object, never by a shared variable."
+  starterCode={`const counts = new WeakMap();
 const seen = new WeakSet();
 
-function attachMeta(obj, data) {
-  // your code here
+function createCounter() {
+  // COUNTER: return an object with increment() and get() backed by counts
 }
 
-function getMeta(obj) {
-  // your code here
-}
-
-const a = {};
-const b = {};`}
+function markSeen(obj) {
+  // MARK: return true the first time for obj, false afterwards
+}`}
   tests={[
-    { label: 'metadata round-trips for the same object', code: `attachMeta(a, { visits: 2 }); console.assert(getMeta(a).visits === 2);` },
-    { label: 'another object has no metadata', code: `console.assert(getMeta(b) === undefined);` },
-    { label: 'WeakSet tracks seen objects only', code: `seen.add(a); console.assert(seen.has(a) === true && seen.has(b) === false);` },
-    { label: 'a string key throws', code: `let threw = false; try { meta.set('str', 1); } catch (e) { threw = true; } console.assert(threw === true);` },
+    { label: 'counters are independent', code: `const a = createCounter(); const b = createCounter(); a.increment(); a.increment(); b.increment(); if (a.get() !== 2 || b.get() !== 1) throw new Error('expected counts 2 and 1');` },
+    { label: 'count is not a visible property', code: `const c = createCounter(); c.increment(); if (c.count !== undefined) throw new Error('count leaked as a property'); if (c.get() !== 1) throw new Error('expected get() to return 1');` },
+    { label: 'markSeen is true once per object', code: `const o = {}; if (markSeen(o) !== true) throw new Error('expected first sighting true'); if (markSeen(o) !== false) throw new Error('expected second sighting false'); if (markSeen({}) !== true) throw new Error('expected a new object to be true');` },
   ]}
 />
 

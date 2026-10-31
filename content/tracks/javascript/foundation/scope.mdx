@@ -104,18 +104,20 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 <TopicPlayground>
 
 <CodingChallenge
-  title="One binding per iteration"
-  prompt="Finish createIndexedFunctions so it returns n functions where function i returns i. The classic scope trap is var: one shared binding means every function returns n. let in the for header creates a fresh binding per iteration, so each function closes over its own index."
-  hint="Declare the loop variable with let, and push a function that returns it."
-  starterCode={`function createIndexedFunctions(n) {
+  title="Build counters that remember their own index"
+  prompt="Finish buildCounters so it returns 3 functions, and each function returns its own index: counters[0]() is 0, counters[1]() is 1, counters[2]() is 2. This is the classic interview trap: a loop variable shared across closures makes every function return the same final value."
+  hint="Each iteration needs its own binding. A block-scoped loop variable gives every closure its own copy; a function-scoped one is shared."
+  starterCode={`function buildCounters() {
   const fns = [];
-  // your code here: loop and push () => i
+  // your code here: push 3 functions, each returning its own index
   return fns;
 }
 
-const fns = createIndexedFunctions(3);`}
+const counters = buildCounters();`}
   tests={[
-    { label: 'each function keeps its own index', code: `console.assert(fns[0]() === 0 && fns[1]() === 1 && fns[2]() === 2);` },
+    { label: 'first counter returns 0', code: `if (counters[0]() !== 0) throw new Error('expected 0, got ' + counters[0]());` },
+    { label: 'second counter returns 1', code: `if (counters[1]() !== 1) throw new Error('expected 1, got ' + counters[1]());` },
+    { label: 'third counter returns 2', code: `if (counters[2]() !== 2) throw new Error('expected 2, got ' + counters[2]());` },
   ]}
 />
 

@@ -104,39 +104,26 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 <TopicPlayground>
 
 <CodingChallenge
-  title="Storage-shaped API with JSON helpers"
-  prompt="Finish createStorage with the localStorage shape: set and get for strings, remove and clear, plus setJSON and getJSON for objects. localStorage stores only strings, so objects must be stringified on save and parsed on read, and a missing key reads back as null, not undefined."
-  hint="Store strings as-is; setJSON should JSON.stringify, getJSON should JSON.parse and return null for a missing key."
-  starterCode={`function createStorage() {
+  title="Build a JSON prefs wrapper over storage"
+  prompt="The sandbox has no real localStorage, so this exercise runs against a mock storage with the exact Storage API: getItem, setItem, removeItem, and clear, storing strings only. Write a prefs wrapper with save(key, value), load(key, fallback), and remove(key). Keys must be namespaced with app: so they never collide with other data, and values must survive as JSON: saving an object and loading it back returns an equal object, not the string object Object."
+  hint="setItem only stores strings, so stringify on save and parse on load. A missing key returns null from getItem, which is when the fallback applies."
+  starterCode={`function makeStorage() {
   const store = new Map();
   return {
-    set(key, value) {
-      // your code here
-    },
-    get(key) {
-      // your code here
-    },
-    remove(key) {
-      // your code here
-    },
-    clear() {
-      // your code here
-    },
-    setJSON(key, value) {
-      // your code here
-    },
-    getJSON(key) {
-      // your code here
-    },
+    getItem(key) { return store.has(key) ? store.get(key) : null; },
+    setItem(key, value) { store.set(key, String(value)); },
+    removeItem(key) { store.delete(key); },
+    clear() { store.clear(); },
   };
 }
 
-const storage = createStorage();`}
+const storage = makeStorage();
+// your code here: define prefs with save, load, remove`}
   tests={[
-    { label: 'string round-trip', code: `storage.set('theme', 'dark'); console.assert(storage.get('theme') === 'dark');` },
-    { label: 'missing key is null', code: `console.assert(storage.get('nope') === null);` },
-    { label: 'object round-trip through JSON', code: `storage.setJSON('user', { name: 'Aisha' }); console.assert(storage.getJSON('user').name === 'Aisha');` },
-    { label: 'remove then clear', code: `storage.remove('theme'); console.assert(storage.get('theme') === null); storage.clear(); console.assert(storage.getJSON('user') === null);` },
+    { label: 'save and load round-trips an object', code: `prefs.save('theme', { dark: true }); const v = prefs.load('theme', null); if (!v || v.dark !== true) throw new Error('expected loaded object with dark true');` },
+    { label: 'missing key returns the fallback', code: `if (prefs.load('missing', 'default') !== 'default') throw new Error('expected fallback for missing key');` },
+    { label: 'keys are namespaced', code: `if (storage.getItem('app:theme') !== '{"dark":true}') throw new Error('expected namespaced JSON value, got ' + storage.getItem('app:theme'));` },
+    { label: 'remove clears the key', code: `prefs.remove('theme'); if (prefs.load('theme', null) !== null) throw new Error('expected null after remove');` },
   ]}
 />
 

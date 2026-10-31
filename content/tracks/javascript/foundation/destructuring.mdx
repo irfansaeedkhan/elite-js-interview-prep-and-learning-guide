@@ -105,16 +105,20 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 <TopicPlayground>
 
 <CodingChallenge
-  title="Summarize with defaults"
-  prompt="Finish summarizeUser using destructuring: rename name to displayName with a 'Guest' default, and read a nested city with an 'Unknown' default that also survives a missing address object. The defaults belong in the pattern, not in if statements after it."
-  hint="Destructure with rename and defaults, and default the nested address to an empty object so missing address does not throw."
+  title="Summarize a user with destructuring"
+  prompt="Finish summarizeUser using destructuring: pull name, role (default 'member'), and the nested city (default 'Unknown') out of the user object, and return them as 'name | role | city'. The tests call it with a full user, one missing role, and one missing city."
+  hint="Destructure in the parameter list: nested patterns need their own defaults too, or a missing address object throws."
   starterCode={`function summarizeUser(user) {
-  // your code here: destructure, then return displayName + ' from ' + city
-}`}
+  // your code here: destructure name, role, and nested city, then return 'name | role | city'
+}
+
+const full = summarizeUser({ name: 'Ada', role: 'admin', address: { city: 'Lisbon' } });
+const noRole = summarizeUser({ name: 'Bo', address: { city: 'Oslo' } });
+const noCity = summarizeUser({ name: 'Cy', role: 'mod' });`}
   tests={[
-    { label: 'full user', code: `console.assert(summarizeUser({ name: 'Aisha', address: { city: 'Lahore' } }) === 'Aisha from Lahore');` },
-    { label: 'missing city defaults', code: `console.assert(summarizeUser({ name: 'Bilal' }) === 'Bilal from Unknown');` },
-    { label: 'missing everything defaults', code: `console.assert(summarizeUser({}) === 'Guest from Unknown');` },
+    { label: 'full user summarizes all fields', code: `if (full !== 'Ada | admin | Lisbon') throw new Error('expected Ada | admin | Lisbon, got ' + full);` },
+    { label: 'missing role defaults to member', code: `if (noRole !== 'Bo | member | Oslo') throw new Error('expected Bo | member | Oslo, got ' + noRole);` },
+    { label: 'missing address defaults city to Unknown', code: `if (noCity !== 'Cy | mod | Unknown') throw new Error('expected Cy | mod | Unknown, got ' + noCity);` },
   ]}
 />
 

@@ -103,17 +103,30 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicPlayground>
 
-<CodingChallenge
-  title="Await, then handle the error"
-  prompt="Finish getFirstUserName so it awaits getUsers, returns the first user's name, and returns 'Unknown' when getUsers rejects. The point of async and await is exactly this shape: asynchronous code that reads top to bottom, with try and catch doing the error handling instead of nested callbacks."
-  hint="Await getUsers inside try, return users[0].name, and return 'Unknown' in catch."
-  starterCode={`async function getFirstUserName(getUsers) {
-  // your code here
-}`}
-  tests={[
-    { label: 'returns the first name', code: `(async () => { const name = await getFirstUserName(async () => [{ name: 'Aisha' }, { name: 'Bilal' }]); console.assert(name === 'Aisha'); })();` },
-    { label: 'rejection becomes Unknown', code: `(async () => { const name = await getFirstUserName(async () => { throw new Error('down'); }); console.assert(name === 'Unknown'); })();` },
-  ]}
+<SandpackPlayground
+  title="Fetch in parallel, not in sequence"
+  code={`// Each fake fetch takes about 100ms. Run this file and read the console.
+// Goal output: names in input order AND the 'parallel' bucket.
+// If you await each fetch inside a loop, the bucket flips to 'sequential'.
+
+function fakeFetch(id) {
+  return new Promise((resolve) => {
+    setTimeout(() => resolve('user-' + id), 100);
+  });
+}
+
+async function loadUsers(ids) {
+  // your code here: fetch all ids and return their names in input order
+}
+
+(async () => {
+  const start = Date.now();
+  const names = await loadUsers(['a', 'b', 'c']);
+  const elapsed = Date.now() - start;
+  console.log('names: ' + names.join(','));
+  console.log('elapsed ms: ' + elapsed);
+  console.log('bucket: ' + (elapsed < 200 ? 'parallel' : 'sequential'));
+})();`}
 />
 
 </TopicPlayground>

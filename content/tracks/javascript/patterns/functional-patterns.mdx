@@ -105,19 +105,24 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 <TopicPlayground>
 
 <CodingChallenge
-  title="Pipe functions together"
-  prompt="Finish pipe so it returns a function that runs the given functions left to right, feeding each result into the next. With no functions it is the identity. Pipe is the functional alternative to nesting calls: pipe(add1, double)(3) reads in the order it runs."
-  hint="Reduce over the functions starting from the input value."
-  starterCode={`function pipe(...fns) {
-  // your code here: return (value) => ...
+  title="Build compose and pipe from scratch"
+  prompt="Implement compose (right to left) and pipe (left to right). Both take any number of functions and return a new function that runs an input through them. With zero functions, the result is the identity function: it returns its input unchanged. This is the core of functional composition: small pure functions combined into a pipeline without intermediate variables."
+  hint="Reduce over the functions. For compose, apply the rightmost function first; for pipe, the leftmost first. Start the reduction with the input itself so zero functions still works."
+  starterCode={`function compose(...fns) {
+  // COMPOSE: return a function that applies fns right to left
 }
 
-const add1 = (n) => n + 1;
-const double = (n) => n * 2;`}
+function pipe(...fns) {
+  // PIPE: return a function that applies fns left to right
+}
+
+const double = (x) => x * 2;
+const addOne = (x) => x + 1;`}
   tests={[
-    { label: 'runs left to right', code: `console.assert(pipe(add1, double)(3) === 8);` },
-    { label: 'no functions is the identity', code: `console.assert(pipe()(7) === 7);` },
-    { label: 'single function applies', code: `console.assert(pipe(double)(5) === 10);` },
+    { label: 'compose applies right to left', code: `if (compose(double, addOne)(5) !== 12) throw new Error('expected 12, got ' + compose(double, addOne)(5));` },
+    { label: 'pipe applies left to right', code: `if (pipe(double, addOne)(5) !== 11) throw new Error('expected 11, got ' + pipe(double, addOne)(5));` },
+    { label: 'three functions compose in order', code: `if (compose(double, double, addOne)(3) !== 16) throw new Error('expected 16, got ' + compose(double, double, addOne)(3));` },
+    { label: 'zero functions is the identity', code: `if (compose()(7) !== 7) throw new Error('expected compose() to return its input'); if (pipe()(7) !== 7) throw new Error('expected pipe() to return its input');` },
   ]}
 />
 

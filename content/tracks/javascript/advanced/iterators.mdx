@@ -104,18 +104,16 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 <TopicPlayground>
 
 <CodingChallenge
-  title="Build a range iterable"
-  prompt="Finish range so it returns an object with a Symbol.iterator method that yields start up to but not including end. That is the whole iterable protocol: for...of and spread both just call Symbol.iterator and read next() until done is true."
-  hint="Symbol.iterator should return an object with a next method; each call returns { value, done }."
+  title="Build a re-iterable range iterator by hand"
+  prompt="Implement range(start, end) returning an iterable object: every call to Symbol.iterator must return a FRESH iterator with its own next() method, yielding start, start + 1, and so on up to but not including end. Write the iterator by hand, with next returning a value and done pair, not with a generator: the point is the protocol itself. A stale shared iterator is the classic bug: spreading the same range twice must give the same result both times."
+  hint="Symbol.iterator returns a new object each time it is called, with next() closing over its own current value. Done becomes true exactly when current reaches end."
   starterCode={`function range(start, end) {
-  return {
-    // your code here: add a [Symbol.iterator] method
-  };
+  // your code here: return an iterable with Symbol.iterator
 }`}
   tests={[
-    { label: 'spread collects the range', code: `console.assert(JSON.stringify([...range(2, 5)]) === '[2,3,4]');` },
-    { label: 'for...of sums the range', code: `let sum = 0; for (const n of range(1, 4)) { sum += n; } console.assert(sum === 6);` },
-    { label: 'empty range yields nothing', code: `console.assert([...range(3, 3)].length === 0);` },
+    { label: 'spread yields start up to but not including end', code: `const values = [...range(1, 4)]; if (values.join(',') !== '1,2,3') throw new Error('expected 1,2,3 got ' + values.join(','));` },
+    { label: 'next follows the protocol', code: `const it = range(5, 7)[Symbol.iterator](); const first = it.next(); const second = it.next(); const third = it.next(); if (first.value !== 5 || first.done !== false) throw new Error('expected first 5 not done'); if (second.value !== 6 || second.done !== false) throw new Error('expected second 6 not done'); if (third.done !== true) throw new Error('expected third done');` },
+    { label: 'spreading twice gives the same result', code: `const r = range(0, 2); if ([...r].join(',') !== '0,1') throw new Error('expected first spread 0,1'); if ([...r].join(',') !== '0,1') throw new Error('expected second spread 0,1');` },
   ]}
 />
 

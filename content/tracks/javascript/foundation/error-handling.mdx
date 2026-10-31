@@ -104,20 +104,26 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 <TopicPlayground>
 
 <CodingChallenge
-  title="Typed throws, safe wrapper"
-  prompt="Finish parsePositiveInt so it throws a TypeError for a non-number and a RangeError for a negative number, then finish safeParse so it returns { ok: true, value } on success and { ok: false, error } with the error name on failure. Callers should be able to tell the failure kind without parsing a message string."
-  hint="Use Number and Number.isNaN for the type check, and catch the error name in the wrapper."
-  starterCode={`function parsePositiveInt(str) {
-  // your code here
+  title="Parse safely: custom errors and a finally that always runs"
+  prompt="Finish parseUser(json): return the parsed object for valid JSON, throw a TypeError for non-string input, throw an Error with the exact message 'Invalid user JSON' for bad JSON, and record 'done' in events in a finally block on every path, success or failure."
+  hint="Check the input type before parsing. Wrap JSON.parse in try/catch and rethrow your own error. finally runs even when catch rethrows."
+  starterCode={`const events = [];
+
+function parseUser(json) {
+  // your code here: type check, try/catch with custom error, finally records 'done'
 }
 
-function safeParse(str) {
-  // your code here: try parsePositiveInt, catch into { ok: false, error }
-}`}
+const good = parseUser('{"name":"Ada"}');
+let badError = null;
+try { parseUser('not json'); } catch (e) { badError = e; }
+const eventsAfterBad = events.length;
+let typeError = null;
+try { parseUser(42); } catch (e) { typeError = e; }`}
   tests={[
-    { label: 'valid input parses', code: `console.assert(safeParse('42').value === 42 && safeParse('42').ok === true);` },
-    { label: 'non-number is a TypeError', code: `console.assert(safeParse('abc').error === 'TypeError');` },
-    { label: 'negative is a RangeError', code: `console.assert(safeParse('-5').error === 'RangeError');` },
+    { label: 'valid JSON parses to an object', code: `if (!good || good.name !== 'Ada') throw new Error('expected Ada, got ' + JSON.stringify(good));` },
+    { label: 'bad JSON throws Invalid user JSON', code: `if (!badError || badError.message !== 'Invalid user JSON') throw new Error('expected Invalid user JSON, got ' + (badError && badError.message));` },
+    { label: 'non-string input throws TypeError', code: `if (!typeError || typeError.constructor !== TypeError) throw new Error('expected TypeError');` },
+    { label: 'finally recorded done on all three calls', code: `if (events.length !== 3 || eventsAfterBad !== 2) throw new Error('expected 3 done events, got ' + events.length);` },
   ]}
 />
 

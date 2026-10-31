@@ -104,16 +104,21 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 <TopicPlayground>
 
 <CodingChallenge
-  title="Lazy Fibonacci generator"
-  prompt="Finish fibonacci as a generator function that yields the first n Fibonacci numbers, starting 0, 1. Generators are lazy: nothing runs until next() is called, and each yield pauses the function with its state intact, which is why [...gen] and for...of can both consume it."
-  hint="Use function* and yield inside a loop; track the pair a and b and advance them each step."
-  starterCode={`function* fibonacci(n) {
-  // your code here
-}`}
+  title="Build a lazy range generator"
+  prompt="Finish function* range(start, end) so it yields start up to end - 1, one value at a time, lazily: nothing is produced until next() is called. The tests check the values, the lazy stepping, and the done state after exhaustion."
+  hint="yield each value inside a loop. Returning an array instead of yielding gives an empty spread and fails the stepping tests."
+  starterCode={`function* range(start, end) {
+  // your code here: yield start up to end - 1, lazily
+}
+
+const g = range(2, 5);
+const first = g.next();
+const second = g.next();
+const spread = [...range(0, 3)];`}
   tests={[
-    { label: 'first five values', code: `console.assert(JSON.stringify([...fibonacci(5)]) === '[0,1,1,2,3]');` },
-    { label: 'zero yields nothing', code: `console.assert([...fibonacci(0)].length === 0);` },
-    { label: 'next steps one value at a time', code: `const it = fibonacci(3); console.assert(it.next().value === 0 && it.next().value === 1 && it.next().done === false);` },
+    { label: 'first next() yields 2, not done', code: `if (first.value !== 2 || first.done !== false) throw new Error('expected 2/not done, got ' + first.value + '/' + first.done);` },
+    { label: 'second next() yields 3, not done', code: `if (second.value !== 3 || second.done !== false) throw new Error('expected 3/not done, got ' + second.value + '/' + second.done);` },
+    { label: 'spread collects exactly 0, 1, 2', code: `if (spread.length !== 3 || spread[0] !== 0 || spread[1] !== 1 || spread[2] !== 2) throw new Error('expected 0,1,2, got ' + spread.join(','));` },
   ]}
 />
 

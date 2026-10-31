@@ -104,21 +104,24 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 <TopicPlayground>
 
 <CodingChallenge
-  title="Map, filter, reduce"
-  prompt="Finish analyze using only map, filter, and reduce: evens keeps the even numbers, doubled doubles every number, and sum totals them. No loops: each method states what it produces, and chaining them replaces the manual accumulate-and-push loop."
-  hint="Filter for evens, map for doubled, reduce with a 0 start for the sum."
-  starterCode={`function analyze(numbers) {
-  return {
-    evens: null,
-    doubled: null,
-    sum: null,
-  };
-}`}
+  title="Summarize paid orders with filter and reduce"
+  prompt="Finish summarizeOrders(orders): keep only orders with status 'paid', then return { total, count } where total is the sum of price times qty and count is how many paid orders there were. Unpaid orders must not count, and an empty list must give { total: 0, count: 0 }."
+  hint="Filter first, then reduce into one object. Multiplying price by qty is easy to forget; the tests catch it."
+  starterCode={`function summarizeOrders(orders) {
+  // your code here: filter paid orders, then reduce to { total, count }
+}
+
+const mixed = summarizeOrders([
+  { price: 10, qty: 2, status: 'paid' },
+  { price: 5, qty: 1, status: 'refunded' },
+  { price: 3, qty: 4, status: 'paid' },
+]);
+const nonePaid = summarizeOrders([{ price: 9, qty: 9, status: 'pending' }]);
+const empty = summarizeOrders([]);`}
   tests={[
-    { label: 'evens filtered', code: `console.assert(JSON.stringify(analyze([1, 2, 3, 4]).evens) === '[2,4]');` },
-    { label: 'doubled mapped', code: `console.assert(JSON.stringify(analyze([1, 2, 3, 4]).doubled) === '[2,4,6,8]');` },
-    { label: 'sum reduced', code: `console.assert(analyze([1, 2, 3, 4]).sum === 10);` },
-    { label: 'empty input is safe', code: `const e = analyze([]); console.assert(e.evens.length === 0 && e.sum === 0);` },
+    { label: 'mixed orders total only paid lines', code: `if (mixed.total !== 32 || mixed.count !== 2) throw new Error('expected 32/2, got ' + mixed.total + '/' + mixed.count);` },
+    { label: 'no paid orders gives zero total and count', code: `if (nonePaid.total !== 0 || nonePaid.count !== 0) throw new Error('expected 0/0, got ' + nonePaid.total + '/' + nonePaid.count);` },
+    { label: 'empty list gives zero total and count', code: `if (empty.total !== 0 || empty.count !== 0) throw new Error('expected 0/0, got ' + empty.total + '/' + empty.count);` },
   ]}
 />
 

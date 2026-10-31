@@ -104,28 +104,40 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 <TopicPlayground>
 
 <CodingChallenge
-  title="One handler for the whole list"
-  prompt="Finish createDelegatedList so click routes through a single parent-level handler: register handlers per item type with on, and click(id) finds the item and calls only the handler for that item's type. That is event delegation: one listener instead of one per row."
-  hint="click should look the item up by id, then look up its type in the routes map and call it with the item."
-  starterCode={`function createDelegatedList(items) {
-  const routes = new Map();
-  return {
-    on(type, fn) {
-      // your code here
-    },
-    click(id) {
-      // your code here
+  title="Delegate clicks from a parent to its buttons"
+  prompt="The sandbox has no real DOM, so this exercise runs against a small node tree with the same semantics as the real thing: nodes have a tag and children, click() dispatches an event that bubbles from the clicked node up to the root, and each handler receives an event with target (where the click started) and currentTarget (the node handling it now). Write delegate(parent, tag, handler) so it attaches ONE listener to the parent and calls handler with the matching node only when the click started on, or inside, an element of that tag. Clicks elsewhere must not call it."
+  hint="Listen once on the parent. From event.target, walk up through parents until you find the tag or reach the parent itself. A click on a span inside a button still counts as a button click."
+  starterCode={`function makeNode(tag, children) {
+  const node = {
+    tag,
+    parent: null,
+    listeners: [],
+    addEventListener(type, fn) { if (type === 'click') node.listeners.push(fn); },
+    click() {
+      let current = node;
+      const event = { target: node, currentTarget: null };
+      while (current) {
+        event.currentTarget = current;
+        current.listeners.forEach((fn) => fn(event));
+        current = current.parent;
+      }
     },
   };
+  (children || []).forEach((child) => { child.parent = node; });
+  return node;
 }
 
-const list = createDelegatedList([
-  { id: 'a', type: 'edit', label: 'A' },
-  { id: 'b', type: 'delete', label: 'B' },
-]);`}
+const spanInButton = makeNode('span', []);
+const button = makeNode('button', [spanInButton]);
+const div = makeNode('div', []);
+const root = makeNode('div', [button, div]);
+let handled = [];
+// your code here: define delegate, then delegate(root, 'button', (node) => handled.push(node))`}
   tests={[
-    { label: 'clicks route by item type', code: `const acted = []; list.on('edit', (item) => acted.push('edit:' + item.label)); list.on('delete', (item) => acted.push('delete:' + item.label)); list.click('a'); list.click('b'); console.assert(acted.join(',') === 'edit:A,delete:B');` },
-    { label: 'unknown id does nothing', code: `list.click('missing'); console.assert(acted.length === 2);` },
+    { label: 'click on a button calls the handler with it', code: `button.click(); if (handled.length !== 1 || handled[0] !== button) throw new Error('expected handler called once with the button');` },
+    { label: 'click on a span inside a button still counts', code: `spanInButton.click(); if (handled.length !== 2 || handled[1] !== button) throw new Error('expected handler called with the button for the inner span');` },
+    { label: 'click on a plain div does not call', code: `div.click(); if (handled.length !== 2) throw new Error('expected still 2 handled clicks, got ' + handled.length);` },
+    { label: 'only one listener sits on the parent', code: `if (root.listeners.length !== 1) throw new Error('expected 1 listener on the parent, got ' + root.listeners.length);` },
   ]}
 />
 

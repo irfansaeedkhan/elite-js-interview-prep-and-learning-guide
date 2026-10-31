@@ -104,26 +104,24 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 <TopicPlayground>
 
 <CodingChallenge
-  title="Merge, sum, clone without mutating"
-  prompt="Finish mergeSettings with spread so overrides win, sumAll with rest parameters so it takes any count of numbers, and cloneWith with spread so the original object is never mutated. Spread copies the top level only, which is exactly why the original stays untouched here."
-  hint="Spread defaults then overrides; collect rest args and reduce them; spread the object then the patch."
+  title="Merge settings without mutating, then sum any count of numbers"
+  prompt="Finish two functions. mergeSettings(defaults, overrides) must return a NEW object with overrides winning, and must not change defaults. sumAll(...nums) must add any number of arguments, including zero. The mutation test is the point: spreading into a fresh object is what keeps defaults safe."
+  hint="Spread into a new literal for the merge. For sumAll, gather the arguments with a rest parameter and reduce them."
   starterCode={`function mergeSettings(defaults, overrides) {
-  // your code here
+  // your code here: return a new merged object, do not change defaults
 }
 
-function sumAll(...nums) {
-  // your code here
+function sumAll() {
+  // your code here: add any number of arguments
 }
 
-function cloneWith(obj, patch) {
-  // your code here
-}
-
-const original = { a: 1 };`}
+const defaults = { theme: 'light', size: 12 };
+const merged = mergeSettings(defaults, { size: 16 });`}
   tests={[
-    { label: 'overrides win the merge', code: `console.assert(JSON.stringify(mergeSettings({ a: 1, b: 2 }, { b: 9 })) === '{"a":1,"b":9}');` },
-    { label: 'rest sums any count, including none', code: `console.assert(sumAll(1, 2, 3, 4) === 10 && sumAll() === 0);` },
-    { label: 'clone does not mutate the original', code: `const copy = cloneWith(original, { b: 2 }); console.assert(original.b === undefined && copy.a === 1 && copy.b === 2);` },
+    { label: 'overrides win in the merged object', code: `if (merged.theme !== 'light' || merged.size !== 16) throw new Error('expected light/16, got ' + merged.theme + '/' + merged.size);` },
+    { label: 'defaults object is unchanged', code: `if (defaults.theme !== 'light' || defaults.size !== 12) throw new Error('defaults were mutated');` },
+    { label: 'merged object is a new object', code: `if (merged === defaults) throw new Error('merged must not be the same object as defaults');` },
+    { label: 'sumAll adds any count, including none', code: `if (sumAll(1, 2, 3) !== 6 || sumAll() !== 0 || sumAll(5) !== 5) throw new Error('sumAll is wrong');` },
   ]}
 />
 

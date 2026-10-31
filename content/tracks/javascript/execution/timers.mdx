@@ -103,36 +103,21 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicPlayground>
 
-<CodingChallenge
-  title="Stopwatch with a fake clock"
-  prompt="Finish createStopwatch so start, stop, reset, and elapsedMs measure elapsed time, taking now as an injected clock function. Real timers make tests wait, so the tests pass a fake clock they can advance by hand: the same injection trick makes debounce and throttle testable too."
-  hint="start records now only if not already running; stop adds now minus startedAt to elapsed; elapsedMs adds the running stretch when started."
-  starterCode={`function createStopwatch(now) {
-  let startedAt = null;
-  let elapsed = 0;
-  return {
-    start() {
-      // your code here
-    },
-    stop() {
-      // your code here
-    },
-    reset() {
-      // your code here
-    },
-    elapsedMs() {
-      // your code here
-    },
-  };
-}
+<SandpackPlayground
+  title="Place each log in the right task queue"
+  code={`// Run this file and read the console.
+// Goal order: 1, 3, 2, 4.
+// Why: synchronous code runs first, then microtasks drain, then macrotasks
+// (timers) run in delay order. A 0ms timer still waits behind microtasks.
 
-let clock = 1000;
-const stopwatch = createStopwatch(() => clock);`}
-  tests={[
-    { label: 'elapsed grows while running', code: `stopwatch.start(); clock = 1500; console.assert(stopwatch.elapsedMs() === 500);` },
-    { label: 'stop freezes elapsed', code: `stopwatch.stop(); clock = 2000; console.assert(stopwatch.elapsedMs() === 500);` },
-    { label: 'reset clears it', code: `stopwatch.reset(); console.assert(stopwatch.elapsedMs() === 0);` },
-  ]}
+console.log('1');
+
+// your code here: schedule log '2' so it prints AFTER the microtask
+// but BEFORE the 10ms timer below
+
+Promise.resolve().then(() => console.log('3'));
+
+setTimeout(() => console.log('4'), 10);`}
 />
 
 </TopicPlayground>
