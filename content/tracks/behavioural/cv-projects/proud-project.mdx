@@ -1,0 +1,187 @@
+---
+title: A Project You Are Proud Of
+slug: proud-project
+track: behavioural
+subCategory: cv-projects
+order: 2
+estimatedMinutes: 15
+keyTakeaways:
+  - Pick the project with the hardest decisions, not the biggest one
+  - Lead with the problem and the constraint, not the stack
+  - Name three decisions and the trade-off in each
+  - End on what you would change with what you know now
+masteryCriteria:
+  minQuestionsCorrect: 1
+  requireChallenge: false
+difficulty: medium
+interviewQuestions:
+  - id: beh-proud-project-1
+    question: Tell me about a project you are proud of
+    answer: The project I am proudest of is the checkout rebuild I led last year. The problem was that completion had stalled at 61 percent and support kept getting payment error complaints. The constraint was that we could not change the billing system, only the frontend. I chose to rebuild validation so errors show next to the field that caused them, added a review step before payment, and rewrote the three most complained-about messages with support. Completion rose to 74 percent, and what I would change now is testing on the oldest browser we support before opening the pull request, because that is where our one incident came from.
+    difficulty: medium
+    followUps:
+      - Why did you choose that technology?
+      - What was the hardest problem in that project?
+      - What would you do differently now?
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+"Tell me about a project you are proud of" is a deep-dive prompt, not
+a show-and-tell. The interviewer will drill into it for ten minutes
+or more, so the project you pick must survive drilling.
+
+Interviewers score three things. Was the problem real, with a
+constraint that forced choices. Were the decisions yours, with
+trade-offs you can explain. And can you criticise your own work now,
+with hindsight.
+
+The trap is picking the biggest project. Size does not survive
+drilling; decisions do. Pick the project where you made the hardest
+calls, even if it was smaller, because the follow-ups will be about
+those calls.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+Here is what a strong project story sounds like. This is an
+illustrative example, not your story. Swap in your own facts using
+the template below.
+
+**Situation.** "The project I am proudest of is the checkout rebuild
+I led last year. Completion had stalled at 61 percent, support kept
+getting payment error complaints, and we could not change the billing
+system, only the frontend."
+
+**Task.** "My job was to lift completion without touching billing,
+which meant every improvement had to come from the form, the flow,
+or the words on screen."
+
+**Action.** "I made three decisions. First, validation errors show
+next to the field that caused them instead of at the top of the
+form, because support logs showed users could not find the error.
+Second, a review step before payment, because users told support
+they were afraid of paying twice. Third, I rewrote the three most
+complained-about messages with support, instead of guessing better
+words myself. The trade-off I accepted was scope: I cut the
+comparison table and the animations to protect the calculator and
+the checkout link."
+
+**Result.** "Completion rose from 61 percent to 74 percent over two
+months, and payment error tickets fell by about a third. What I
+would change now is testing on the oldest browser we support before
+opening the pull request, because our one incident came from a method
+that browser did not support."
+
+The answer works because the constraint forces the decisions, each
+decision has a reason tied to evidence, and the ending criticises the
+work honestly. That ending is what senior panels listen for.
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+### Project deep-dive template
+
+Prepare these five blocks for one project before the interview.
+Panels drill in this order: problem, decisions, trade-offs, problems,
+hindsight.
+
+- **Problem and constraint.** "The problem was [user or business
+  pain with a number]. The constraint was [what you could not
+  change]." Constraints force decisions. A project with no constraint
+  has no story.
+- **Your role.** "I [owned / led / built] [surface], and the team
+  was [size]." Say what was yours and what was shared, precisely.
+- **Three decisions.** For each: "I chose [X] over [Y] because
+  [evidence]." Three is the right count. One sounds thin, five
+  sounds rehearsed.
+- **What broke.** "The hardest problem was [incident or setback],
+  and I handled it by [rollback / fix / change]." A project with no
+  problems sounds invented. Bring one real one.
+- **What you would change.** "With what I know now I would [one
+  specific change]." This is the senior signal. Never answer "nothing."
+
+### Strong vs weak
+
+Weak answer: "I built a checkout app with React and TypeScript and
+Node. It had a nice UI and used Redux and it worked really well and
+users liked it. I am proud of it because it was a big project."
+
+Why it fails: no problem, no constraint, no decisions, no trade-offs.
+It is a stack list. A panel cannot drill into a stack list, so they
+will move on, unimpressed.
+
+Strong answer: "The project I am proudest of is the checkout rebuild
+I led last year. The problem was that completion had stalled at 61
+percent and support kept getting payment error complaints. The
+constraint was that we could not change the billing system, only the
+frontend. I chose to rebuild validation so errors show next to the
+field that caused them, added a review step before payment, and
+rewrote the three most complained-about messages with support."
+
+Why it works: problem with a number, constraint stated, three
+decisions each tied to evidence, and the trade-off (scope cut) is
+visible in the full answer. Every sentence invites a good follow-up.
+
+### Drill-down questions to prepare
+
+Panels drill into projects with the same questions. Prepare one-line
+answers for each:
+
+- "Why did you choose that technology?" Evidence, not preference.
+  The alternative you rejected, and why.
+- "What was the hardest problem?" One real incident, with the fix
+  and the systemic change afterwards.
+- "How did you measure success?" The before and after number, and
+  where it came from (analytics, support, users).
+- "What did you personally do versus the team?" Precise split. Panels
+  check this against the rest of your story.
+- "What would you do differently now?" One specific change, never
+  "nothing." Hindsight is the senior signal.
+- "How would you scale it to ten times the traffic?" One bottleneck
+  you would hit first, and what you would change. Even for frontend
+  projects, have an answer.
+
+### Traps
+
+- Picking the biggest project instead of the one with the hardest
+  decisions. Decisions survive drilling; size does not.
+- A story with no problems. If nothing broke, the panel assumes you
+  are hiding it or were not close to the work.
+- Answering "nothing" to what you would change. It signals no growth
+  since the project.
+- Claiming team work as solo work. Panels cross-check with other
+  answers. Keep the split precise.
+
+### Follow-up prep
+
+- "Why did you choose that technology?" Your decision block, with
+  the rejected alternative named.
+- "What was the hardest problem in that project?" Your what-broke
+  block, told with the fix first order if users were affected.
+- "What would you do differently now?" Your hindsight block, one
+  specific change, stated without apology.
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['beh-proud-project-1']} />
+
+<InterviewQuestionBlock id="beh-proud-project-1" />
+
+</TopicTab>
+
+</TopicTabs>

@@ -1,0 +1,158 @@
+---
+title: When Something You Shipped Went Wrong
+slug: production-mistake
+track: behavioural
+subCategory: ownership
+order: 3
+estimatedMinutes: 15
+keyTakeaways:
+  - Own it fast, fix it first, explain it second
+  - Never blame the reviewer, the tool, or the user
+  - Show the systemic fix, not just the apology
+  - Say what you check now that you did not check then
+masteryCriteria:
+  minQuestionsCorrect: 1
+  requireChallenge: false
+difficulty: hard
+interviewQuestions:
+  - id: beh-production-mistake-1
+    question: Tell me about a time something you shipped went wrong
+    answer: I shipped a form change that broke checkout for users on an older browser, and we found out from support, not from our monitoring. I owned it in the team channel within the hour, rolled the change back first, and then found the cause, which was a method the old browser did not support. The fix was a small polyfill plus a test on that browser, and I added a browser smoke check to the release checklist so the same class of bug gets caught before shipping next time.
+    difficulty: hard
+    followUps:
+      - How did the team react when you owned it?
+      - What do you do differently before shipping now?
+      - Tell me about a time you caught someone else's mistake.
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+"Tell me about a time something you shipped went wrong" is the
+question senior panels trust most, because everyone has a story and
+the bad ones are easy to spot. It tests ownership under embarrassment.
+
+Interviewers score four things, in order. Did you own it quickly.
+Did you fix it before explaining it. Did you find the real cause.
+And did you change the system so it cannot happen the same way again.
+
+The trap is the story with no owner. "The code had a bug" or "QA
+missed it" or "the browser was old" all move blame somewhere else.
+Panels hear blame-shifting instantly, and it is the fastest way to
+fail a behavioural round.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+Here is what a strong answer sounds like. This is an illustrative
+example, not your story. Swap in your own facts using the skeleton
+below.
+
+**Situation.** "I shipped a form change on a Friday morning, and by
+midday support was reporting that checkout failed for users on an
+older browser. Our monitoring had not caught it because the error
+looked like user abandonment, not a crash."
+
+**Task.** "I owned the change, so I owned the incident. The order
+was fixed first, explain second."
+
+**Action.** "I posted in the team channel within the hour that the
+change was mine and I was rolling it back. The rollback took twenty
+minutes. Then I reproduced the bug on the old browser and found a
+method it did not support. The fix was a small polyfill plus a test
+that runs on that browser. I also added a browser smoke check to the
+release checklist, and I wrote the incident note myself."
+
+**Result.** "Checkout worked again the same day, and the smoke check
+has caught two similar issues before shipping since. The team did
+not treat the incident as a black mark, because the rollback was
+fast and the systemic fix was mine too. What I check now that I did
+not check then is simple: I run the change on the oldest browser we
+support before I open the pull request."
+
+The answer works because the order is right (own, roll back, diagnose,
+systemic fix) and the blame goes nowhere. The last line is the
+cheapest proof of learning in any behavioural answer: a habit that
+changed.
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+### STAR skeleton
+
+- **Situation.** "I shipped [change], and [what broke, found how]."
+  Say how it was found. "Support told us" is honest and common.
+- **Task.** "I owned it, so the order was [fix first, explain
+  second]." Say the order explicitly. Panels score it.
+- **Action.** "I [owned it publicly, rolled back, reproduced,
+  fixed, tested]." Then the systemic part: "I added [checklist,
+  test, monitor] so the class of bug is caught next time."
+- **Result.** "[Restored behaviour and time], and [what you check
+  now that you did not check then]." The changed habit is the real
+  result.
+
+### Strong vs weak
+
+Weak answer: "There was a bug in a form I worked on that broke
+checkout for some users. QA should have caught it, and the old browser
+was the problem really. We fixed it eventually and it was fine."
+
+Why it fails: no owner, no timeline, no rollback, no systemic fix.
+Every sentence moves blame somewhere else, and "eventually" hides
+how long users were broken.
+
+Strong answer: "I shipped a form change that broke checkout for
+users on an older browser, and we found out from support, not from
+our monitoring. I owned it in the team channel within the hour,
+rolled the change back first, and then found the cause, which was a
+method the old browser did not support. The fix was a small polyfill
+plus a test on that browser, and I added a browser smoke check to the
+release checklist."
+
+Why it works: the speaker owns it in the first sentence, the rollback
+comes before the diagnosis, and the fix has two layers (the bug and
+the system that missed it). No blame anywhere.
+
+### Traps
+
+- Blame in any direction. Not QA, not the reviewer, not the tool,
+  not the user. If blame appears, the story fails.
+- Fix without rollback. Debugging while users are broken is the
+  wrong order. Roll back first.
+- Apology without systemic fix. "I learned to be careful" is not a
+  fix. A test, a checklist, or a monitor is.
+- A trivial mistake. "I had a typo once" dodges the question. Pick
+  a real incident with real users affected.
+
+### Follow-up prep
+
+- "How did the team react when you owned it?" Honest answer: fast
+  ownership usually earns trust, and the systemic fix is what people
+  remember.
+- "What do you do differently before shipping now?" Name the habit
+  from your result beat. Keep it identical to your story.
+- "Tell me about a time you caught someone else's mistake." Keep it
+  kind and private. The helped-teammate topic is good preparation.
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['beh-production-mistake-1']} />
+
+<InterviewQuestionBlock id="beh-production-mistake-1" />
+
+</TopicTab>
+
+</TopicTabs>

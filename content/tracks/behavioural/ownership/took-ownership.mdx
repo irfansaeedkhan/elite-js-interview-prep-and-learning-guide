@@ -1,0 +1,153 @@
+---
+title: Taking Ownership
+slug: took-ownership
+track: behavioural
+subCategory: ownership
+order: 1
+estimatedMinutes: 12
+keyTakeaways:
+  - Ownership means acting before someone assigns it
+  - Name the cost of doing nothing
+  - Get permission for the scope, then deliver without chasing
+  - Hand the result back as a shared asset, not a personal win
+masteryCriteria:
+  minQuestionsCorrect: 1
+  requireChallenge: false
+difficulty: medium
+interviewQuestions:
+  - id: beh-took-ownership-1
+    question: Tell me about a time you took ownership of a problem nobody asked you to fix
+    answer: Our error tracking was full of noise from one old form, and everyone had learned to ignore the whole channel. Nobody owned it, so I spent a Friday afternoon triaging the top fifty errors and found that forty of them came from one unhandled validation case. I fixed the validation, added a test for it, and wrote a short note on how to triage the channel. Error volume fell by about sixty percent, and the team started reading the channel again.
+    difficulty: medium
+    followUps:
+      - How do you decide what is worth fixing without being asked?
+      - Have you ever taken ownership of something that went wrong?
+      - How do you balance unplanned work with your assigned work?
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+"Tell me about a time you took ownership of a problem nobody asked
+you to fix" tests initiative with judgement. Every team has problems
+nobody owns. The question is whether you pick the right one and fix
+it without creating a mess.
+
+Interviewers score three things. Did you act without being told.
+Did you pick a problem worth the time, with a real cost attached.
+And did you finish it and hand it back, rather than starting
+something you abandoned.
+
+The trap is the hero story with no permission. Fixing something in
+secret, or rewriting a system nobody asked you to touch, is not
+ownership. It is a surprise. Good ownership is visible early and
+scoped small.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+Here is what a strong answer sounds like. This is an illustrative
+example, not your story. Swap in your own facts using the skeleton
+below.
+
+**Situation.** "Our error tracking channel had become noise. One old
+form generated most of the volume, and the team had learned to ignore
+the whole channel, which meant real errors hid in it too."
+
+**Task.** "Nobody owned the channel, and it was not on anyone's
+sprint. I decided to spend one Friday afternoon on it, with a clear
+limit: if I could not find a single dominant cause, I would stop."
+
+**Action.** "I triaged the top fifty errors and found forty came
+from one unhandled validation case. I fixed the validation, added a
+test for it, and wrote a short note on how to triage the channel so
+the next person did not need my head to do it."
+
+**Result.** "Error volume fell by about sixty percent, and the team
+started reading the channel again. Two weeks later a real payment
+error surfaced in the channel the same day instead of hiding for a
+week, which was the point of the whole exercise."
+
+The answer works because the scope is bounded (one afternoon, one
+cause), the permission is implicit in the small scope, and the result
+is shared (the team reads the channel again), not personal glory.
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+### STAR skeleton
+
+- **Situation.** "[Problem] was unowned, and the cost was [what it
+  hid / wasted / broke]." The cost justifies acting without orders.
+- **Task.** "I set myself [a bounded scope and a stop rule]." A stop
+  rule proves judgement. Without one, initiative looks like wandering.
+- **Action.** "I [diagnosed, fixed, tested, documented]." All four
+  matter. A fix without a test or a note is half ownership.
+- **Result.** "[Number or restored behaviour], and [what the team
+  does differently now]." The lasting change is the ownership proof.
+
+### Strong vs weak
+
+Weak answer: "I noticed our error tracking was noisy, so I decided
+to rewrite the whole error handling system. It took three weeks and
+my manager was surprised, but it was much cleaner afterwards."
+
+Why it fails: three weeks of unasked work, a surprise for the
+manager, and no cost analysis. That is not ownership. It is going
+rogue.
+
+Strong answer: "Our error tracking was full of noise from one old
+form, and everyone had learned to ignore the whole channel. Nobody
+owned it, so I spent a Friday afternoon triaging the top fifty errors
+and found that forty of them came from one unhandled validation case.
+I fixed the validation, added a test for it, and wrote a short note
+on how to triage the channel."
+
+Why it works: the scope is one afternoon, the diagnosis comes before
+the fix, and the note hands the work back to the team. Small,
+finished, shared.
+
+### Traps
+
+- The unscoped rewrite. If your story spans weeks without permission,
+  pick a smaller story.
+- No cost stated. "It bothered me" is not a reason to spend team
+  time. Name what the problem cost.
+- Fix without handover. If only you can maintain it afterwards, you
+  created a new unowned problem.
+- Taking credit for assigned work. The question asks for unasked
+  work. A sprint ticket does not count, even if you did it well.
+
+### Follow-up prep
+
+- "How do you decide what is worth fixing without being asked?"
+  Have a rule: real cost, small scope, and a stop rule. Say the rule.
+- "Have you ever taken ownership of something that went wrong?"
+  Honesty helps here. A small failed initiative, with the lesson,
+  beats a perfect record.
+- "How do you balance unplanned work with your assigned work?" Show
+  the boundary: bounded time, manager informed, sprint work still
+  delivered.
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['beh-took-ownership-1']} />
+
+<InterviewQuestionBlock id="beh-took-ownership-1" />
+
+</TopicTab>
+
+</TopicTabs>

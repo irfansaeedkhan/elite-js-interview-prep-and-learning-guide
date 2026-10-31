@@ -1,0 +1,158 @@
+---
+title: Improving a Process or Codebase
+slug: improved-process
+track: behavioural
+subCategory: leadership
+order: 3
+estimatedMinutes: 12
+keyTakeaways:
+  - Start from a cost the team already feels
+  - Make the improvement the easy path, not a rule
+  - Measure before and after with the same number
+  - Hand it over so it survives you leaving the team
+masteryCriteria:
+  minQuestionsCorrect: 1
+  requireChallenge: false
+difficulty: medium
+interviewQuestions:
+  - id: beh-improved-process-1
+    question: Tell me about a time you improved a process or codebase for your team
+    answer: Our team had no shared pattern for data fetching, so every screen handled loading and error states differently and reviews kept relitigating the same choices. I proposed one small hook with loading, error, and retry states, wrote it with two example screens, and added it to our review checklist as the default. Within a month four screens used it, review comments about fetching dropped sharply, and a new joiner shipped a data screen in his first week by copying the pattern.
+    difficulty: medium
+    followUps:
+      - How did you get the team to adopt it?
+      - What resistance did you meet?
+      - How do you decide when a process needs changing?
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+"Tell me about a time you improved a process or codebase for your
+team" tests whether you leave things better than you found them.
+Interviewers want an improvement the team actually adopted, not a
+refactor you enjoyed.
+
+They score three things. Did the improvement start from a cost the
+team felt, not a taste preference. Did others adopt it without being
+forced. And did it survive after you stopped pushing it.
+
+The trap is the personal refactor. "I cleaned up the codebase" with
+no adoption, no measurement, and no one else using it is a hobby,
+not an improvement. Adoption is the result.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+Here is what a strong answer sounds like. This is an illustrative
+example, not your story. Swap in your own facts using the skeleton
+below.
+
+**Situation.** "Our team had no shared pattern for data fetching. Every
+screen handled loading and error states differently, reviews kept
+relitigating the same choices, and new joiners copied whichever
+screen they opened first."
+
+**Task.** "I wanted one default pattern that made the right thing
+the easy thing, not a rule people had to remember."
+
+**Action.** "I built one small hook with loading, error, and retry
+states, and I converted two example screens to it so the team could
+see it working instead of reading a proposal. Then I added it to our
+review checklist as the default, which meant reviewers suggested it
+without me being in the room. I deliberately kept it small: three
+states, no extra features, so adopting it cost less than arguing
+about it."
+
+**Result.** "Within a month four screens used it, review comments
+about fetching dropped sharply, and a new joiner shipped a data
+screen in his first week by copying the pattern. The pattern is
+still the default, and I have not touched it in months, which is how
+I know it stuck."
+
+The answer works because adoption is the result, the mechanism is
+"make it the easy path," and survival without the author is stated
+explicitly. That last line is the proof most improvement stories
+forget.
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+### STAR skeleton
+
+- **Situation.** "[Cost the team felt]: [repeated argument / slow
+  onboarding / recurring bug class]." The cost must be shared, not
+  personal annoyance.
+- **Task.** "I wanted [a default that makes the right thing easy],
+  not a rule." Defaults beat rules because they survive without
+  enforcement.
+- **Action.** "I built [small thing], showed it on [example
+  screens], and made it the default via [checklist / template /
+  starter]." Example screens beat proposals. The checklist is how
+  adoption happens without you.
+- **Result.** "[Adoption number], [before and after with the same
+  measure], and [it survives without you]." Survival is the final
+  proof.
+
+### Strong vs weak
+
+Weak answer: "I noticed our codebase was messy, so I spent some time
+cleaning it up and refactoring the data fetching code. It was much
+cleaner afterwards and I felt good about it."
+
+Why it fails: no shared cost, no adoption, no measurement, no one
+else involved. It is a personal project, not a team improvement.
+
+Strong answer: "Our team had no shared pattern for data fetching, so
+every screen handled loading and error states differently and reviews
+kept relitigating the same choices. I proposed one small hook with
+loading, error, and retry states, wrote it with two example screens,
+and added it to our review checklist as the default. Within a month
+four screens used it."
+
+Why it works: the cost is shared (relitigated reviews), the artefact
+is small and shown working, adoption is counted (four screens), and
+the checklist makes adoption happen without the author.
+
+### Traps
+
+- Taste as cost. "It was messy" is not a cost. Repeated review
+  arguments, slow onboarding, and recurring bugs are.
+- No adoption number. If nobody used it, it did not improve anything.
+- The big rewrite. Small defaults get adopted. Big rewrites get
+  debated. Keep the improvement small.
+- Improvement that needs you. If it dies when you stop pushing, it
+  was never adopted. Say how it survives.
+
+### Follow-up prep
+
+- "How did you get the team to adopt it?" Example screens plus the
+  checklist default. Adoption by ease, not by mandate.
+- "What resistance did you meet?" Name one real objection and how
+  the small scope answered it. Smallness disarms most resistance.
+- "How do you decide when a process needs changing?" When a cost
+  repeats: the third time the same argument happens, or the second
+  new joiner hits the same wall.
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['beh-improved-process-1']} />
+
+<InterviewQuestionBlock id="beh-improved-process-1" />
+
+</TopicTab>
+
+</TopicTabs>

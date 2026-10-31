@@ -1,0 +1,156 @@
+---
+title: A Time You Failed
+slug: failure
+track: behavioural
+subCategory: growth
+order: 2
+estimatedMinutes: 15
+keyTakeaways:
+  - Pick a real failure with real consequences
+  - Own your part before explaining the context
+  - Show the lesson as a changed habit, not a moral
+  - Keep the failure story different from your mistake story
+masteryCriteria:
+  minQuestionsCorrect: 1
+  requireChallenge: false
+difficulty: hard
+interviewQuestions:
+  - id: beh-failure-1
+    question: Tell me about a time you failed
+    answer: I led a migration to a new form library that I chose mostly because I liked its API, and I did not check how it handled our edge cases. Two weeks in we found it could not do conditional validation the way our checkout needed, and we had to roll back. I told the team I had picked it on enthusiasm rather than evidence, and I wrote a short checklist for library choices that starts with our edge cases. The next migration used that checklist and shipped without a rollback.
+    difficulty: hard
+    followUps:
+      - What did that failure teach you about decisions?
+      - How do you handle failure now compared to then?
+      - Would you make the same choice again?
+---
+
+<TopicTabs>
+
+<TopicTab value="overview">
+
+<TopicDefinition>
+
+"Tell me about a time you failed" is different from the production
+mistake question. A mistake is an incident. A failure is a judgement
+call that turned out wrong, with consequences you cannot undo by
+rolling back.
+
+Interviewers score three things. Is the failure real, with a cost.
+Do you own your part before explaining the context. And did the
+lesson change a habit, not just a belief.
+
+The trap is the small failure. "I failed a test once" or "I missed a
+deadline by a day" dodges the question. Panels respect a real failure
+told honestly far more than a safe one told smoothly.
+
+</TopicDefinition>
+
+<TopicQuickStats />
+
+<KeyTakeaways />
+
+</TopicTab>
+
+<TopicTab value="examples">
+
+Here is what a strong answer sounds like. This is an illustrative
+example, not your story. Swap in your own facts using the skeleton
+below.
+
+**Situation.** "I led a migration to a new form library for our
+checkout. I chose it mostly because I liked its API and its docs
+looked clean."
+
+**Task.** "My job was to pick a library that handled our checkout
+edge cases, especially conditional validation across steps. I did not
+test those cases before committing the team to the migration."
+
+**Action.** "Two weeks in, we found the library could not do
+conditional validation the way our checkout needed. I told the team
+plainly that I had picked it on enthusiasm rather than evidence, and
+I led the rollback myself. Then I wrote a short checklist for
+library choices that starts with our edge cases and requires a
+prototype against the hardest case before adoption."
+
+**Result.** "The rollback cost us about two weeks. The checklist
+stayed, and the next migration used it and shipped without a
+rollback. What changed for me is small and specific: I no longer let
+myself recommend a tool I have not tested against our hardest case."
+
+The answer works because the failure is a judgement error, not bad
+luck, and the lesson is a checklist, not a moral. The cost is stated
+(two weeks), which is what makes the honesty believable.
+
+</TopicTab>
+
+<TopicTab value="indepth">
+
+### STAR skeleton
+
+- **Situation.** "I decided [judgement call], based on [reason that
+  turned out weak]." Name the weak reason honestly.
+- **Task.** "The decision needed [the evidence you skipped]." Say
+  what you skipped. That is the failure's mechanism.
+- **Action.** "When it failed, I [owned it plainly, led the
+  reversal, built the guardrail]." Ownership first, guardrail second.
+  The guardrail is a checklist, a prototype rule, or a review step.
+- **Result.** "[Cost stated plainly], and [the next time the
+  guardrail worked]." A later success with the guardrail proves the
+  lesson stuck.
+
+### Strong vs weak
+
+Weak answer: "I once failed to finish a feature on time because the
+requirements kept changing. It was frustrating, but I learned that
+communication is important and I try to communicate better now."
+
+Why it fails: the failure is blamed on changing requirements, the
+lesson is a moral ("communication is important"), and nothing changed
+visibly. There is no judgement error and no habit.
+
+Strong answer: "I led a migration to a new form library that I chose
+mostly because I liked its API, and I did not check how it handled
+our edge cases. Two weeks in we found it could not do conditional
+validation the way our checkout needed, and we had to roll back. I
+told the team I had picked it on enthusiasm rather than evidence,
+and I wrote a short checklist for library choices that starts with
+our edge cases."
+
+Why it works: the error is a judgement call, owned in one sentence,
+with a concrete cost and a concrete guardrail. The next migration
+using the checklist is the proof.
+
+### Traps
+
+- Blaming context. Requirements, timelines, and teammates are
+  context, not the failure. Your decision is the failure.
+- The moral lesson. "I learned humility" is not a lesson. A checklist
+  is.
+- The trivial failure. If nothing cost anything, it is not the story
+  for this question.
+- Reusing your production mistake story. The panel asks both
+  questions sometimes. Keep two different stories ready.
+
+### Follow-up prep
+
+- "What did that failure teach you about decisions?" Answer with the
+  guardrail, not a philosophy. "Prototype against the hardest case
+  first" is a decision rule.
+- "How do you handle failure now compared to then?" Show the
+  before and after as habits: enthusiasm first then, evidence first
+  now.
+- "Would you make the same choice again?" No, with the reason in one
+  sentence. Do not relitigate the whole story.
+
+</TopicTab>
+
+<TopicTab value="questions">
+
+<FlashcardDeck ids={['beh-failure-1']} />
+
+<InterviewQuestionBlock id="beh-failure-1" />
+
+</TopicTab>
+
+</TopicTabs>
