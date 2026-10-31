@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { topics, tracks } from '#site/content';
 import { TopicArticle } from '@/components/curriculum/topic-article';
+import { ActivitySection } from '@/components/progress/activity-section';
 import {
   buildTrackNav,
   getTopicByPath,
@@ -103,6 +104,7 @@ export default async function LearnTopicPage({
             </section>
           ))}
         </div>
+        <ActivitySection />
       </div>
     );
   }

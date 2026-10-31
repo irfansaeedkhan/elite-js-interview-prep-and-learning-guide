@@ -4,7 +4,6 @@ import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { BookOpen } from 'lucide-react';
 import { ResumeLearningPrompt } from '@/components/progress/resume-learning-prompt';
-import { ActivitySection } from '@/components/progress/activity-section';
 import { MainSidebar } from '@/components/navigation/main-sidebar';
 import { SubSidebar } from '@/components/navigation/sub-sidebar';
 import { LearnSidebarToolbar } from '@/components/navigation/learn-sidebar-toolbar';
@@ -86,7 +85,6 @@ export function LearnPlaceholder() {
           </div>
         </div>
       </div>
-      <ActivitySection />
     </div>
   );
 }
