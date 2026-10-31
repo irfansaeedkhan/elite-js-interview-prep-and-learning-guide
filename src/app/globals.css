@@ -210,3 +210,13 @@ html {
 .dark .sandpack-shell .sp-console .sp-syntax-static {
   color: #ffffff;
 }
+
+/* Sandpack console — plain output values are bare spans with NO syntax
+   token class (diagnosed live 2026-10-31: the "false" output is a
+   class-less span computing to black), so the token rules above cannot
+   reach them. Color the console itself; it inherits down to the output.
+   Scoped to dark theme only; light theme keeps its default dark text. */
+.dark .sandpack-shell .sp-console,
+.dark .sandpack-shell .sp-console .sp-console-item code {
+  color: #ffffff !important;
+}
