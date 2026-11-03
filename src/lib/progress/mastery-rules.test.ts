@@ -102,6 +102,48 @@ describe('mastery rules', () => {
   });
 });
 
+describe('no-challenge topics score QA alone', () => {
+  const noChallengeIndex: TopicIndexEntry[] = [
+    {
+      path: 'javascript/foundation/scope',
+      permalink: '/learn/javascript/foundation/scope',
+      slug: 'scope',
+      track: 'javascript',
+      subCategory: 'foundation',
+      categoryOrder: 2,
+      title: 'Scope',
+      order: 1,
+      status: 'published',
+      prerequisites: [],
+      masteryCriteria: { minQuestionsCorrect: 2 },
+    },
+  ];
+
+  it('scores an untouched topic at 0, not 50', () => {
+    expect(getTopicProgressPercent(noChallengeIndex, 'javascript/foundation/scope', {})).toBe(0);
+  });
+
+  it('scores half of QA known at 50 from QA alone', () => {
+    const progress: TopicProgressMap = {
+      'javascript/foundation/scope': {
+        visitedAt: '2026-01-01',
+        qaResults: { q1: 'know' },
+      },
+    };
+    expect(getTopicProgressPercent(noChallengeIndex, 'javascript/foundation/scope', progress)).toBe(50);
+  });
+
+  it('scores all QA known at 100', () => {
+    const progress: TopicProgressMap = {
+      'javascript/foundation/scope': {
+        visitedAt: '2026-01-01',
+        qaResults: { q1: 'know', q2: 'know' },
+      },
+    };
+    expect(getTopicProgressPercent(noChallengeIndex, 'javascript/foundation/scope', progress)).toBe(100);
+  });
+});
+
 describe('footer navigation follows sidebar order', () => {
   const navIndex: TopicIndexEntry[] = [
     {

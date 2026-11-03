@@ -95,7 +95,9 @@ describe('getTopicProgressPercent', () => {
         qaResults: { q1: 'know' },
       },
     };
-    expect(getTopicProgressPercent('javascript/foundation/hoisting', progress)).toBe(75);
+    // Hoisting has no challenge requirement, so QA alone decides: 1 of 2
+    // known is 50, not the old 75 that averaged in a default challenge 1.
+    expect(getTopicProgressPercent('javascript/foundation/hoisting', progress)).toBe(50);
   });
 });
 

@@ -89,7 +89,13 @@ export function getTopicProgressPercent(
   const { minQuestionsCorrect, requireChallenge } = topic.masteryCriteria;
   const knowCount = countKnowAnswers(path, progress);
   const qaRatio = Math.min(knowCount / Math.max(minQuestionsCorrect, 1), 1);
-  const challengeRatio = !requireChallenge || progress[path]?.challengePassed ? 1 : 0;
+  if (!requireChallenge) {
+    // No challenge component exists for this topic, so it must not
+    // contribute: averaging in a default 1 scored every untouched topic
+    // at 50%. QA alone decides the percent.
+    return Math.round(qaRatio * 100);
+  }
+  const challengeRatio = progress[path]?.challengePassed ? 1 : 0;
 
   return Math.round(((qaRatio + challengeRatio) / 2) * 100);
 }
