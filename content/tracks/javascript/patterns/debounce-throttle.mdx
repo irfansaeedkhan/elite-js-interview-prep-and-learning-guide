@@ -9,40 +9,48 @@ prerequisites:
   - closures
   - timers
 keyTakeaways:
-  - Core concepts for Debounce & Throttle interviews
-  - Know the definition and one concrete example
-  - Watch for common traps senior interviewers probe
-  - Tie answers back to real debugging experience
+  - Debounce collapses a burst of calls into one — it fires once, after the quiet period, with the latest arguments (search input, autosave)
+  - Throttle caps a function to at most one run per interval — updates keep arriving during the burst (scroll, mousemove, analytics)
+  - A leading-only throttle silently drops the last call of a burst — keep the latest arguments and flush them when the cooldown ends (trailing edge)
+  - The timer id lives in a closure — recreating the debounced function on every React render resets it, so the delay never completes
+  - Never debounce actions that must feel instant — clicks, add-to-cart, shortcuts; fix a slow handler instead of delaying it
 masteryCriteria:
   minQuestionsCorrect: 3
   requireChallenge: false
 difficulty: hard
 interviewQuestions:
   - id: deboun-1
-    question: What is Debounce & Throttle in JavaScript?
-    answer: Rate-limiting handlers for scroll, resize, and search.
+    question: "What is the difference between debounce and throttle?"
+    answer: "Debounce waits for a pause and then runs once — a search input that only fires after you stop typing. Throttle runs at a fixed rate while activity continues — a scroll handler that updates every 100ms. Same goal of fewer runs; debounce fires at the end, throttle fires steadily throughout."
     difficulty: easy
     followUps:
-      - When would you reach for this in production code?
-      - What breaks if you misuse it?
+      - "Which one would you use for an autosave, and why?"
+      - "What does the user experience if you pick the wrong one?"
   - id: deboun-2
-    question: What is a common interview trap around Debounce & Throttle?
-    answer: Interviewers often pair Debounce & Throttle with edge cases — state the rule, then walk through a short example.
+    question: "Write a debounce function from scratch."
+    answer: "The whole thing is a closure around a timer id. Each call clears the previous timer with clearTimeout and schedules a fresh setTimeout — so only the last call in a burst survives, and it runs with the latest arguments once the delay passes uninterrupted."
     difficulty: medium
     followUps:
-      - Can you show the fix in code?
+      - "How would you add a .cancel() method to the returned function?"
+      - "What changes if the first call should fire immediately instead?"
   - id: deboun-3
-    question: How does Debounce & Throttle relate to other JS concepts you know?
-    answer: It connects to topics earlier in this track — mention scope, types, async, or the DOM where relevant.
+    question: "What goes wrong with a naive throttle implementation?"
+    answer: "The basic flag version runs the first call and ignores everything until the cooldown ends — which silently drops the last call of the burst. In a scroll handler that's the final position; in infinite scroll it can mean the last trigger never fires. The fix is a trailing edge: remember the latest arguments and invoke them when the cooldown ends."
     difficulty: medium
     followUps:
-      - Which topic would you review first if you got this wrong?
+      - "When would you want leading edge, trailing edge, or both?"
   - id: deboun-4
-    question: How would you explain Debounce & Throttle to a junior developer?
-    answer: Use plain language, one analogy, and one line of code — avoid spec jargon until they ask.
-    difficulty: easy
+    question: "When would you choose NOT to use debounce or throttle?"
+    answer: "Never delay something that must feel instant — button clicks, add-to-cart, keyboard shortcuts. Debouncing a click erodes trust in the UI even if it's technically more efficient. If a click handler is slow, fix the handler; don't debounce the click. And don't stack both on one event source — pick one strategy per event."
+    difficulty: hard
     followUps:
-      - What follow-up question would you ask them to check understanding?
+      - "Your scroll handler still janks after throttling — what do you check next?"
+  - id: deboun-5
+    question: "Your React search fires an API call on every keystroke even though you debounced it. Why?"
+    answer: "You're creating a new debounced function on every render, so the closure's timer state resets each time and no call ever survives the delay. Create it once — useMemo or a ref — and call its .cancel() in the effect cleanup so no pending call fires after unmount."
+    difficulty: medium
+    followUps:
+      - "The results now lag one keystroke behind — stale closure or debounce bug?"
 ---
 
 <TopicTabs>
@@ -51,9 +59,11 @@ interviewQuestions:
 
 <TopicDefinition>
 
-Rate-limiting handlers for scroll, resize, and search.
+If someone asks what debounce and throttle are, I'd say they're both answers to the same problem: some events fire far more often than you can afford to handle — every keystroke, every scroll pixel. Debounce waits for a pause and then runs once. Throttle runs at most once per interval while the noise continues.
 
-In interviews, lead with a clear one-liner, then add one example. Senior rounds go deeper on edge cases and trade-offs — have a short code snippet ready.
+What interviewers actually test is whether you can write one from scratch, because the whole implementation is three ideas: a **closure** holding the timer id, `clearTimeout` to cancel the pending call, and `setTimeout` to schedule the next one. Debounce clears and reschedules on every call, so only the last call in a burst survives. Throttle runs the first call and ignores everything until the interval passes.
+
+Senior rounds go after the edges: is your throttle leading, trailing, or both — and does it silently drop the last call of a burst? And in React: why does recreating the debounced function on every render mean the delay never completes? Those two questions separate "read the docs" from "debugged this in production."
 
 </TopicDefinition>
 
@@ -65,38 +75,113 @@ In interviews, lead with a clear one-liner, then add one example. Senior rounds 
 
 <TopicTab value="examples">
 
-<CodeExample title="Quick example" language="javascript">
-{`// Debounce & Throttle — add your own variation in the playground
-console.log('Review the in-depth tab and Q&A for this topic');`}
+<CodeExample title="Debounce from scratch" language="javascript">
+{`function debounce(fn, wait) {
+  let timer = null;                       // lives in the closure — one timer per debounced fn
+  function debounced(...args) {
+    clearTimeout(timer);                  // cancel the pending call...
+    timer = setTimeout(() => fn.apply(this, args), wait); // ...schedule a fresh one
+  }
+  debounced.cancel = () => clearTimeout(timer);
+  return debounced;
+}
+
+const search = debounce((query) => fetchResults(query), 300);
+// user types "r", "re", "rea", "reac", "react" fast:
+// only "react" is sent, 300ms after the last keystroke`}
 </CodeExample>
 
-<Callout type="tip">
-Re-read the key takeaways, then try explaining Debounce & Throttle out loud in under 30 seconds.
-</Callout>
+<CodeExample title="Throttle from scratch (leading + trailing)" language="javascript">
+{`function throttle(fn, wait) {
+  let last = 0;
+  let timer = null;
+  let lastArgs = null;
+
+  return function (...args) {
+    const now = Date.now();
+    const remaining = wait - (now - last);
+    lastArgs = args;                      // always keep the freshest arguments
+
+    if (remaining <= 0) {
+      last = now;
+      fn.apply(this, args);               // leading edge — run now
+    } else if (timer === null) {
+      timer = setTimeout(() => {          // trailing edge — run the latest once
+        timer = null;
+        last = Date.now();
+        fn.apply(this, lastArgs);
+      }, remaining);
+    }
+  };
+}
+
+const track = throttle((pos) => sendAnalytics(pos), 1000);
+// scrolls continuously for 5s: fires at t=0, then every 1s,
+// plus one final call with the last position — nothing lost`}
+</CodeExample>
+
+<CodeExample title="Leading-edge debounce for instant actions" language="javascript">
+{`function debounce(fn, wait, { leading = false } = {}) {
+  let timer = null;
+  return function (...args) {
+    const callNow = leading && timer === null;
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      timer = null;
+      if (!leading) fn.apply(this, args);
+    }, wait);
+    if (callNow) fn.apply(this, args);    // first call of the burst runs now
+  };
+}
+
+// submit button: act instantly, swallow double-clicks
+form.addEventListener('submit', debounce(handleSubmit, 500, { leading: true }));
+// "a" submits, "b"/"c" within 500ms are ignored,
+// a submit after the quiet period works again`}
+</CodeExample>
 
 </TopicTab>
 
 <TopicTab value="indepth">
 
-### What to focus on
+<Callout type="gotcha">
+The naive throttle **drops the trailing call**. The flag version — run once, set `inThrottle = true`, reset it after the interval — fires the first call of a burst and silently discards the rest. That means the *final* scroll position or the *final* form state never gets processed. If the last value matters, you need a trailing edge: stash the latest arguments and flush them when the cooldown ends (like the implementation in the examples tab).
+</Callout>
 
-- Definition and mental model
-- One gotcha interviewers love
-- How it connects to prerequisites in this track
+<Callout type="tip">
+In React, **create the debounced function once**. A new `debounce(fn, 300)` on every render resets the closure's timer state, so the delay never completes and every keystroke fires. Wrap it in `useMemo` (or store it in a ref), and call `.cancel()` in the effect cleanup so a pending call can't fire after unmount.
+</Callout>
 
-### Senior follow-ups
+<Callout type="tip">
+Debounce and throttle control *how often* a function runs — they never make a slow function fast. If a click handler janks, profile the handler; don't debounce the click. And never stack both on the same event source — pick one strategy per event and be deliberate about the delay (300ms feels instant on search; past ~500ms starts feeling sluggish).
+</Callout>
 
-Be ready to compare alternatives and describe when **not** to use this feature.
+<CodeExample title="Which one for which job" language="javascript">
+{`// ONLY the finished value matters → debounce
+input.addEventListener('input', debounce((e) => searchAPI(e.target.value), 300));
+// autosave after the user pauses
+editor.addEventListener('input', debounce(saveDraft, 1000));
+
+// UPDATES NEEDED DURING the action → throttle
+window.addEventListener('scroll', throttle(updateProgressBar, 100));
+// steady analytics flow, not one event per pixel
+window.addEventListener('mousemove', throttle(sendHeartbeat, 2000));
+
+// MUST FEEL INSTANT, EVERY TIME → neither
+button.addEventListener('click', addToCart); // don't debounce this`}
+</CodeExample>
 
 </TopicTab>
 
 <TopicTab value="questions">
 
+<FlashcardDeck ids={['deboun-1', 'deboun-2', 'deboun-3', 'deboun-4', 'deboun-5']} />
 
 <InterviewQuestionBlock id="deboun-1" />
 <InterviewQuestionBlock id="deboun-2" />
 <InterviewQuestionBlock id="deboun-3" />
 <InterviewQuestionBlock id="deboun-4" />
+<InterviewQuestionBlock id="deboun-5" />
 
 </TopicTab>
 
@@ -104,37 +189,49 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicPlayground>
 
-<CodingChallenge
-  title="Build debounce and throttle"
-  prompt="Implement debounce(fn, wait) and throttle(fn, wait). Debounce waits until calls stop for wait ms, then runs once with the latest arguments. Throttle runs immediately on the first call, then ignores further calls until wait ms pass. The sandbox cannot wait for timers inside tests, so the automated tests check only the synchronous guarantees: debounce must not call fn right away, and throttle must call fn exactly once for a burst of synchronous calls. The delayed behavior is shown by the console demo at the bottom of the starter code: run it and check the output lines. Correct demo output is debounced calls 1 and throttled calls 1."
-  hint="Debounce clears the previous timer on every call and sets a new one. Throttle remembers the last run time and only runs again once wait ms have passed."
-  starterCode={`function debounce(fn, wait) {
-  // DEBOUNCE
+<OutputPrediction
+  title="Debounce keeps only the last call"
+  expected="3"
+  hint="Which call's timer survives the burst?"
+  explanation="Each call clears the previous timer, so only the last call's timer ever fires — and it carries the latest arguments. That's the defining behavior of trailing-edge debounce: a burst of calls collapses into one."
+  code={`function debounce(fn, wait) {
+  let timer = null;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), wait);
+  };
 }
 
-function throttle(fn, wait) {
-  // THROTTLE
+const results = [];
+const save = debounce((x) => results.push(x), 50);
+save(1);
+save(2);
+save(3);
+setTimeout(() => console.log(results.join(',')), 150);`}
+/>
+
+<OutputPrediction
+  title="Naive throttle drops the trailing call"
+  expected="1"
+  hint="What happens to calls 2 and 3?"
+  explanation="The leading-only throttle runs the first call and ignores everything until the cooldown ends — calls 2 and 3 vanish silently, and nothing fires when the interval expires. A trailing edge would flush the latest arguments at the end instead of dropping them."
+  code={`function throttle(fn, limit) {
+  let inThrottle = false;
+  return (...args) => {
+    if (!inThrottle) {
+      fn(...args);
+      inThrottle = true;
+      setTimeout(() => { inThrottle = false; }, limit);
+    }
+  };
 }
 
-let debouncedCalls = 0;
-let throttledCalls = 0;
-const debounced = debounce(() => { debouncedCalls += 1; }, 30);
-const throttled = throttle(() => { throttledCalls += 1; }, 30);
-debounced();
-debounced();
-debounced();
-throttled();
-throttled();
-throttled();
-setTimeout(() => {
-  console.log('debounced calls after quiet period: ' + debouncedCalls);
-  console.log('throttled calls after quiet period: ' + throttledCalls);
-}, 100);`}
-  tests={[
-    { label: 'debounce does not call right away', code: `if (debouncedCalls !== 0) throw new Error('expected 0 calls so far, got ' + debouncedCalls);` },
-    { label: 'throttle calls once for a sync burst', code: `if (throttledCalls !== 1) throw new Error('expected 1 call so far, got ' + throttledCalls);` },
-    { label: 'both return functions', code: `if (typeof debounced !== 'function') throw new Error('debounce must return a function'); if (typeof throttled !== 'function') throw new Error('throttle must return a function');` },
-  ]}
+const results = [];
+const save = throttle((x) => results.push(x), 100);
+save(1);
+save(2);
+save(3);
+setTimeout(() => console.log(results.join(',')), 250);`}
 />
 
 </TopicPlayground>

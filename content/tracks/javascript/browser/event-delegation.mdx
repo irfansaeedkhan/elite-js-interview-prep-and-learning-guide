@@ -8,40 +8,36 @@ estimatedMinutes: 25
 prerequisites:
   - dom-events
 keyTakeaways:
-  - Core concepts for Event Delegation interviews
-  - Know the definition and one concrete example
-  - Watch for common traps senior interviewers probe
-  - Tie answers back to real debugging experience
+  - Event delegation is one listener on a stable parent handling events for many children, including children added later
+  - It works because most events bubble from the target up through its ancestors
+  - Always resolve the real element with event.target.closest(), never by checking event.target directly
+  - Guard with container.contains() so a closest() match from outside the container is ignored
+  - Not every event bubbles, so focus and blur need focusin and focusout, and mouseenter needs mouseover, mouseout, or a capture-phase listener instead
 masteryCriteria:
-  minQuestionsCorrect: 3
+  minQuestionsCorrect: 4
   requireChallenge: false
 difficulty: medium
 interviewQuestions:
   - id: eventd-1
-    question: What is Event Delegation in JavaScript?
-    answer: One listener on a parent for many dynamic children.
+    question: What is event delegation in JavaScript?
+    answer: "I'd say it's putting one listener on a parent instead of one on every child. When a child is clicked, the event bubbles up to the parent, and the parent's handler figures out which child was actually clicked. It covers children that get added later too, because the parent was already listening."
     difficulty: easy
-    followUps:
-      - When would you reach for this in production code?
-      - What breaks if you misuse it?
   - id: eventd-2
-    question: What is a common interview trap around Event Delegation?
-    answer: Interviewers often pair Event Delegation with edge cases — state the rule, then walk through a short example.
+    question: What makes event delegation possible?
+    answer: "Bubbling. A click starts at the element you clicked, then travels up through each ancestor. So a listener on the list hears clicks from every item inside it. Inside the handler, event.target is where the click started, while event.currentTarget is the element the listener is attached to. Mixing those two up is the classic mistake."
     difficulty: medium
-    followUps:
-      - Can you show the fix in code?
   - id: eventd-3
-    question: How does Event Delegation relate to other JS concepts you know?
-    answer: It connects to topics earlier in this track — mention scope, types, async, or the DOM where relevant.
+    question: Why is checking event.target.tagName a trap?
+    answer: "Because the click often lands on something nested inside the button, not the button itself. Click the trash icon inside a delete button and event.target is the icon or the SVG path, so a tagName check misses it entirely. The fix is event.target.closest('button'), which walks up from wherever the click landed until it finds the button."
     difficulty: medium
-    followUps:
-      - Which topic would you review first if you got this wrong?
   - id: eventd-4
-    question: How would you explain Event Delegation to a junior developer?
-    answer: Use plain language, one analogy, and one line of code — avoid spec jargon until they ask.
-    difficulty: easy
-    followUps:
-      - What follow-up question would you ask them to check understanding?
+    question: How does event delegation handle elements added after the page loads?
+    answer: "It handles them for free. The listener lives on the parent, which already exists, so a row added five minutes later still bubbles its clicks up to that same listener. The alternative is re-attaching a listener every time you insert an element, which is easy to forget and leaks listeners when elements are removed."
+    difficulty: medium
+  - id: eventd-5
+    question: When does event delegation not work?
+    answer: "When the event does not bubble. focus, blur, mouseenter, and mouseleave do not bubble, so a parent listener never hears them. For focus and blur, delegate with the bubbling equivalents focusin and focusout instead. Or listen in the capture phase with addEventListener('focus', handler, true), since capturing still runs for non-bubbling events."
+    difficulty: hard
 ---
 
 <TopicTabs>
@@ -50,9 +46,11 @@ interviewQuestions:
 
 <TopicDefinition>
 
-One listener on a parent for many dynamic children.
+If someone asks me what event delegation is, I'd say it's one listener on a parent doing the job of a hundred listeners on children. Instead of attaching a handler to every row, button, or cell, you attach a single handler to their shared parent and let the event come to you.
 
-In interviews, lead with a clear one-liner, then add one example. Senior rounds go deeper on edge cases and trade-offs — have a short code snippet ready.
+Interviewers care because it tests whether you understand bubbling, not just addEventListener. The handler has to work out which child was actually clicked, and that is where people slip up. The click rarely lands exactly on the element you expect. It lands on an icon, a span, or a nested SVG inside it.
+
+The senior nuance is knowing the limits. Delegation only works for events that bubble, so focus and blur need a different approach. And a delegated handler that is too broad, say one giant listener on document catching everything, turns into a guessing game. Delegate to the nearest stable parent, and check that the match actually belongs to it.
 
 </TopicDefinition>
 
@@ -64,38 +62,89 @@ In interviews, lead with a clear one-liner, then add one example. Senior rounds 
 
 <TopicTab value="examples">
 
-<CodeExample title="Quick example" language="javascript">
-{`// Event Delegation — add your own variation in the playground
-console.log('Review the in-depth tab and Q&A for this topic');`}
+<CodeExample title="One listener for a whole list" language="javascript">
+{`const list = document.querySelector('#todo-list');
+
+list.addEventListener('click', (event) => {
+  const button = event.target.closest('button[data-action]');
+  if (!button || !list.contains(button)) return;
+
+  if (button.dataset.action === 'delete') {
+    button.closest('li').remove();
+  }
+  if (button.dataset.action === 'done') {
+    button.closest('li').classList.toggle('done');
+  }
+});`}
+</CodeExample>
+
+<CodeExample title="The nested-icon trap" language="javascript">
+{`// Broken: clicking the icon inside the button misses the check.
+// event.target is the <svg>, not the <button>.
+list.addEventListener('click', (event) => {
+  if (event.target.tagName === 'BUTTON') {
+    console.log('delete');
+  }
+});
+
+// Fixed: closest() walks up from wherever the click landed.
+list.addEventListener('click', (event) => {
+  const button = event.target.closest('button[data-action]');
+  if (button) {
+    console.log(button.dataset.action);
+  }
+});`}
+</CodeExample>
+
+<CodeExample title="Dynamically added items just work" language="javascript">
+{`// The listener is attached once, before any of these rows exist.
+const list = document.querySelector('#todo-list');
+list.addEventListener('click', (event) => {
+  const item = event.target.closest('li');
+  if (item && list.contains(item)) {
+    console.log('clicked:', item.textContent);
+  }
+});
+
+// No re-binding needed. This row is covered the moment it is added.
+const row = document.createElement('li');
+row.textContent = 'Added later, still handled';
+list.append(row);`}
 </CodeExample>
 
 <Callout type="tip">
-Re-read the key takeaways, then try explaining Event Delegation out loud in under 30 seconds.
+Say the three steps out loud: one listener on the parent, closest() to find the real element, contains() to prove it belongs to this container.
 </Callout>
 
 </TopicTab>
 
 <TopicTab value="indepth">
 
-### What to focus on
+The algorithm is three steps, and interviewers want to hear all three. First, attach one listener to a stable parent that exists when the page loads. Second, in the handler, use `event.target.closest(selector)` to find the child you care about, starting from wherever the click actually landed. Third, confirm the match belongs to your container with `container.contains(match)` and bail out early if it does not.
 
-- Definition and mental model
-- One gotcha interviewers love
-- How it connects to prerequisites in this track
+The `contains()` check matters because `closest()` walks up past your container. If your list is nested inside another list, or a click bubbles from a widget you did not build, `closest()` can return a button that is not yours. The guard is one line and it is the difference between a correct answer and a nearly correct one.
 
-### Senior follow-ups
+Two more things senior rounds probe. One, `stopPropagation()` in a child handler silences every delegated parent above it, so a child that stops propagation breaks delegation silently. Two, delegation is not automatically faster. For a handful of static buttons, direct listeners are simpler and clearer. Delegation earns its keep with many similar children, or children that come and go.
 
-Be ready to compare alternatives and describe when **not** to use this feature.
+<Callout type="interview">
+Lead with the mechanism, not the slogan: "Clicks bubble, so the parent hears them. closest() finds the real button, contains() proves it is mine." Then name the trap: a raw event.target check breaks on nested icons.
+</Callout>
+
+<Callout type="gotcha">
+Non-bubbling events never reach a delegated parent. focus and blur need focusin and focusout, and mouseenter and mouseleave have bubbling cousins mouseover and mouseout, which also fire when moving between children, so direct listeners or a capture-phase listener are usually cleaner.
+</Callout>
 
 </TopicTab>
 
 <TopicTab value="questions">
 
+<FlashcardDeck ids={['eventd-1', 'eventd-2', 'eventd-3', 'eventd-4', 'eventd-5']} />
 
 <InterviewQuestionBlock id="eventd-1" />
 <InterviewQuestionBlock id="eventd-2" />
 <InterviewQuestionBlock id="eventd-3" />
 <InterviewQuestionBlock id="eventd-4" />
+<InterviewQuestionBlock id="eventd-5" />
 
 </TopicTab>
 
@@ -104,40 +153,56 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 <TopicPlayground>
 
 <CodingChallenge
-  title="Delegate clicks from a parent to its buttons"
-  prompt="The sandbox has no real DOM, so this exercise runs against a small node tree with the same semantics as the real thing: nodes have a tag and children, click() dispatches an event that bubbles from the clicked node up to the root, and each handler receives an event with target (where the click started) and currentTarget (the node handling it now). Write delegate(parent, tag, handler) so it attaches ONE listener to the parent and calls handler with the matching node only when the click started on, or inside, an element of that tag. Clicks elsewhere must not call it."
-  hint="Listen once on the parent. From event.target, walk up through parents until you find the tag or reach the parent itself. A click on a span inside a button still counts as a button click."
-  starterCode={`function makeNode(tag, children) {
+  title="Write a delegated click handler"
+  prompt="Finish handleClick so one listener on the list handles every button. Return the button's action string, or null when the click is not on one of this list's action buttons. The tests hand you nodes that behave like real DOM elements for closest() and contains()."
+  hint="Use event.target.closest('button[data-action]'), then check list.contains() before trusting the match."
+  starterCode={`// Provided: a tiny node tree that behaves like real DOM nodes for
+// closest('button[data-action]') and contains(). In real code these
+// would be actual elements; the API you use is identical.
+function makeNode(tag, action, parent) {
   const node = {
-    tag,
-    parent: null,
-    listeners: [],
-    addEventListener(type, fn) { if (type === 'click') node.listeners.push(fn); },
-    click() {
-      let current = node;
-      const event = { target: node, currentTarget: null };
+    tagName: tag,
+    dataset: action === undefined ? {} : { action },
+    parent,
+    closest() {
+      let current = this;
       while (current) {
-        event.currentTarget = current;
-        current.listeners.forEach((fn) => fn(event));
+        if (current.tagName === 'BUTTON' && current.dataset.action !== undefined) {
+          return current;
+        }
         current = current.parent;
       }
+      return null;
+    },
+    contains(other) {
+      let current = other;
+      while (current) {
+        if (current === this) return true;
+        current = current.parent;
+      }
+      return false;
     },
   };
-  (children || []).forEach((child) => { child.parent = node; });
   return node;
 }
 
-const spanInButton = makeNode('span', []);
-const button = makeNode('button', [spanInButton]);
-const div = makeNode('div', []);
-const root = makeNode('div', [button, div]);
-let handled = [];
-// your code here: define delegate, then delegate(root, 'button', (node) => handled.push(node))`}
+const list = makeNode('UL');
+const deleteBtn = makeNode('BUTTON', 'delete', list);
+const editBtn = makeNode('BUTTON', 'edit', list);
+const editIcon = makeNode('SPAN', undefined, editBtn);
+const plainBtn = makeNode('BUTTON', undefined, list);
+const otherList = makeNode('UL');
+const outsideBtn = makeNode('BUTTON', 'share', otherList);
+
+function handleClick(event) {
+  // your code here
+}`}
   tests={[
-    { label: 'click on a button calls the handler with it', code: `button.click(); if (handled.length !== 1 || handled[0] !== button) throw new Error('expected handler called once with the button');` },
-    { label: 'click on a span inside a button still counts', code: `spanInButton.click(); if (handled.length !== 2 || handled[1] !== button) throw new Error('expected handler called with the button for the inner span');` },
-    { label: 'click on a plain div does not call', code: `div.click(); if (handled.length !== 2) throw new Error('expected still 2 handled clicks, got ' + handled.length);` },
-    { label: 'only one listener sits on the parent', code: `if (root.listeners.length !== 1) throw new Error('expected 1 listener on the parent, got ' + root.listeners.length);` },
+    { label: 'click directly on a button returns its action', code: `if (handleClick({ target: deleteBtn }) !== 'delete') throw new Error('expected delete');` },
+    { label: 'click on an icon inside a button resolves to the button', code: `if (handleClick({ target: editIcon }) !== 'edit') throw new Error('expected edit');` },
+    { label: 'click on the list background returns null', code: `if (handleClick({ target: list }) !== null) throw new Error('expected null for a background click');` },
+    { label: 'button from another list is ignored', code: `if (handleClick({ target: outsideBtn }) !== null) throw new Error('expected null for a button outside this list');` },
+    { label: 'button without an action is ignored', code: `if (handleClick({ target: plainBtn }) !== null) throw new Error('expected null for a button with no action');` },
   ]}
 />
 

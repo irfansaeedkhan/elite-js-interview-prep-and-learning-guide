@@ -6,31 +6,46 @@ subCategory: data-types
 order: 3
 estimatedMinutes: 30
 keyTakeaways:
-  - Objects store keyed properties; keys are coerced to strings
-  - Reference equality means two literals are never === unless same reference
-  - Shallow copy spreads one level only
-  - Optional chaining and nullish coalescing prevent common access errors
+  - An object variable holds a reference, not the object — copying the variable copies the pointer
+  - Property keys are strings (or Symbols); numbers and other values coerce to strings, so key 1 and key '1' are the same key
+  - Spread and Object.assign clone one level only — nested objects stay shared
+  - Object.freeze is also shallow — it never deep-freezes nested objects
+  - ?? falls back on null/undefined only; || falls back on any falsy value
 masteryCriteria:
   minQuestionsCorrect: 3
   requireChallenge: false
 difficulty: medium
 interviewQuestions:
   - id: obj-1
-    question: How do you clone an object shallowly?
-    answer: Object.assign({}, obj) or the spread operator {...obj}. Nested objects are still shared references.
+    question: How do you clone an object?
+    answer: "For a shallow clone, {...obj} or Object.assign({}, obj). Both copy one level — nested objects are still shared references. For a real deep clone, structuredClone(obj) is the modern answer, though it throws on functions."
     difficulty: easy
+    followUps:
+      - Spread is shallow — what breaks if the object has a nested array?
   - id: obj-2
     question: What does Object.is do differently from ===?
-    answer: Object.is treats +0 and -0 as different and NaN as equal to NaN.
+    answer: "Two differences: Object.is treats NaN as equal to NaN, and it treats +0 and -0 as different. So Object.is(NaN, NaN) is true while NaN === NaN is false — that asymmetry is the whole reason Object.is exists."
     difficulty: hard
+    followUps:
+      - When would you actually reach for Object.is in real code?
   - id: obj-3
     question: Are object property keys always strings?
-    answer: Yes. Symbols can also be keys. Other types are coerced to strings (except Symbol).
+    answer: "Almost — keys are strings or Symbols. Everything else gets coerced: obj[1] and obj['1'] are the same key. And objects used as keys collapse too, because {[someObj]: 'x'} becomes key '[object Object]'."
     difficulty: medium
+    followUps:
+      - "What does Object.keys({ b: 1, 10: 2, a: 3 }) return, and why?"
   - id: obj-4
     question: What is the difference between ?? and ||?
-    answer: ?? only falls back on null or undefined. || falls back on any falsy value including 0 and ''.
+    answer: "?? only falls back on null or undefined. || falls back on any falsy value — so 0 ?? 'x' gives you 0, but 0 || 'x' gives you 'x'. That's why ?? is the safe default for things like timeouts and counts."
     difficulty: medium
+    followUps:
+      - Why can't you mix ?? with || in one expression without parentheses?
+  - id: obj-5
+    question: "Why does Object.keys({ b: 1, 10: 2, a: 3 }) return integer keys first?"
+    answer: "JavaScript enumerates integer-like keys first, in ascending numeric order, then string keys in insertion order. So you get ['10', 'b', 'a']. Interviewers use this to catch people who assume insertion order always holds."
+    difficulty: hard
+    followUps:
+      - How would you avoid this if you needed strict insertion order for numeric ids?
 ---
 
 <TopicTabs>
@@ -39,9 +54,11 @@ interviewQuestions:
 
 <TopicDefinition>
 
-An **object** is a collection of properties — keys mapped to values. Arrays and functions are objects too, but plain objects `{}` are the workhorse for structured data.
+If someone asks what an object is in JavaScript, I'd say it's a bag of key-value pairs — `{}` — the structure behind most data you'll touch. Arrays, functions, even classes are objects with extras.
 
-Objects are **reference types**: variables hold pointers, not the object itself.
+What interviewers actually probe is the **reference model**: a variable doesn't hold the object, it holds a pointer to it. So `const b = a` doesn't copy anything — both names point at the same bag, and mutating through one name shows up through the other. That's the setup for every clone question.
+
+In senior rounds they go one level deeper: keys coerce to strings, integer-like keys enumerate out of order, and `{...obj}` plus `Object.freeze` are both shallow. Each of those is a trap disguised as a follow-up.
 
 </TopicDefinition>
 
@@ -55,45 +72,80 @@ Objects are **reference types**: variables hold pointers, not the object itself.
 
 <CodeExample title="Reference vs value" language="javascript">
 {`const a = { count: 1 };
-const b = a;
+const b = a;          // copies the pointer, not the object
 b.count = 2;
 console.log(a.count); // 2 — same object
 
 const c = { ...a };
 c.count = 99;
-console.log(a.count); // 2 — shallow copy`}
+console.log(a.count); // 2 — shallow copy of the top level`}
+</CodeExample>
+
+<CodeExample title="Key coercion trap" language="javascript">
+{`const o = {};
+o[1] = 'one';         // key becomes the string '1'
+o['1'] = 'ONE';       // same key — overwrites!
+console.log(o[1]);    // 'ONE'
+
+const key = { toString: () => 'k' };
+const obj = { [key]: 'value' };
+console.log(obj.k);   // 'value' — computed key was coerced too`}
+</CodeExample>
+
+<CodeExample title="Shallow clone and shallow freeze" language="javascript">
+{`const user = { name: 'Ada', profile: { level: 1 } };
+const copy = { ...user };
+copy.profile.level = 99;
+console.log(user.profile.level); // 99 — nested object is shared
+
+const frozen = Object.freeze({ ...user });
+frozen.name = 'Grace';            // silently ignored (strict mode throws)
+frozen.profile.level = 1;        // works — freeze is shallow too`}
 </CodeExample>
 
 <CodeExample title="Optional chaining and nullish coalescing" language="javascript">
-{`const user = { profile: { name: 'Ada' } };
-console.log(user?.profile?.name);     // Ada
-console.log(user?.settings?.theme);   // undefined
-console.log(user?.settings?.theme ?? 'dark'); // dark`}
+{`const user = { profile: { name: 'Ada' }, retries: 0 };
+console.log(user?.profile?.name);            // 'Ada'
+console.log(user?.settings?.theme ?? 'dark');// 'dark' — missing, so fallback
+console.log(user.retries ?? 3);              // 0 — ?? keeps falsy-but-valid values
+console.log(user.retries || 3);              // 3 — || would swallow the 0`}
 </CodeExample>
 
 </TopicTab>
 
 <TopicTab value="indepth">
 
-<Callout type="tip">
-Prefer `const` for object bindings — you cannot reassign the variable, but you **can** mutate properties.
+<Callout type="gotcha">
+`obj.__proto__ = {...}` doesn't add a key — it **changes the prototype**. That's the prototype-pollution trap. For a safe dictionary with no inherited keys, use `Object.create(null)` or a `Map`.
 </Callout>
 
-### Common patterns
+<Callout type="tip">
+`structuredClone(obj)` is the modern deep clone — it handles Dates, RegExps, Maps, and circular references. But it throws on functions, so don't use it on objects with methods.
+</Callout>
 
-- `Object.keys(obj)` — own enumerable keys
-- `Object.entries(obj)` — `[key, value]` pairs
-- `structuredClone(obj)` — deep clone (modern environments)
+<CodeExample title="Enumeration order" language="javascript">
+{`console.log(Object.keys({ b: 1, 10: 2, a: 3 }));
+// ['10', 'b', 'a'] — integer-like keys first, ascending,
+// then string keys in insertion order`}</CodeExample>
+
+<CodeExample title="in vs hasOwnProperty" language="javascript">
+{`const o = { name: 'Ada' };
+console.log('name' in o);                    // true — own key
+console.log('toString' in o);                // true — inherited, still counts
+console.log(o.hasOwnProperty('toString'));   // false — own keys only`}
+</CodeExample>
 
 </TopicTab>
 
 <TopicTab value="questions">
 
+<FlashcardDeck ids={['obj-1', 'obj-2', 'obj-3', 'obj-4', 'obj-5']} />
 
 <InterviewQuestionBlock id="obj-1" />
 <InterviewQuestionBlock id="obj-2" />
 <InterviewQuestionBlock id="obj-3" />
 <InterviewQuestionBlock id="obj-4" />
+<InterviewQuestionBlock id="obj-5" />
 
 </TopicTab>
 
@@ -101,9 +153,31 @@ Prefer `const` for object bindings — you cannot reassign the variable, but you
 
 <TopicPlayground>
 
+<OutputPrediction
+  title="Coerced key collision"
+  expected="1"
+  hint="What type are object keys, really?"
+  explanation="o[1] and o['1'] are the same key — non-string keys coerce to strings, so the second assignment overwrites the first and there's only one key."
+  code={`const o = {};
+o[1] = 'one';
+o['1'] = 'ONE';
+console.log(Object.keys(o).length);`}
+/>
+
+<OutputPrediction
+  title="Frozen but not really"
+  expected="2"
+  hint="How deep does Object.freeze go?"
+  explanation="Object.freeze is shallow: it locks the top-level property bindings, but profile still points to the same mutable nested object."
+  code={`const a = { profile: { level: 1 } };
+const b = Object.freeze({ ...a });
+b.profile.level = 2;
+console.log(a.profile.level);`}
+/>
+
 <CodingChallenge
   title="Shallow clone without mutating the original"
-  prompt="Implement cloneUser so nested profile is not shared — the spread alone is not enough for this test."
+  prompt="Implement cloneUser so the nested profile is not shared with the original. A bare spread passes the first test but fails the second — fix it."
   starterCode={`function cloneUser(user) {
   // fix the clone
   return { ...user };
@@ -113,8 +187,9 @@ const original = { name: 'Ada', profile: { level: 1 } };
 const copy = cloneUser(original);
 copy.profile.level = 99;`}
   tests={[
-    { label: 'copy name matches', code: "console.assert(copy.name === 'Ada');" },
-    { label: 'original level unchanged', code: 'console.assert(original.profile.level === 1);' },
+    { label: 'copy name matches', code: `if (copy.name !== 'Ada') throw new Error('expected name Ada, got ' + copy.name);` },
+    { label: 'original level unchanged', code: `if (original.profile.level !== 1) throw new Error('original was mutated: level is ' + original.profile.level);` },
+    { label: 'copy level is 99', code: `if (copy.profile.level !== 99) throw new Error('expected copy level 99, got ' + copy.profile.level);` },
   ]}
   hint="Spread is shallow. Clone profile with its own object: { ...user, profile: { ...user.profile } }"
 />

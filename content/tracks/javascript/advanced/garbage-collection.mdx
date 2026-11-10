@@ -8,40 +8,45 @@ estimatedMinutes: 35
 prerequisites:
   - closures
 keyTakeaways:
-  - Core concepts for Garbage Collection interviews
-  - Know the definition and one concrete example
-  - Watch for common traps senior interviewers probe
-  - Tie answers back to real debugging experience
+  - "Garbage collection is automatic: the engine frees objects that are no longer reachable from a root, not objects you stopped using."
+  - "Mark-and-sweep is the algorithm: mark everything reachable from the roots, then sweep away the rest — and it handles circular references."
+  - "A memory leak is a reference you forgot to drop: an accidental global, a listener or timer you never removed, or a closure holding big data."
+  - "Setting a variable to null does not free the object — it only breaks one reference. The object is collected when no path from a root reaches it."
+  - "WeakRef holds a reference that does not keep an object alive; deref() returns undefined once it is collected, and collection timing is never guaranteed."
+  - "V8 splits the heap into a young generation for short-lived objects and an old generation for survivors."
 masteryCriteria:
   minQuestionsCorrect: 3
   requireChallenge: false
 difficulty: hard
 interviewQuestions:
   - id: garbag-1
-    question: What is Garbage Collection in JavaScript?
-    answer: Reachability, mark-and-sweep, and common leak patterns.
+    question: What is garbage collection in JavaScript?
+    answer: "It is the engine automatically freeing memory for objects nothing can reach anymore. You never free memory yourself — you just stop pointing at things. The collector starts from the roots, like global variables and the current call stack, follows every reference it can reach, and reclaims whatever is left over. The word that matters is reachable, not unused: an object you forgot about but still reference is kept alive."
     difficulty: easy
     followUps:
-      - When would you reach for this in production code?
-      - What breaks if you misuse it?
+      - What is a root, exactly?
+      - If you never free memory yourself, how do you cause a memory leak?
   - id: garbag-2
-    question: What is a common interview trap around Garbage Collection?
-    answer: Interviewers often pair Garbage Collection with edge cases — state the rule, then walk through a short example.
+    question: How does mark-and-sweep work, and why does it handle circular references?
+    answer: "It works in two passes. First the mark pass starts at the roots and walks every reference, marking each object it can reach as alive. Then the sweep pass reclaims everything unmarked. It handles circular references because it never counts references — it only asks whether a path from a root exists. Two objects pointing at each other are still collected if nothing outside them points in, which is exactly where the old reference-counting approach failed."
     difficulty: medium
     followUps:
-      - Can you show the fix in code?
+      - What did reference counting get wrong?
+      - What does V8 do differently for short-lived objects?
   - id: garbag-3
-    question: How does Garbage Collection relate to other JS concepts you know?
-    answer: It connects to topics earlier in this track — mention scope, types, async, or the DOM where relevant.
+    question: What causes memory leaks in JavaScript? Give two examples.
+    answer: "A leak is a reference you forgot to drop, so the collector still sees a path from a root and keeps the object. The classic two are listeners and timers: an event listener you never removed keeps its closure — and any big data that closure holds — alive for the life of the page, and a setInterval you never cleared does the same. Detached DOM nodes you still hold in a variable and caches that grow without an eviction rule are the other usual suspects."
     difficulty: medium
     followUps:
-      - Which topic would you review first if you got this wrong?
+      - How would you find a leak in a real app?
+      - What is the fix for each of those examples?
   - id: garbag-4
-    question: How would you explain Garbage Collection to a junior developer?
-    answer: Use plain language, one analogy, and one line of code — avoid spec jargon until they ask.
-    difficulty: easy
+    question: What is WeakRef, and when would you use it?
+    answer: "WeakRef holds a reference that does not keep its object alive. You read it back with deref(), which returns the object while it is still in memory and undefined once it has been collected. The real use case is a cache of expensive objects that you are happy to rebuild — the cache must never be the reason the object stays in memory. The trap is timing: collection is non-deterministic, so you can never rely on deref() returning undefined, and you must never use WeakRef or FinalizationRegistry for essential logic."
+    difficulty: medium
     followUps:
-      - What follow-up question would you ask them to check understanding?
+      - How is WeakRef different from a WeakMap?
+      - What cleans up the stale keys a WeakRef cache leaves behind?
 ---
 
 <TopicTabs>
@@ -50,9 +55,11 @@ interviewQuestions:
 
 <TopicDefinition>
 
-Reachability, mark-and-sweep, and common leak patterns.
+If someone asks what garbage collection is, I'd say it's the engine tidying up after you. JavaScript never asks you to free memory. Instead the collector watches which objects are still reachable — which ones something can still get to — and reclaims the rest.
 
-In interviews, lead with a clear one-liner, then add one example. Senior rounds go deeper on edge cases and trade-offs — have a short code snippet ready.
+The word to hold onto is reachable, not unused. An object you forgot about is still kept alive if a variable, a listener, or a cache can still reach it. That gap between "I stopped using it" and "nothing points at it" is where every memory leak lives.
+
+Senior rounds usually go one step further: how the engine actually does it. Modern engines use mark-and-sweep — mark everything reachable from the roots, sweep away the rest — and V8 splits the heap into a young generation for objects that die fast and an old generation for the survivors.
 
 </TopicDefinition>
 
@@ -64,33 +71,106 @@ In interviews, lead with a clear one-liner, then add one example. Senior rounds 
 
 <TopicTab value="examples">
 
-<CodeExample title="Quick example" language="javascript">
-{`// Garbage Collection — add your own variation in the playground
-console.log('Review the in-depth tab and Q&A for this topic');`}
-</CodeExample>
+<CodeExample title="Reachability decides what lives" language="javascript">
+{`let user = { name: 'Sam' };
+user = null;
+// Setting user to null does not free the object.
+// It only breaks one reference. The object is collected
+// when NO path from a root reaches it — here, nothing else
+// points at it, so the next pass can reclaim it.
+
+function makeCycle() {
+  const a = {};
+  const b = {};
+  a.other = b;
+  b.other = a; // a and b point at each other
+  return 'done';
+}
+makeCycle();
+// A reference-counting collector would keep a and b forever:
+// each one still has a reference. But nothing outside the
+// function can reach them, so mark-and-sweep collects both.
+console.log(makeCycle()); // 'done'`}</CodeExample>
+
+<CodeExample title="The classic leak — and the fix" language="javascript">
+{`// Node has a global EventTarget, just like a DOM node
+const target = new EventTarget();
+let hugeData = null;
+
+function onResize() {
+  console.log('rows:', hugeData.length);
+}
+
+function startDashboard() {
+  hugeData = new Array(100_000).fill('row');
+  target.addEventListener('resize', onResize);
+}
+
+function stopDashboard() {
+  target.removeEventListener('resize', onResize);
+  hugeData = null;
+}
+
+startDashboard();
+// LEAK, if we stopped here: target still holds onResize,
+// onResize closes over hugeData, so the array stays reachable
+// long after startDashboard returns.
+
+stopDashboard();
+console.log(hugeData); // null — no path reaches the array, so it can be collected`}</CodeExample>
+
+<CodeExample title="WeakRef: a cache that does not hold its values hostage" language="javascript">
+{`const cache = new Map();
+
+function getUser(id) {
+  const cached = cache.get(id)?.deref();
+  if (cached) return cached; // still alive — reuse it
+
+  const user = { id, name: 'Sam' }; // pretend this is an expensive load
+  cache.set(id, new WeakRef(user));
+  return user;
+}
+
+const u1 = getUser('u1');
+console.log(getUser('u1') === u1); // true — the cache hit while u1 is alive
+
+// Once every strong reference to u1 is gone, the collector may
+// reclaim it — and the next getUser('u1') quietly reloads instead
+// of returning a stale object. The cache never keeps it alive.`}</CodeExample>
 
 <Callout type="tip">
-Re-read the key takeaways, then try explaining Garbage Collection out loud in under 30 seconds.
+In the interview, say "reachable" instead of "unused". "The object is unreachable" is the senior answer. "I stopped using it" is the junior one — the collector cannot tell what you stopped using, only what nothing points at.
 </Callout>
 
 </TopicTab>
 
 <TopicTab value="indepth">
 
-### What to focus on
+### Reachability is the only question
 
-- Definition and mental model
-- One gotcha interviewers love
-- How it connects to prerequisites in this track
+The collector never asks whether you still need an object. It asks whether a path exists from a root — a global variable, a local on the current call stack, or a live DOM node — through references to that object. If a path exists, the object lives. If not, it is garbage. A leak is therefore never "memory the engine forgot to free". It is a path you forgot to break.
+
+### Mark-and-sweep in two passes
+
+The mark pass starts at the roots and walks every reference, marking each object it reaches as alive. The sweep pass reclaims everything unmarked. Circular references are collected because reachability, not counting, decides the outcome — two objects pointing at each other are still swept away if nothing outside them points in. That is the exact case the old reference-counting collectors leaked on.
+
+### V8's generational shortcut
+
+Most objects die young, so V8 splits the heap in two. New objects land in the young generation, which is small and collected often and cheaply. Objects that survive a few collections get promoted to the old generation, which is collected rarely with a full mark-sweep-compact pass. The practical upshot: short-lived throwaway objects are nearly free, and long-lived caches and globals are the ones that cost you.
+
+### WeakRef and FinalizationRegistry
+
+A `WeakRef` holds a reference that does not keep its object alive. `deref()` returns the object while it is still in memory and `undefined` once it has been collected — the right shape for a cache of expensive objects you are happy to rebuild. `FinalizationRegistry` goes one step further: you register an object with a cleanup callback that runs after it is reclaimed, which is how you release outside resources like file handles. Both are non-deterministic — the callback may run late or never — so neither one belongs in essential program logic. One more caveat: a `Map` of `WeakRef` values still accumulates stale keys, and `FinalizationRegistry` is how you prune them.
 
 ### Senior follow-ups
 
-Be ready to compare alternatives and describe when **not** to use this feature.
+Be ready to name four leak patterns — accidental global, forgotten timer, unremoved listener, detached DOM node or unbounded cache — and to describe finding one: take heap snapshots in DevTools before and after the suspect action, compare retained objects, and follow the retaining path back to the root. In Node, `--inspect` gives you the same heap tools.
 
 </TopicTab>
 
 <TopicTab value="questions">
 
+<FlashcardDeck ids={['garbag-1', 'garbag-2', 'garbag-3', 'garbag-4']} />
 
 <InterviewQuestionBlock id="garbag-1" />
 <InterviewQuestionBlock id="garbag-2" />
@@ -103,29 +183,30 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicPlayground>
 
-<CodingChallenge
-  title="Prove a listener can be collected by dropping its reference"
-  prompt="You cannot force garbage collection in this sandbox, and no test can observe it directly. What you CAN prove is the prerequisite: the last strong reference is gone. This exercise models that with a registry: a listener counts as retained while the registry holds it. Write subscribe and unsubscribe so that unsubscribing removes the listener from the registry. Only then is the listener eligible for collection; a forgotten unsubscribe is the classic leak."
-  hint="Keep the registry as a plain array. Unsubscribe must remove exactly that function reference, in place, so every reader sees the same array."
-  starterCode={`const registry = [];
-function subscribe(fn) {
-  // SUBSCRIBE
-}
-function unsubscribe(fn) {
-  // UNSUB
-}
-function dispatch(value) {
-  registry.forEach((fn) => fn(value));
-}
+<OutputPrediction
+  title="Does setting user to null free the object?"
+  expected="Sam"
+  hint="null breaks one reference. How many references does the object have?"
+  explanation="user = null only breaks the user variable's reference. alias still points at the same object, so it is reachable and the collector leaves it alone. Setting a variable to null frees nothing by itself — it only removes one path to the object."
+  code={`let user = { name: 'Sam' };
+let alias = user;
+user = null;
+console.log(alias.name);`}
+/>
 
-let received = [];
-function listener(value) { received.push(value); }`}
+<CodingChallenge
+  title="Build a leak-safe event emitter"
+  prompt="Implement createEmitter() with on(event, fn) and emit(event, ...args). on must return an unsubscribe function: calling it removes that listener so it is never called again, and calling it twice must not throw. This is the same cleanup shape as removeEventListener — dropping the reference is what lets the listener, and anything it closes over, be collected."
+  starterCode={`function createEmitter() {
+  // your code
+}`}
   tests={[
-    { label: 'subscribe registers the listener', code: `subscribe(listener); if (registry.length !== 1) throw new Error('expected 1 registered listener, got ' + registry.length);` },
-    { label: 'dispatch reaches the listener', code: `dispatch(7); if (received.length !== 1 || received[0] !== 7) throw new Error('expected listener called once with 7');` },
-    { label: 'unsubscribe empties the registry', code: `unsubscribe(listener); if (registry.length !== 0) throw new Error('expected empty registry after unsubscribe, got ' + registry.length);` },
-    { label: 'dispatch after unsubscribe calls nobody', code: `dispatch(8); if (received.length !== 1) throw new Error('expected no more calls after unsubscribe');` },
+    { label: 'listeners receive emitted arguments', code: `const e = createEmitter(); let got; e.on('ping', (x) => { got = x; }); e.emit('ping', 42); if (got !== 42) throw new Error('expected listener to receive 42, got ' + got);` },
+    { label: 'unsubscribe stops future calls', code: `const e = createEmitter(); let calls = 0; const off = e.on('ping', () => { calls++; }); e.emit('ping'); off(); e.emit('ping'); if (calls !== 1) throw new Error('expected 1 call after unsubscribe, got ' + calls);` },
+    { label: 'unsubscribe twice does not throw', code: `const e = createEmitter(); const off = e.on('ping', () => {}); off(); off();` },
+    { label: 'events are independent', code: `const e = createEmitter(); let called = false; e.on('a', () => { called = true; }); e.emit('b'); if (called) throw new Error('listener for a must not run on b');` },
   ]}
+  hint="Keep a list of listeners per event. on pushes the listener and returns a function that removes that exact listener from the list; emit calls a copy of the list so a listener that unsubscribes mid-emit does not break the loop."
 />
 
 </TopicPlayground>

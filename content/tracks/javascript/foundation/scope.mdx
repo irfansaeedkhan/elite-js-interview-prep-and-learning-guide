@@ -8,40 +8,51 @@ estimatedMinutes: 30
 prerequisites:
   - hoisting
 keyTakeaways:
-  - Core concepts for Scope & Lexical Environment interviews
-  - Know the definition and one concrete example
-  - Watch for common traps senior interviewers probe
-  - Tie answers back to real debugging experience
+  - "Lexical scope means lookup follows where code is written, not where a function is called"
+  - "var is function-scoped; let and const are block-scoped, and let creates a fresh binding per loop iteration"
+  - "Reading let or const before its declaration throws a ReferenceError — the temporal dead zone; var reads undefined instead"
+  - "A closure keeps its defining scope alive, and captured variables are live references, not copies"
+  - "An inner declaration shadows an outer one, and assigning to an undeclared variable creates an accidental global"
 masteryCriteria:
   minQuestionsCorrect: 3
   requireChallenge: false
 difficulty: medium
 interviewQuestions:
   - id: scope-1
-    question: What is Scope & Lexical Environment in JavaScript?
-    answer: Global, function, and block scope — where variables live.
+    question: What is scope, and what does "lexical" mean in JavaScript?
+    answer: "Scope is the set of variables a piece of code can see. Lexical means that set is decided by where the code is written, not where it runs — a function looks up variables in the scopes around its definition, even if you call it from somewhere else entirely. That one rule explains closures, shadowing, and most scope bugs."
     difficulty: easy
     followUps:
-      - When would you reach for this in production code?
-      - What breaks if you misuse it?
+      - Can a function see variables from the scope that called it?
+      - What happens when an inner scope declares the same name as an outer one?
   - id: scope-2
-    question: What is a common interview trap around Scope & Lexical Environment?
-    answer: Interviewers often pair Scope & Lexical Environment with edge cases — state the rule, then walk through a short example.
+    question: Why do var loop handlers all log the same number, and what fixes it?
+    answer: "With var there is exactly one function-scoped binding shared by every iteration, so every closure reads the same i after the loop finishes — usually the final value. With let, each iteration gets its own fresh binding, so each closure keeps its own number. Same code, different scoping rule, different answer."
     difficulty: medium
     followUps:
-      - Can you show the fix in code?
+      - How would you fix the var version without switching to let?
+      - Why does the setTimeout version print 3 3 3 instead of 0 1 2?
   - id: scope-3
-    question: How does Scope & Lexical Environment relate to other JS concepts you know?
-    answer: It connects to topics earlier in this track — mention scope, types, async, or the DOM where relevant.
+    question: What is the temporal dead zone, and how is it different from var hoisting?
+    answer: "let and const are hoisted too, but you cannot touch them before their declaration line — that gap is the temporal dead zone, and reading there throws a ReferenceError. var is also hoisted, but it starts out as undefined, so reading early silently gives you undefined instead of an error. The TDZ turns a silent bug into a loud one."
     difficulty: medium
     followUps:
-      - Which topic would you review first if you got this wrong?
+      - Does the TDZ apply to function declarations?
+      - Why is typeof safe on a truly undeclared variable but not on a TDZ variable?
   - id: scope-4
-    question: How would you explain Scope & Lexical Environment to a junior developer?
-    answer: Use plain language, one analogy, and one line of code — avoid spec jargon until they ask.
-    difficulty: easy
+    question: How does lexical scope explain closures?
+    answer: "A closure is just a function plus the scope where it was defined, kept alive. When the outer function returns, its variables would normally be gone — but because the inner function still references them, the engine keeps that scope around. And the references are live: if two closures share a variable, one can see the other's updates."
+    difficulty: medium
     followUps:
-      - What follow-up question would you ask them to check understanding?
+      - Is a captured variable a copy or a live reference?
+      - Can closures cause a memory leak?
+  - id: scope-5
+    question: What is shadowing, and what goes wrong with an undeclared assignment?
+    answer: "Shadowing is when an inner scope declares the same name as an outer one — the inner one wins inside that block, and the outer value is untouched. The dangerous cousin is assigning to a name you never declared: in sloppy mode that silently creates a global, so a typo can leak state across your whole app. Strict mode and modules turn that into an error, which is the point."
+    difficulty: medium
+    followUps:
+      - Is shadowing ever a good idea?
+      - Why do modules not have the accidental-global problem?
 ---
 
 <TopicTabs>
@@ -50,9 +61,11 @@ interviewQuestions:
 
 <TopicDefinition>
 
-Global, function, and block scope — where variables live.
+If someone asks me what scope is, I'd say it's the answer to "which variables can this code see?" And the word that matters most is **lexical**: that answer is decided by where the code is **written**, not where it runs. A function looks up variables in the scopes wrapped around its definition — even if you call it from the other side of the codebase.
 
-In interviews, lead with a clear one-liner, then add one example. Senior rounds go deeper on edge cases and trade-offs — have a short code snippet ready.
+Interviewers care about this because the `var` vs `let` difference lives here. `var` is function-scoped, so a loop shares one binding across every iteration — that's the classic "all my handlers log the same number" bug. `let` and `const` are block-scoped, and `let` in a loop creates a fresh binding per iteration, which is why switching one keyword fixes it.
+
+Senior rounds push one step further, into the **temporal dead zone**: `let` and `const` are hoisted but unusable before their declaration line, so reading early throws instead of silently giving `undefined`. And they ask what closures cost — a function that escapes keeps its whole defining scope alive, which is powerful for private state and a real way to leak memory.
 
 </TopicDefinition>
 
@@ -64,13 +77,75 @@ In interviews, lead with a clear one-liner, then add one example. Senior rounds 
 
 <TopicTab value="examples">
 
-<CodeExample title="Quick example" language="javascript">
-{`// Scope & Lexical Environment — add your own variation in the playground
-console.log('Review the in-depth tab and Q&A for this topic');`}
+<CodeExample title="Lexical lookup — definition site wins" language="javascript">
+{`const name = 'outer';
+
+function greet() {
+  return name; // looks up the scope where greet was WRITTEN
+}
+
+function run() {
+  const name = 'caller';
+  return greet(); // still 'outer' — the caller's scope is irrelevant
+}
+
+console.log(run()); // 'outer'
+
+// And the reverse fails: an outer scope cannot see inside
+function make() {
+  const secret = 'hidden';
+}
+console.log(typeof secret); // 'undefined' — secret never leaves make`}
+</CodeExample>
+
+<CodeExample title="The var loop trap, and the let fix" language="javascript">
+{`// var: ONE binding shared by every iteration
+const varHandlers = [];
+for (var i = 0; i < 3; i++) {
+  varHandlers.push(() => i);
+}
+console.log(varHandlers.map((f) => f())); // [3, 3, 3] — loop finished first
+
+// let: a FRESH binding per iteration
+const letHandlers = [];
+for (let j = 0; j < 3; j++) {
+  letHandlers.push(() => j);
+}
+console.log(letHandlers.map((f) => f())); // [0, 1, 2]
+
+// The old-school fix for var: give each iteration its own scope
+const fixedHandlers = [];
+for (var k = 0; k < 3; k++) {
+  fixedHandlers.push(((n) => () => n)(k));
+}
+console.log(fixedHandlers.map((f) => f())); // [0, 1, 2]`}
+</CodeExample>
+
+<CodeExample title="TDZ and shadowing in one block" language="javascript">
+{`// TDZ: the binding exists but you cannot touch it yet
+function demo() {
+  // console.log(value); // ReferenceError — TDZ, not undefined
+  let value = 'ready';
+  return value;
+}
+
+// var behaves differently — hoisted AND initialized to undefined
+function oldDemo() {
+  console.log(old); // undefined, no error
+  var old = 'late';
+}
+
+// Shadowing: the inner name wins inside its block, outer untouched
+const role = 'admin';
+if (true) {
+  const role = 'guest'; // a different binding, not an overwrite
+  console.log(role);    // 'guest'
+}
+console.log(role);      // 'admin'`}
 </CodeExample>
 
 <Callout type="tip">
-Re-read the key takeaways, then try explaining Scope & Lexical Environment out loud in under 30 seconds.
+Say the rule before the answer in interviews: "lexical scope — lookup follows where the function was written." Then walk the example. The rule first, the output second.
 </Callout>
 
 </TopicTab>
@@ -79,23 +154,26 @@ Re-read the key takeaways, then try explaining Scope & Lexical Environment out l
 
 ### What to focus on
 
-- Definition and mental model
-- One gotcha interviewers love
-- How it connects to prerequisites in this track
+- The mental model: scope is a chain of environments, searched outward from where code is written
+- The three declarations: `var` (function scope, initialized `undefined`), `let`/`const` (block scope, TDZ until declaration)
+- The loop trap: one shared `var` binding vs a fresh `let` binding per iteration
+- Closures: a function carries its defining scope with it, with live references, not copies
 
 ### Senior follow-ups
 
-Be ready to compare alternatives and describe when **not** to use this feature.
+Be ready to explain why `let` in a `for` header is special — the spec effectively creates a new declarative environment per iteration, which is the mechanism behind the fix, not just a happy accident. Know the `typeof` asymmetry: `typeof` on a truly undeclared variable is `'undefined'`, but `typeof` on a TDZ variable still throws, because the binding exists and is uninitialized. And be honest about the cost of closures: captured variables stay alive as long as the function does, so a long-lived handler closing over a huge object is a memory leak with a respectable name — the fix is to capture only what you need, or null out the reference when done.
 
 </TopicTab>
 
 <TopicTab value="questions">
 
+<FlashcardDeck ids={['scope-1', 'scope-2', 'scope-3', 'scope-4', 'scope-5']} />
 
 <InterviewQuestionBlock id="scope-1" />
 <InterviewQuestionBlock id="scope-2" />
 <InterviewQuestionBlock id="scope-3" />
 <InterviewQuestionBlock id="scope-4" />
+<InterviewQuestionBlock id="scope-5" />
 
 </TopicTab>
 
@@ -103,22 +181,42 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicPlayground>
 
-<CodingChallenge
-  title="Build counters that remember their own index"
-  prompt="Finish buildCounters so it returns 3 functions, and each function returns its own index: counters[0]() is 0, counters[1]() is 1, counters[2]() is 2. This is the classic interview trap: a loop variable shared across closures makes every function return the same final value."
-  hint="Each iteration needs its own binding. A block-scoped loop variable gives every closure its own copy; a function-scoped one is shared."
-  starterCode={`function buildCounters() {
-  const fns = [];
-  // your code here: push 3 functions, each returning its own index
-  return fns;
+<OutputPrediction
+  title="Where was this function written?"
+  expected="inner outer"
+  hint="Two console.log values from one call — which name does the inner function see, and which does the outer scope keep?"
+  explanation="greet is defined where name is 'inner', so it returns 'inner' no matter who calls it. The outer name stays 'outer' — the inner declaration shadows it only inside greet."
+  code={`const name = 'outer';
+function greet() {
+  const name = 'inner';
+  return name;
 }
+console.log(greet(), name);`}
+/>
 
-const counters = buildCounters();`}
+<OutputPrediction
+  title="The var loop, predicted"
+  expected="3 3 3"
+  hint="One var binding, three closures, loop finished before any closure runs — what does each one read?"
+  explanation="var gives the loop a single shared binding, so all three closures read the final value 3. Swap var for let and each iteration gets its own binding: 0 1 2."
+  code={`const fns = [];
+for (var i = 0; i < 3; i++) fns.push(() => i);
+console.log(fns.map((f) => f()).join(' '));`}
+/>
+
+<CodingChallenge
+  title="Per-iteration handlers"
+  prompt="Implement createHandlers(n) — return an array of n functions where the function at index k returns k when called. The classic bug is every handler returning n; yours must give each handler its own value. Calling one handler must not affect any other."
+  starterCode={`function createHandlers(n) {
+  // your code
+}`}
   tests={[
-    { label: 'first counter returns 0', code: `if (counters[0]() !== 0) throw new Error('expected 0, got ' + counters[0]());` },
-    { label: 'second counter returns 1', code: `if (counters[1]() !== 1) throw new Error('expected 1, got ' + counters[1]());` },
-    { label: 'third counter returns 2', code: `if (counters[2]() !== 2) throw new Error('expected 2, got ' + counters[2]());` },
+    { label: 'each handler returns its own index', code: `const h = createHandlers(3); if (h[0]() !== 0 || h[1]() !== 1 || h[2]() !== 2) throw new Error('expected 0, 1, 2');` },
+    { label: 'handlers are independent', code: `const h = createHandlers(3); h[0](); h[0](); if (h[1]() !== 1) throw new Error('calling one handler changed another');` },
+    { label: 'empty case returns empty array', code: `if (createHandlers(0).length !== 0) throw new Error('expected empty array');` },
+    { label: 'larger n still correct', code: `const h = createHandlers(5); if (h[4]() !== 4) throw new Error('expected 4');` },
   ]}
+  hint="The trap is one shared binding. Use let in the loop, or capture the value per iteration through a parameter — either gives each handler its own binding."
 />
 
 </TopicPlayground>

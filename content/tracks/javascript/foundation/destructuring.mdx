@@ -9,40 +9,51 @@ prerequisites:
   - objects
   - arrays
 keyTakeaways:
-  - Core concepts for Destructuring interviews
-  - Know the definition and one concrete example
-  - Watch for common traps senior interviewers probe
-  - Tie answers back to real debugging experience
+  - "Arrays destructure by position, objects destructure by name — that one difference explains most mistakes"
+  - "A default kicks in only when the value is undefined — null, 0, and false keep their values"
+  - "Destructuring null or undefined throws — guard each level with = {} before you go deeper"
+  - "Colon renames, equals defaults — { name: userName = 'Guest' } does both at once"
+  - "Rest must come last and collects everything you did not pick off"
 masteryCriteria:
   minQuestionsCorrect: 3
   requireChallenge: false
 difficulty: easy
 interviewQuestions:
   - id: destru-1
-    question: What is Destructuring in JavaScript?
-    answer: Unpack arrays and objects into variables — defaults and nested patterns.
+    question: What is destructuring in JavaScript?
+    answer: "It is shorthand for pulling values out of an array or an object into variables. Arrays match by position, so const [first] = list takes element zero. Objects match by name, so const { name } = user takes the name property. Same syntax family, different matching rule — and interviewers love checking that you know which is which."
     difficulty: easy
     followUps:
-      - When would you reach for this in production code?
-      - What breaks if you misuse it?
+      - When would you reach for it in production code?
+      - How does it differ from just reading properties one by one?
   - id: destru-2
-    question: What is a common interview trap around Destructuring?
-    answer: Interviewers often pair Destructuring with edge cases — state the rule, then walk through a short example.
+    question: When does a destructuring default actually apply?
+    answer: "Only when the value is undefined — a missing property, or an array slot past the end. It does not apply to null, 0, or false, because those are real values you chose. So const { role = 'guest' } = { role: null } gives null, not 'guest'. If you need null to fall back too, reach for ?? after the fact."
     difficulty: medium
     followUps:
-      - Can you show the fix in code?
+      - How is that different from the || operator?
+      - Is the default expression evaluated even when it is not needed?
   - id: destru-3
-    question: How does Destructuring relate to other JS concepts you know?
-    answer: It connects to topics earlier in this track — mention scope, types, async, or the DOM where relevant.
+    question: What happens when you destructure null or undefined?
+    answer: "You get a TypeError — there is nothing to pull properties from. Destructuring a missing property is fine and gives undefined, but destructuring a missing object is not. The fix is a default at each level you go through: const { address: { city } = {} } = user survives a user with no address, and function f({ name } = {}) survives being called with no argument at all."
     difficulty: medium
     followUps:
-      - Which topic would you review first if you got this wrong?
+      - Why does f() throw without the = {} but f({}) does not?
+      - How deep would you nest this before switching to plain access?
   - id: destru-4
-    question: How would you explain Destructuring to a junior developer?
-    answer: Use plain language, one analogy, and one line of code — avoid spec jargon until they ask.
+    question: "What is the difference between { name: userName } and { name = 'Guest' }?"
+    answer: "The colon renames, the equals sets a default. { name: userName } reads the name property into a variable called userName. { name = 'Guest' } reads the name property into a variable still called name, falling back to 'Guest' when it is undefined. You can combine them: { name: userName = 'Guest' } renames and defaults in one move."
+    difficulty: medium
+    followUps:
+      - "What does { name: userName } give you if name is missing?"
+      - Can you rename and rest at the same time?
+  - id: destru-5
+    question: What does the rest element collect, and where must it go?
+    answer: "Everything you did not pick off. In arrays it collects the remaining elements into a new array; in objects it copies the remaining properties into a new object. It must be last in the pattern — there is nothing after 'the rest' — and it cannot have a trailing comma. So const { name, ...details } = user gives you name plus a details object with everything else."
     difficulty: easy
     followUps:
-      - What follow-up question would you ask them to check understanding?
+      - Is the object rest a copy or a reference to the original?
+      - Why would you pick two fields off and rest the remainder?
 ---
 
 <TopicTabs>
@@ -51,9 +62,11 @@ interviewQuestions:
 
 <TopicDefinition>
 
-Unpack arrays and objects into variables — defaults and nested patterns.
+If someone asks what destructuring is, I'd say it's shorthand for unpacking values into variables — arrays by position, objects by name. Instead of three lines reading `user.name`, `user.age`, `user.city`, you write one pattern that pulls all three out at once.
 
-In interviews, lead with a clear one-liner, then add one example. Senior rounds go deeper on edge cases and trade-offs — have a short code snippet ready.
+What interviewers actually probe is the edge cases. Defaults only fire on `undefined`, never on `null` or `0`. And destructuring a missing object throws, while destructuring a missing property just gives `undefined` — so the `= {}` guard at each level is the difference between safe code and a crash.
+
+In senior rounds you might hear about lazy defaults: a default expression only runs when it's needed, so `const { b = expensive() } = { b: 7 }` never calls `expensive()`. Worth knowing when a default does real work.
 
 </TopicDefinition>
 
@@ -65,38 +78,90 @@ In interviews, lead with a clear one-liner, then add one example. Senior rounds 
 
 <TopicTab value="examples">
 
-<CodeExample title="Quick example" language="javascript">
-{`// Destructuring — add your own variation in the playground
-console.log('Review the in-depth tab and Q&A for this topic');`}
+<CodeExample title="Arrays match by position" language="javascript">
+{`const rgb = ['red', 'green', 'blue'];
+const [first, second] = rgb;
+console.log(first, second); // red green
+
+// skip with an empty slot, collect the rest
+const [head, , third, ...tail] = ['a', 'b', 'c', 'd'];
+console.log(head, third, tail); // a c ['d']
+
+// the classic swap — no temp variable
+let x = 1, y = 2;
+[x, y] = [y, x];
+console.log(x, y); // 2 1`}
 </CodeExample>
 
-<Callout type="tip">
-Re-read the key takeaways, then try explaining Destructuring out loud in under 30 seconds.
-</Callout>
+<CodeExample title="Objects match by name: rename and default" language="javascript">
+{`const user = { firstName: 'Ada', age: 36, city: 'Paris' };
+
+// colon renames, equals defaults — combined in one pattern
+const { firstName: name = 'Guest', age, ...details } = user;
+console.log(name, age, details); // Ada 36 { city: 'Paris' }
+
+// rename without a matching property gives undefined, then the default
+const { lastName: surname = 'Unknown' } = user;
+console.log(surname); // Unknown`}
+</CodeExample>
+
+<CodeExample title="Defaults fire only on undefined" language="javascript">
+{`const { role = 'guest' } = { role: null };
+console.log(role); // null — NOT 'guest'
+
+const { count = 5 } = { count: 0 };
+console.log(count); // 0 — a real value, default ignored
+
+// defaults are lazy: this function never runs
+let called = false;
+const { b = (() => { called = true; return 2; })() } = { b: 7 };
+console.log(b, called); // 7 false`}
+</CodeExample>
+
+<CodeExample title="Guard each level, including function params" language="javascript">
+{`// no address? the = {} guard keeps this from throwing
+const user = { name: 'Bob' };
+const { address: { city = 'Unknown' } = {} } = user;
+console.log(city); // Unknown
+
+// same idea in a function signature — f() must not throw
+function greet({ name = 'Guest' } = {}) {
+  return 'Hello, ' + name;
+}
+console.log(greet());        // Hello, Guest
+console.log(greet({ name: 'Ada' })); // Hello, Ada`}
+</CodeExample>
 
 </TopicTab>
 
 <TopicTab value="indepth">
 
-### What to focus on
+<Callout type="gotcha">
+Destructuring `null` or `undefined` throws a TypeError, but a missing property is just `undefined`. Guard the source, not just the property: `const { name } = data ?? {}`.
+</Callout>
 
-- Definition and mental model
-- One gotcha interviewers love
-- How it connects to prerequisites in this track
+<Callout type="tip">
+Two levels of nesting is the practical limit. Past that, the pattern is harder to read than the property access it replaced — pull the middle object out first.
+</Callout>
 
-### Senior follow-ups
-
-Be ready to compare alternatives and describe when **not** to use this feature.
+<CodeExample title="Reassigning without declaring needs parens" language="javascript">
+{`let a, b;
+// { a, b } = { a: 1, b: 2 }; — SyntaxError: { } reads as a block
+({ a, b } = { a: 1, b: 2 });
+console.log(a, b); // 1 2`}
+</CodeExample>
 
 </TopicTab>
 
 <TopicTab value="questions">
 
+<FlashcardDeck ids={['destru-1', 'destru-2', 'destru-3', 'destru-4', 'destru-5']} />
 
 <InterviewQuestionBlock id="destru-1" />
 <InterviewQuestionBlock id="destru-2" />
 <InterviewQuestionBlock id="destru-3" />
 <InterviewQuestionBlock id="destru-4" />
+<InterviewQuestionBlock id="destru-5" />
 
 </TopicTab>
 
@@ -104,22 +169,37 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicPlayground>
 
-<CodingChallenge
-  title="Summarize a user with destructuring"
-  prompt="Finish summarizeUser using destructuring: pull name, role (default 'member'), and the nested city (default 'Unknown') out of the user object, and return them as 'name | role | city'. The tests call it with a full user, one missing role, and one missing city."
-  hint="Destructure in the parameter list: nested patterns need their own defaults too, or a missing address object throws."
-  starterCode={`function summarizeUser(user) {
-  // your code here: destructure name, role, and nested city, then return 'name | role | city'
-}
+<OutputPrediction
+  title="Null does not trigger a default"
+  expected="null"
+  hint="Defaults fire on one value only — is null that value?"
+  explanation="Defaults apply only when the value is undefined. null is a real value, so role stays null instead of falling back to 'guest'."
+  code={`const { role = 'guest' } = { role: null };
+console.log(role);`}
+/>
 
-const full = summarizeUser({ name: 'Ada', role: 'admin', address: { city: 'Lisbon' } });
-const noRole = summarizeUser({ name: 'Bo', address: { city: 'Oslo' } });
-const noCity = summarizeUser({ name: 'Cy', role: 'mod' });`}
+<OutputPrediction
+  title="Nested guard on a missing object"
+  expected="Guest"
+  hint="What does the = {} after the nested pattern protect against?"
+  explanation="The outer object has no user property, so the nested pattern would throw — unless its = {} default supplies an empty object to destructure from, letting name fall back to 'Guest'."
+  code={`const { user: { name = 'Guest' } = {} } = {};
+console.log(name);`}
+/>
+
+<CodingChallenge
+  title="Format a user with safe destructuring"
+  prompt="Implement formatUser(user) — return 'NAME from CITY' using nested destructuring with defaults. It must survive a missing user, a missing address, and a missing name: formatUser() and formatUser({}) both give 'Guest from Unknown'. A solution without = {} guards throws on those inputs instead of answering."
+  starterCode={`function formatUser(user) {
+  // your code — try nested destructuring with defaults
+}`}
   tests={[
-    { label: 'full user summarizes all fields', code: `if (full !== 'Ada | admin | Lisbon') throw new Error('expected Ada | admin | Lisbon, got ' + full);` },
-    { label: 'missing role defaults to member', code: `if (noRole !== 'Bo | member | Oslo') throw new Error('expected Bo | member | Oslo, got ' + noRole);` },
-    { label: 'missing address defaults city to Unknown', code: `if (noCity !== 'Cy | mod | Unknown') throw new Error('expected Cy | mod | Unknown, got ' + noCity);` },
+    { label: 'full user', code: `if (formatUser({ name: 'Ada', address: { city: 'Paris' } }) !== 'Ada from Paris') throw new Error('expected Ada from Paris');` },
+    { label: 'missing address falls back', code: `if (formatUser({ name: 'Bob' }) !== 'Bob from Unknown') throw new Error('expected Bob from Unknown');` },
+    { label: 'empty object falls back', code: `if (formatUser({}) !== 'Guest from Unknown') throw new Error('expected Guest from Unknown');` },
+    { label: 'no argument falls back', code: `if (formatUser() !== 'Guest from Unknown') throw new Error('expected Guest from Unknown');` },
   ]}
+  hint="Destructure in the parameter list: one default for the whole argument, one for the nested address, and one each for name and city."
 />
 
 </TopicPlayground>

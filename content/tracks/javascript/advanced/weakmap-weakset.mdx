@@ -8,40 +8,47 @@ estimatedMinutes: 30
 prerequisites:
   - garbage-collection
 keyTakeaways:
-  - Core concepts for WeakMap & WeakSet interviews
-  - Know the definition and one concrete example
-  - Watch for common traps senior interviewers probe
-  - Tie answers back to real debugging experience
+  - "A WeakMap holds its keys weakly: the entry alone never keeps a key alive"
+  - "No size, no iteration, no keys(): that is the price of weak references"
+  - "WeakMap keys must be objects; a primitive key throws a TypeError"
+  - "Private class data, DOM metadata, and per-object caches are the three real use cases"
+  - "A WeakSet only tracks membership; use it to mark objects, not to store data"
 masteryCriteria:
   minQuestionsCorrect: 3
-  requireChallenge: false
+  requireChallenge: true
 difficulty: hard
 interviewQuestions:
   - id: weakma-1
-    question: What is WeakMap & WeakSet in JavaScript?
-    answer: Weak references and metadata without preventing GC.
-    difficulty: easy
+    question: What is a WeakMap, and how is it different from a Map?
+    answer: "A Map holds its keys strongly, so an entry keeps its key alive as long as the Map exists. A WeakMap holds its keys weakly: the entry alone never keeps the key alive, so once nothing else points at the key, the entry can be collected. WeakMap keys must be objects, and there is no size or iteration."
+    difficulty: medium
     followUps:
-      - When would you reach for this in production code?
-      - What breaks if you misuse it?
+      - When would you reach for a WeakMap instead of a Map?
+      - What happens to the entry when the key is collected?
   - id: weakma-2
-    question: What is a common interview trap around WeakMap & WeakSet?
-    answer: Interviewers often pair WeakMap & WeakSet with edge cases — state the rule, then walk through a short example.
+    question: Why can't you iterate a WeakMap or read its size?
+    answer: "Because the contents can change whenever garbage collection runs, and the engine doesn't promise when that happens. A size would be stale the moment after you read it, and iteration would force the engine to keep entries alive just to list them, which defeats the whole point."
     difficulty: medium
     followUps:
-      - Can you show the fix in code?
+      - What do you use instead when you need to list entries?
   - id: weakma-3
-    question: How does WeakMap & WeakSet relate to other JS concepts you know?
-    answer: It connects to topics earlier in this track — mention scope, types, async, or the DOM where relevant.
+    question: When would you actually use a WeakMap in production?
+    answer: "Three places: private data on class instances, metadata attached to DOM nodes, and caching a computed value per object. In all three the data should die with the object, so a WeakMap gives you the cleanup for free instead of a manual delete."
     difficulty: medium
     followUps:
-      - Which topic would you review first if you got this wrong?
+      - Can you show the private-data pattern in code?
   - id: weakma-4
-    question: How would you explain WeakMap & WeakSet to a junior developer?
-    answer: Use plain language, one analogy, and one line of code — avoid spec jargon until they ask.
+    question: What is a WeakSet for?
+    answer: "Membership only. You add objects to mark them, visited, processed, already seen, and the mark disappears with the object. The classic use is a visited set that stops a traversal from looping forever on circular references."
+    difficulty: medium
+    followUps:
+      - Why not just use a Set for that?
+  - id: weakma-5
+    question: What happens if you use a string as a WeakMap key?
+    answer: "It throws a TypeError: Invalid value used as weak map key. Keys must be objects, because only objects can be garbage collected. A string has no lifetime to track."
     difficulty: easy
     followUps:
-      - What follow-up question would you ask them to check understanding?
+      - Can a WeakMap value be a primitive?
 ---
 
 <TopicTabs>
@@ -50,9 +57,11 @@ interviewQuestions:
 
 <TopicDefinition>
 
-Weak references and metadata without preventing GC.
+If someone asks what a WeakMap is, I'd say it's a Map with one difference: it doesn't keep its keys alive. You attach data to an object, and the moment nothing else points at that object, the entry can disappear with it. A WeakSet is the same idea for membership. It remembers that an object was in the set, without keeping it alive.
 
-In interviews, lead with a clear one-liner, then add one example. Senior rounds go deeper on edge cases and trade-offs — have a short code snippet ready.
+Interviewers bring these up when they want to know whether you think about memory. The classic story is DOM nodes. You store metadata about elements in a normal Map, remove the elements from the page, and the Map still holds every one of them. That's a leak, and it grows with every re-render. A WeakMap lets the metadata die with the element, so there is nothing to clean up.
+
+The trade-off is that you give up the conveniences: no size, no iteration, no listing keys. That isn't an oversight, it's the point. A WeakMap can't promise you a list of entries that might vanish at any moment. And you can never observe the collection happening, so never write code that depends on when an entry disappears.
 
 </TopicDefinition>
 
@@ -64,38 +73,123 @@ In interviews, lead with a clear one-liner, then add one example. Senior rounds 
 
 <TopicTab value="examples">
 
-<CodeExample title="Quick example" language="javascript">
-{`// WeakMap & WeakSet — add your own variation in the playground
-console.log('Review the in-depth tab and Q&A for this topic');`}
-</CodeExample>
+<CodeExample title="Private data, the pre-# way" language="javascript">
+{`const privateData = new WeakMap();
 
-<Callout type="tip">
-Re-read the key takeaways, then try explaining WeakMap & WeakSet out loud in under 30 seconds.
-</Callout>
+class User {
+  constructor(name, password) {
+    this.name = name;
+    privateData.set(this, { password });
+  }
+  checkPassword(guess) {
+    return privateData.get(this).password === guess;
+  }
+}
+
+const u = new User('alice', 's3cr3t');
+console.log(u.name);                  // 'alice' — public
+console.log(u.password);              // undefined — nothing on the instance
+console.log(u.checkPassword('s3cr3t')); // true`}</CodeExample>
+
+<CodeExample title="A cache that leaks vs one that doesn't" language="javascript">
+{`// A Map keeps every key alive — a cache that only grows.
+const leakyCache = new Map();
+function getStatsLeaky(user) {
+  if (!leakyCache.has(user)) leakyCache.set(user, { posts: 42 });
+  return leakyCache.get(user);
+}
+
+// A WeakMap lets the entry die with the user object.
+const cache = new WeakMap();
+function getStats(user) {
+  if (!cache.has(user)) cache.set(user, { posts: 42 });
+  return cache.get(user);
+}
+
+let user = { name: 'bob' };
+getStats(user);
+user = null; // the WeakMap entry can now be collected; the Map entry cannot`}</CodeExample>
+
+<CodeExample title="WeakSet: marking objects you have seen" language="javascript">
+{`// A WeakSet marks objects. It stores no data about them,
+// and the mark disappears when the object does.
+const processed = new WeakSet();
+
+function process(order) {
+  if (processed.has(order)) return 'already processed';
+  processed.add(order);
+  return 'processing ' + order.id;
+}
+
+const order = { id: 101 };
+console.log(process(order)); // 'processing 101'
+console.log(process(order)); // 'already processed'`}</CodeExample>
+
+<CodeExample title="The traps, all in one place" language="javascript">
+{`const wm = new WeakMap();
+
+// 1. Keys must be objects — a primitive throws.
+try {
+  wm.set('user', 1);
+} catch (e) {
+  console.log(e.message); // 'Invalid value used as weak map key'
+}
+
+// 2. There is no size and no way to list entries.
+console.log(wm.size);        // undefined
+console.log(typeof wm.keys); // 'undefined'
+
+// 3. A WeakMap is not iterable.
+try {
+  for (const entry of wm) { /* never runs */ }
+} catch (e) {
+  console.log(e instanceof TypeError); // true
+}`}</CodeExample>
 
 </TopicTab>
 
 <TopicTab value="indepth">
 
-### What to focus on
+<Callout type="gotcha">
+You cannot observe garbage collection. There is no test that proves an entry disappeared, because the engine collects when it wants to. Test the contract instead: primitives throw, there is no size, and the entry is there while the key is alive.
+</Callout>
 
-- Definition and mental model
-- One gotcha interviewers love
-- How it connects to prerequisites in this track
+<Callout type="tip">
+If you need to list entries, count them, or keep them after the key is gone, you picked the wrong collection. That job belongs to a Map. A WeakMap is only for data that should die with its key.
+</Callout>
+
+### Which collection when
+
+- **Map** — general key-value storage, any key type, iterable, has a size.
+- **WeakMap** — metadata, private data, or a cache tied to an object's lifetime.
+- **Set** — unique values you need to list or count.
+- **WeakSet** — marking objects (visited, processed, seen) without keeping them alive.
+
+<CodeExample title="Senior nuance: a value can point back at its own key" language="javascript">
+{`const wm = new WeakMap();
+const key = { id: 1 };
+
+// The value references its own key, and that still does not
+// keep the key alive. WeakMap entries are ephemerons: the value
+// is only reachable through the key, so it cannot rescue the key.
+wm.set(key, { owner: key });
+console.log(wm.get(key).owner === key); // true`}</CodeExample>
 
 ### Senior follow-ups
 
-Be ready to compare alternatives and describe when **not** to use this feature.
+Be ready to say why `#` private fields replaced the WeakMap pattern in modern code, and when you'd still reach for a WeakMap: when the data belongs to an object you don't own, like a DOM node. And remember that a value referencing its own key never keeps the key alive, so a self-referential value is not a leak.
 
 </TopicTab>
 
 <TopicTab value="questions">
 
+<FlashcardDeck ids={['weakma-1', 'weakma-2', 'weakma-3', 'weakma-4', 'weakma-5']} />
 
 <InterviewQuestionBlock id="weakma-1" />
 <InterviewQuestionBlock id="weakma-2" />
 <InterviewQuestionBlock id="weakma-3" />
 <InterviewQuestionBlock id="weakma-4" />
+<InterviewQuestionBlock id="weakma-5" />
 
 </TopicTab>
 
@@ -103,25 +197,59 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicPlayground>
 
+<OutputPrediction
+  title="A string as a WeakMap key"
+  expected="TypeError: Invalid value used as weak map key"
+  hint="WeakMap keys have one hard rule"
+  explanation="Keys must be objects. A string has no lifetime for the garbage collector to track, so the engine throws instead of storing it."
+  code={`const wm = new WeakMap();
+wm.set('user', 1);`}
+/>
+
+<OutputPrediction
+  title="No size on a WeakMap"
+  expected="undefined"
+  hint="What does a WeakMap promise about its contents?"
+  explanation="There is no size property at all. A count would be stale the moment garbage collection runs, so the API does not offer one."
+  code={`const wm = new WeakMap();
+wm.set({}, 'a');
+console.log(wm.size);`}
+/>
+
 <CodingChallenge
-  title="Hide private state in a WeakMap and track seen objects in a WeakSet"
-  prompt="Build createCounter so each counter keeps its count in a WeakMap keyed by the counter object itself: counts must be independent per counter and never stored as a visible property. Also build markSeen(obj) on a WeakSet so the first call for an object returns true and later calls for the same object return false. Weak collections hold their keys weakly, so entries for discarded objects can be collected; that also means they have no size and cannot be iterated."
-  hint="One WeakMap for counts, one WeakSet for seen. The counter methods close over the shared WeakMap but key by their own object, never by a shared variable."
-  starterCode={`const counts = new WeakMap();
-const seen = new WeakSet();
-
-function createCounter() {
-  // COUNTER: return an object with increment() and get() backed by counts
-}
-
-function markSeen(obj) {
-  // MARK: return true the first time for obj, false afterwards
+  title="Memoize per object, without leaking"
+  prompt="Implement memoizeByObject(fn). It returns a function that caches fn's result per object argument: the same object twice runs fn once, a different object runs it again. Throw a TypeError for a non-object argument. A WeakMap enforces that for free, a Map does not. Each call to memoizeByObject gets its own independent cache."
+  starterCode={`function memoizeByObject(fn) {
+  // your code
 }`}
   tests={[
-    { label: 'counters are independent', code: `const a = createCounter(); const b = createCounter(); a.increment(); a.increment(); b.increment(); if (a.get() !== 2 || b.get() !== 1) throw new Error('expected counts 2 and 1');` },
-    { label: 'count is not a visible property', code: `const c = createCounter(); c.increment(); if (c.count !== undefined) throw new Error('count leaked as a property'); if (c.get() !== 1) throw new Error('expected get() to return 1');` },
-    { label: 'markSeen is true once per object', code: `const o = {}; if (markSeen(o) !== true) throw new Error('expected first sighting true'); if (markSeen(o) !== false) throw new Error('expected second sighting false'); if (markSeen({}) !== true) throw new Error('expected a new object to be true');` },
+    { label: 'caches the result for the same object', code: `let calls1 = 0;
+const fn1 = (o) => { calls1++; return o.x * 2; };
+const memo1 = memoizeByObject(fn1);
+const obj1 = { x: 21 };
+if (memo1(obj1) !== 42) throw new Error('expected 42');
+if (memo1(obj1) !== 42) throw new Error('expected 42 on second call');
+if (calls1 !== 1) throw new Error('expected fn to run once, ran ' + calls1 + ' times');` },
+    { label: 'recomputes for a different object', code: `let calls2 = 0;
+const fn2 = (o) => { calls2++; return o.x; };
+const memo2 = memoizeByObject(fn2);
+if (memo2({ x: 1 }) !== 1) throw new Error('expected 1');
+if (memo2({ x: 2 }) !== 2) throw new Error('expected 2');
+if (calls2 !== 2) throw new Error('expected fn to run twice, ran ' + calls2 + ' times');` },
+    { label: 'rejects a primitive key', code: `const memo3 = memoizeByObject((x) => x);
+let threw3 = false;
+try { memo3('not an object'); } catch (e) { threw3 = e instanceof TypeError; }
+if (!threw3) throw new Error('expected a TypeError for a primitive argument');` },
+    { label: 'each memoized function has its own cache', code: `let calls4 = 0;
+const fn4 = () => { calls4++; return 7; };
+const memoA = memoizeByObject(fn4);
+const memoB = memoizeByObject(fn4);
+const obj4 = {};
+if (memoA(obj4) !== 7) throw new Error('expected 7');
+if (memoB(obj4) !== 7) throw new Error('expected 7');
+if (calls4 !== 2) throw new Error('expected fn to run twice, ran ' + calls4 + ' times');` },
   ]}
+  hint="A WeakMap keyed by the argument object gives you the cache and the cleanup for free. Remember what a WeakMap does when you hand it a string key."
 />
 
 </TopicPlayground>

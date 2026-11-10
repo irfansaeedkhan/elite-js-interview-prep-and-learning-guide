@@ -8,40 +8,51 @@ estimatedMinutes: 25
 prerequisites:
   - functions
 keyTakeaways:
-  - Core concepts for Error Handling interviews
-  - Know the definition and one concrete example
-  - Watch for common traps senior interviewers probe
-  - Tie answers back to real debugging experience
+  - "try/catch handles errors thrown while the try block is running, not errors that happen later"
+  - "finally always runs, for cleanup, even when try returns or throws"
+  - "An awaited rejection behaves like a throw inside an async function"
+  - "A sync try/catch cannot catch a rejection or a throw inside setTimeout"
+  - "Catch only what you can handle, then rethrow the rest"
 masteryCriteria:
   minQuestionsCorrect: 3
   requireChallenge: false
 difficulty: medium
 interviewQuestions:
   - id: errorh-1
-    question: What is Error Handling in JavaScript?
-    answer: try/catch/finally, Error types, and throwing vs rejecting.
+    question: What does try/catch/finally do in JavaScript?
+    answer: "try marks code that might fail, catch runs when it throws, and finally runs either way, for cleanup. I would say: try is the risky part, catch is the recovery, finally is the tidy-up that always happens."
     difficulty: easy
     followUps:
-      - When would you reach for this in production code?
-      - What breaks if you misuse it?
+      - What does finally run for, if catch already handled the error?
+      - Can you have try with only finally and no catch?
   - id: errorh-2
-    question: What is a common interview trap around Error Handling?
-    answer: Interviewers often pair Error Handling with edge cases — state the rule, then walk through a short example.
+    question: Why does a try/catch around setTimeout not catch the error inside it?
+    answer: "Because by the time the timer fires, the try block has already finished. The throw happens in a new call stack, long after catch stopped listening. The same thing happens with a promise rejection that is never awaited: the try block finished before the failure arrived."
     difficulty: medium
     followUps:
-      - Can you show the fix in code?
+      - How would you rewrite it so the error is caught?
+      - What is the difference between that and an awaited rejection?
   - id: errorh-3
-    question: How does Error Handling relate to other JS concepts you know?
-    answer: It connects to topics earlier in this track — mention scope, types, async, or the DOM where relevant.
+    question: What happens when an async function throws?
+    answer: "It does not throw to the caller right away. An async function always returns a promise, so a throw inside it becomes a rejected promise. The caller catches it with await inside try/catch, or with .catch on the returned promise."
     difficulty: medium
     followUps:
-      - Which topic would you review first if you got this wrong?
+      - What happens if nobody catches that rejection?
+      - Why does a plain function that throws behave differently?
   - id: errorh-4
-    question: How would you explain Error Handling to a junior developer?
-    answer: Use plain language, one analogy, and one line of code — avoid spec jargon until they ask.
-    difficulty: easy
+    question: What is the trap with return inside finally?
+    answer: "A return inside finally overrides everything: it replaces a value returned from try, and it swallows an error thrown from try or catch. So finally is for cleanup only, never for returning a value."
+    difficulty: medium
     followUps:
-      - What follow-up question would you ask them to check understanding?
+      - What does finally run for, if not for returning values?
+      - Show a function where finally changes the result.
+  - id: errorh-5
+    question: Should you catch every error and keep going?
+    answer: "No. Catch only the errors you can actually handle or recover from, and rethrow the rest. Swallowing an error you do not understand hides a bug and makes the next failure much harder to trace. A custom error class with a clear name makes the rethrow check readable."
+    difficulty: medium
+    followUps:
+      - How do you decide which errors to rethrow?
+      - When is a custom error class worth it?
 ---
 
 <TopicTabs>
@@ -50,9 +61,11 @@ interviewQuestions:
 
 <TopicDefinition>
 
-try/catch/finally, Error types, and throwing vs rejecting.
+If someone asks how error handling works in JavaScript, I'd say you wrap the risky code in `try`, handle the failure in `catch`, and put cleanup in `finally`. The error you catch is usually an `Error` object with a `name` and a `message`.
 
-In interviews, lead with a clear one-liner, then add one example. Senior rounds go deeper on edge cases and trade-offs — have a short code snippet ready.
+What interviewers actually probe is **timing**. A `try/catch` only catches errors thrown while that block is running. A throw inside `setTimeout`, or a promise rejection nobody awaited, arrives after the block has finished, so the `catch` never sees it. Inside an `async` function the story changes: an awaited rejection behaves just like a throw, so `try/catch` works there.
+
+In senior rounds, expect the **swallow trap**: catching an error and doing nothing with it. The program keeps running, but the real bug is now invisible. Catch what you can handle, rethrow the rest, and give your own errors a clear name so the next person can tell them apart.
 
 </TopicDefinition>
 
@@ -64,38 +77,120 @@ In interviews, lead with a clear one-liner, then add one example. Senior rounds 
 
 <TopicTab value="examples">
 
-<CodeExample title="Quick example" language="javascript">
-{`// Error Handling — add your own variation in the playground
-console.log('Review the in-depth tab and Q&A for this topic');`}
-</CodeExample>
+<CodeExample title="try, catch, finally" language="javascript">
+{`function parseAge(input) {
+  try {
+    const age = JSON.parse(input);
+    if (typeof age !== 'number') throw new TypeError('age must be a number');
+    return age;
+  } catch (error) {
+    console.log(error.name + ': ' + error.message);
+    return null;
+  } finally {
+    console.log('parse attempt finished');
+  }
+}
 
-<Callout type="tip">
-Re-read the key takeaways, then try explaining Error Handling out loud in under 30 seconds.
-</Callout>
+console.log(parseAge('42'));      // 'parse attempt finished', then 42
+console.log(parseAge('"old"'));   // TypeError: age must be a number, 'parse attempt finished', then null`}</CodeExample>
+
+<CodeExample title="The async trap: sync try/catch misses later failures" language="javascript">
+{`// This catch NEVER runs: the throw happens after try has finished.
+try {
+  setTimeout(() => { throw new Error('too late'); }, 0);
+} catch (error) {
+  console.log('caught');
+}
+console.log('after try');
+
+// This catch DOES run: await pauses the function until the rejection arrives.
+async function load() {
+  try {
+    await Promise.reject(new Error('boom'));
+  } catch (error) {
+    console.log('caught: ' + error.message);
+  }
+}
+load();`}</CodeExample>
+
+<CodeExample title="Catch what you can handle, rethrow the rest" language="javascript">
+{`class ValidationError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'ValidationError';
+  }
+}
+
+function saveUser(user) {
+  try {
+    if (!user.email) throw new ValidationError('email is required');
+    return 'saved';
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      console.log('bad input: ' + error.message);
+      return null;
+    }
+    throw error; // anything else is not mine to hide
+  }
+}
+
+console.log(saveUser({}));            // bad input: email is required, then null
+console.log(saveUser({ email: 'a@b.c' })); // 'saved'`}</CodeExample>
+
+<CodeExample title="Promise chains: throw becomes rejection" language="javascript">
+{`// A throw inside a .then handler does not crash the chain.
+// It turns into a rejection, and the nearest .catch picks it up.
+Promise.resolve(10)
+  .then((n) => {
+    if (n > 5) throw new Error('too big');
+    return n;
+  })
+  .catch((error) => console.log('caught: ' + error.message));
+// caught: too big`}</CodeExample>
 
 </TopicTab>
 
 <TopicTab value="indepth">
 
-### What to focus on
+<Callout type="gotcha">
+A `return` inside `finally` overrides a return from `try` and swallows a throw from `try` or `catch`. Use `finally` for cleanup only, never for returning a value.
+</Callout>
 
-- Definition and mental model
-- One gotcha interviewers love
-- How it connects to prerequisites in this track
+<Callout type="tip">
+Throw `Error` objects, not strings. A string has no stack trace and no `name`, so the person debugging your code gets nothing to search for. Custom classes like `ValidationError extends Error` keep the stack and add a name worth checking with `instanceof`.
+</Callout>
 
-### Senior follow-ups
+<CodeExample title="finally runs even when try returns" language="javascript">
+{`function greet() {
+  try {
+    return 'hello';
+  } finally {
+    console.log('cleanup');
+  }
+}
 
-Be ready to compare alternatives and describe when **not** to use this feature.
+console.log(greet());
+// cleanup
+// hello`}</CodeExample>
+
+<CodeExample title="Error types you will meet" language="javascript">
+{`console.log(new TypeError('wrong type').name);     // TypeError
+console.log(new ReferenceError('no such var').name); // ReferenceError
+console.log(new SyntaxError('bad syntax').name);     // SyntaxError
+console.log(new RangeError('out of range').name);    // RangeError
+// JSON.parse throwing a SyntaxError is the classic interview example.`}</CodeExample>
 
 </TopicTab>
 
 <TopicTab value="questions">
 
+<FlashcardDeck ids={['errorh-1', 'errorh-2', 'errorh-3', 'errorh-4', 'errorh-5']} />
 
 <InterviewQuestionBlock id="errorh-1" />
 <InterviewQuestionBlock id="errorh-2" />
 <InterviewQuestionBlock id="errorh-3" />
 <InterviewQuestionBlock id="errorh-4" />
+<InterviewQuestionBlock id="errorh-5" />
 
 </TopicTab>
 
@@ -103,28 +198,52 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicPlayground>
 
-<CodingChallenge
-  title="Parse safely: custom errors and a finally that always runs"
-  prompt="Finish parseUser(json): return the parsed object for valid JSON, throw a TypeError for non-string input, throw an Error with the exact message 'Invalid user JSON' for bad JSON, and record 'done' in events in a finally block on every path, success or failure."
-  hint="Check the input type before parsing. Wrap JSON.parse in try/catch and rethrow your own error. finally runs even when catch rethrows."
-  starterCode={`const events = [];
-
-function parseUser(json) {
-  // your code here: type check, try/catch with custom error, finally records 'done'
+<OutputPrediction
+  title="finally runs before the return value lands"
+  expected="cleanup, hello"
+  hint="What prints first: the finally log, or the returned value?"
+  explanation="finally runs before the function actually returns, so 'cleanup' prints first even though try returned 'hello'. The return value itself is unchanged, because finally did not return anything."
+  code={`function greet() {
+  try {
+    return 'hello';
+  } finally {
+    console.log('cleanup');
+  }
 }
 
-const good = parseUser('{"name":"Ada"}');
-let badError = null;
-try { parseUser('not json'); } catch (e) { badError = e; }
-const eventsAfterBad = events.length;
-let typeError = null;
-try { parseUser(42); } catch (e) { typeError = e; }`}
+console.log(greet());`}
+/>
+
+<OutputPrediction
+  title="Awaited rejection order"
+  expected="after call, caught: boom"
+  hint="What prints first: the line after load(), or the catch?"
+  explanation="load() pauses at await, so the synchronous line after the call runs first. When the rejection arrives, the catch inside load() runs. Without await, the try block would have finished before the rejection and caught nothing."
+  code={`async function load() {
+  try {
+    await Promise.reject(new Error('boom'));
+  } catch (error) {
+    console.log('caught: ' + error.message);
+  }
+}
+
+load();
+console.log('after call');`}
+/>
+
+<CodingChallenge
+  title="Retry only the error you understand"
+  prompt="Implement retryOnNetworkError(fn) — call fn() and return its result. If fn throws an error whose name is 'NetworkError', call fn one more time and return that result. If the second call also throws, let that error propagate. If fn throws any other error, do not retry: rethrow it immediately. Swallowing or retrying the wrong error fails the tests."
+  starterCode={`function retryOnNetworkError(fn) {
+  // your code
+}`}
   tests={[
-    { label: 'valid JSON parses to an object', code: `if (!good || good.name !== 'Ada') throw new Error('expected Ada, got ' + JSON.stringify(good));` },
-    { label: 'bad JSON throws Invalid user JSON', code: `if (!badError || badError.message !== 'Invalid user JSON') throw new Error('expected Invalid user JSON, got ' + (badError && badError.message));` },
-    { label: 'non-string input throws TypeError', code: `if (!typeError || typeError.constructor !== TypeError) throw new Error('expected TypeError');` },
-    { label: 'finally recorded done on all three calls', code: `if (events.length !== 3 || eventsAfterBad !== 2) throw new Error('expected 3 done events, got ' + events.length);` },
+    { label: 'returns the result when fn succeeds', code: `if (retryOnNetworkError(() => 42) !== 42) throw new Error('expected 42');` },
+    { label: 'retries once on NetworkError', code: `let calls = 0; const out = retryOnNetworkError(() => { calls++; if (calls === 1) { const e = new Error('down'); e.name = 'NetworkError'; throw e; } return 'ok'; }); if (out !== 'ok' || calls !== 2) throw new Error('expected a retry then ok, got ' + out + ' in ' + calls + ' calls');` },
+    { label: 'does not retry other errors', code: `let calls = 0; try { retryOnNetworkError(() => { calls++; throw new TypeError('bad input'); }); throw new Error('should have thrown'); } catch (e) { if (!(e instanceof TypeError)) throw new Error('expected the original TypeError'); if (calls !== 1) throw new Error('expected 1 call, got ' + calls); }` },
+    { label: 'second NetworkError propagates', code: `let calls = 0; try { retryOnNetworkError(() => { calls++; const e = new Error('still down'); e.name = 'NetworkError'; throw e; }); throw new Error('should have thrown'); } catch (e) { if (e.name !== 'NetworkError') throw new Error('expected NetworkError'); if (calls !== 2) throw new Error('expected 2 calls, got ' + calls); }` },
   ]}
+  hint="Try the first call in a try block. In catch, check error.name: retry only for 'NetworkError', otherwise throw the error again unchanged."
 />
 
 </TopicPlayground>

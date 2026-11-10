@@ -8,40 +8,42 @@ estimatedMinutes: 25
 prerequisites:
   - destructuring
 keyTakeaways:
-  - Core concepts for Spread & Rest interviews
-  - Know the definition and one concrete example
-  - Watch for common traps senior interviewers probe
-  - Tie answers back to real debugging experience
+  - "Spread expands values out, rest gathers values in — same three dots, opposite jobs, decided by where you write them."
+  - "Spread copies are shallow: nested objects are shared, not cloned."
+  - "In object spread, later keys win — that is how defaults plus overrides works."
+  - "A rest parameter must be last, and a function can only have one."
+  - "Spreading null in an array throws, but spreading null in an object is silently ignored."
+  - "Rest gives you a real array; the old arguments object does not."
 masteryCriteria:
   minQuestionsCorrect: 3
   requireChallenge: false
 difficulty: easy
 interviewQuestions:
   - id: spread-1
-    question: What is Spread & Rest in JavaScript?
-    answer: ... in arrays, objects, and function parameters.
+    question: What is the difference between spread and rest in JavaScript?
+    answer: "They look identical but do opposite jobs. Spread expands values out — an array into separate arguments, or an object's properties into a new object. Rest gathers values in — the remaining arguments of a function into one array, or the leftover properties of an object into a new object. Where you write the three dots decides which one it is: in a call or a literal it is spread, in a parameter list or on the left of a destructuring it is rest."
     difficulty: easy
     followUps:
-      - When would you reach for this in production code?
-      - What breaks if you misuse it?
+      - Show one line of each in code.
+      - What happens if you spread something that is not iterable?
   - id: spread-2
-    question: What is a common interview trap around Spread & Rest?
-    answer: Interviewers often pair Spread & Rest with edge cases — state the rule, then walk through a short example.
+    question: If you copy an object with spread and then change a nested value on the copy, does the original change?
+    answer: "Yes, if the value is nested. Spread only copies the top level, so the copy and the original still point at the same nested object. Changing a top-level property on the copy is safe, but changing copy.settings.theme also changes original.settings.theme. That is the number one spread bug in state updates, and the fix is to spread at every level you change or deep-clone when the shape is small enough."
     difficulty: medium
     followUps:
-      - Can you show the fix in code?
+      - How would you update one nested field in a Redux-style state object without mutating it?
   - id: spread-3
-    question: How does Spread & Rest relate to other JS concepts you know?
-    answer: It connects to topics earlier in this track — mention scope, types, async, or the DOM where relevant.
+    question: Where can a rest parameter go in a function definition?
+    answer: "Last, and only one per function. Rest gathers everything left over, so anything after it could never receive a value — writing function f(...rest, last) is a SyntaxError, not a runtime surprise. The same rule holds in destructuring: const [first, ...rest, last] is also a SyntaxError. Named parameters before rest are filled first, and rest collects whatever remains, even if that is an empty array."
     difficulty: medium
     followUps:
-      - Which topic would you review first if you got this wrong?
+      - What does rest collect when the function is called with no extra arguments?
   - id: spread-4
-    question: How would you explain Spread & Rest to a junior developer?
-    answer: Use plain language, one analogy, and one line of code — avoid spec jargon until they ask.
-    difficulty: easy
+    question: What happens when you spread null — in an array versus in an object?
+    answer: "Different results, and interviewers love the contrast. In an array, [...null] throws a TypeError because array spread needs an iterable and null is not one. In an object, { ...null } is fine and produces an empty object, because object spread simply skips null and undefined sources. So for arrays you guard first, like [...(items ?? [])], while for objects you can spread a possibly-missing options object directly."
+    difficulty: medium
     followUps:
-      - What follow-up question would you ask them to check understanding?
+      - Which other values can you safely spread in an object but not in an array?
 ---
 
 <TopicTabs>
@@ -50,9 +52,11 @@ interviewQuestions:
 
 <TopicDefinition>
 
-... in arrays, objects, and function parameters.
+If someone asks what spread and rest are, I'd say they are the same three dots doing two opposite jobs. Spread expands values out. Rest gathers values in. Which one you get depends entirely on where you write it.
 
-In interviews, lead with a clear one-liner, then add one example. Senior rounds go deeper on edge cases and trade-offs — have a short code snippet ready.
+In a function call or a literal, the dots expand. `Math.max(...scores)` turns an array into separate arguments. `{ ...user }` copies an object's properties into a new object. In a parameter list or on the left side of a destructuring, the dots gather. `function sum(...nums)` collects every argument into one real array.
+
+What interviewers usually probe next is the shallow-copy trap. A spread copy is only one level deep. Nested objects are still shared with the original, so editing them through the copy edits the original too. That one fact explains a whole class of state-management bugs.
 
 </TopicDefinition>
 
@@ -64,33 +68,77 @@ In interviews, lead with a clear one-liner, then add one example. Senior rounds 
 
 <TopicTab value="examples">
 
-<CodeExample title="Quick example" language="javascript">
-{`// Spread & Rest — add your own variation in the playground
-console.log('Review the in-depth tab and Q&A for this topic');`}
-</CodeExample>
+<CodeExample title="Spread expands, rest gathers" language="javascript">
+{`// Spread: an array becomes separate arguments
+const scores = [3, 9, 4];
+console.log(Math.max(...scores)); // 9
+
+// Spread: arrays merge into a new array
+const merged = [0, ...scores, 10]; // [0, 3, 9, 4, 10]
+
+// Rest: remaining arguments gather into a real array
+function sum(...nums) {
+  return nums.reduce((total, n) => total + n, 0);
+}
+console.log(sum(1, 2, 3)); // 6
+console.log(sum()); // 0 — rest is an empty array, not undefined`}</CodeExample>
+
+<CodeExample title="The shallow-copy trap" language="javascript">
+{`const user = { name: 'Sam', settings: { theme: 'dark' } };
+const copy = { ...user };
+
+copy.name = 'Alex'; // safe — top level is copied
+console.log(user.name); // 'Sam'
+
+copy.settings.theme = 'light'; // trap — settings is shared
+console.log(user.settings.theme); // 'light' — the original changed too
+
+// Fix: spread at every level you change
+const fixed = { ...user, settings: { ...user.settings, theme: 'light' } };
+console.log(user.settings.theme); // still 'light' from above, fixed is independent`}</CodeExample>
+
+<CodeExample title="Later keys win: defaults plus overrides" language="javascript">
+{`const defaults = { theme: 'light', fontSize: 14 };
+const userPrefs = { theme: 'dark' };
+
+// Later properties overwrite earlier ones with the same key
+const prefs = { ...defaults, ...userPrefs };
+console.log(prefs); // { theme: 'dark', fontSize: 14 }
+
+// Rest in destructuring: pull out what you need, keep the rest
+const { password, ...safeUser } = { name: 'Sam', password: 'secret', role: 'admin' };
+console.log(safeUser); // { name: 'Sam', role: 'admin' }
+console.log(password); // 'secret' — still in its own variable`}</CodeExample>
 
 <Callout type="tip">
-Re-read the key takeaways, then try explaining Spread & Rest out loud in under 30 seconds.
+When an interviewer asks about spread, answer the shallow-copy question before they ask it. Saying "spread is shallow" unprompted is the fastest way to sound senior on this topic.
 </Callout>
 
 </TopicTab>
 
 <TopicTab value="indepth">
 
-### What to focus on
+### Spread in arrays needs an iterable
 
-- Definition and mental model
-- One gotcha interviewers love
-- How it connects to prerequisites in this track
+Array spread works on anything you can loop over with `for...of`: arrays, strings, Sets, Maps. Spreading a plain object or `null` in an array throws a `TypeError`. That is why `[...maybeItems]` is a crash waiting to happen when the data can be missing, and `[...(maybeItems ?? [])]` is the safe form.
+
+### Object spread plays by different rules
+
+Object spread copies an object's own enumerable properties, and it quietly skips `null` and `undefined` sources. So `{ ...maybeOptions }` never throws, even when `maybeOptions` is missing. It also copies symbol-keyed properties, but it reads getters and copies their current value rather than the getter itself.
+
+### Rest is a real array, arguments is not
+
+The old `arguments` object looks like an array but has no `map` or `filter`, and arrow functions do not even get one. A rest parameter is a genuine `Array`, so `nums.reduce(...)` just works. Named parameters before rest are filled first; rest takes only what is left.
 
 ### Senior follow-ups
 
-Be ready to compare alternatives and describe when **not** to use this feature.
+Be ready to explain why `{ ...state, nested: { ...state.nested, field: value } }` is the standard immutable update shape in Redux-style code, and when that nesting gets deep enough that a helper or `structuredClone` is the honest answer instead of hand-spreading five levels.
 
 </TopicTab>
 
 <TopicTab value="questions">
 
+<FlashcardDeck ids={['spread-1', 'spread-2', 'spread-3', 'spread-4']} />
 
 <InterviewQuestionBlock id="spread-1" />
 <InterviewQuestionBlock id="spread-2" />
@@ -103,26 +151,31 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicPlayground>
 
+<OutputPrediction
+  title="Which lines change the original?"
+  expected="Sam, light"
+  hint="Top-level copies are independent. What about the nested object?"
+  explanation="copy.name is a fresh top-level property, so changing it leaves user.name as 'Sam'. But copy.settings is the same object as user.settings, so changing theme through the copy changes it for the original too. That is exactly what shallow means."
+  code={`const user = { name: 'Sam', settings: { theme: 'dark' } };
+const copy = { ...user };
+copy.name = 'Alex';
+copy.settings.theme = 'light';
+console.log(user.name + ', ' + user.settings.theme);`}
+/>
+
 <CodingChallenge
-  title="Merge settings without mutating, then sum any count of numbers"
-  prompt="Finish two functions. mergeSettings(defaults, overrides) must return a NEW object with overrides winning, and must not change defaults. sumAll(...nums) must add any number of arguments, including zero. The mutation test is the point: spreading into a fresh object is what keeps defaults safe."
-  hint="Spread into a new literal for the merge. For sumAll, gather the arguments with a rest parameter and reduce them."
-  starterCode={`function mergeSettings(defaults, overrides) {
-  // your code here: return a new merged object, do not change defaults
-}
-
-function sumAll() {
-  // your code here: add any number of arguments
-}
-
-const defaults = { theme: 'light', size: 12 };
-const merged = mergeSettings(defaults, { size: 16 });`}
+  title="Omit keys without mutating the original"
+  prompt="Implement omit(obj, keys) — return a NEW object with every property of obj except the ones listed in keys. Do not mutate obj. The returned object must be a different reference from obj, and obj must be unchanged afterwards, including when keys lists a property that does not exist."
+  starterCode={`function omit(obj, keys) {
+  // your code
+}`}
   tests={[
-    { label: 'overrides win in the merged object', code: `if (merged.theme !== 'light' || merged.size !== 16) throw new Error('expected light/16, got ' + merged.theme + '/' + merged.size);` },
-    { label: 'defaults object is unchanged', code: `if (defaults.theme !== 'light' || defaults.size !== 12) throw new Error('defaults were mutated');` },
-    { label: 'merged object is a new object', code: `if (merged === defaults) throw new Error('merged must not be the same object as defaults');` },
-    { label: 'sumAll adds any count, including none', code: `if (sumAll(1, 2, 3) !== 6 || sumAll() !== 0 || sumAll(5) !== 5) throw new Error('sumAll is wrong');` },
+    { label: 'removes the listed keys', code: `const out = omit({ a: 1, b: 2, c: 3 }, ['b']); if (JSON.stringify(out) !== JSON.stringify({ a: 1, c: 3 })) throw new Error('expected { a: 1, c: 3 }, got ' + JSON.stringify(out));` },
+    { label: 'returns a new object and leaves the original untouched', code: `const original = { a: 1, b: 2 }; const out = omit(original, ['b']); if (out === original) throw new Error('must return a new object'); if (JSON.stringify(original) !== JSON.stringify({ a: 1, b: 2 })) throw new Error('original was mutated');` },
+    { label: 'missing keys are ignored', code: `const out = omit({ a: 1 }, ['nope']); if (JSON.stringify(out) !== JSON.stringify({ a: 1 })) throw new Error('expected { a: 1 }, got ' + JSON.stringify(out));` },
+    { label: 'empty keys returns a full copy', code: `const original = { a: 1 }; const out = omit(original, []); if (out === original) throw new Error('must return a new object'); if (JSON.stringify(out) !== JSON.stringify({ a: 1 })) throw new Error('expected { a: 1 }');` },
   ]}
+  hint="Loop over the keys to drop and use rest destructuring, or build a new object by copying every entry whose key is not in the list. Either way, never assign into obj itself."
 />
 
 </TopicPlayground>

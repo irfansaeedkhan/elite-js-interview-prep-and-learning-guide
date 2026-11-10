@@ -8,40 +8,52 @@ estimatedMinutes: 30
 prerequisites:
   - promises
 keyTakeaways:
-  - Core concepts for Fetch API interviews
-  - Know the definition and one concrete example
-  - Watch for common traps senior interviewers probe
-  - Tie answers back to real debugging experience
+  - fetch returns a promise that resolves to a Response — the body has not been read yet
+  - fetch only rejects on network failure or abort; a 404 or 500 still resolves, so always check response.ok
+  - response.ok is true only for status 200–299; throw on !ok before calling response.json()
+  - A response body can be read exactly once; a second .json() call rejects, use .clone() if you need two reads
+  - fetch has no built-in timeout — use AbortController, or AbortSignal.timeout(ms) for the one-liner
+  - A fetch aborted with AbortController rejects with an error named 'AbortError'; a timeout via AbortSignal.timeout(ms) rejects with 'TimeoutError'
 masteryCriteria:
   minQuestionsCorrect: 3
   requireChallenge: false
 difficulty: medium
 interviewQuestions:
   - id: fetcha-1
-    question: What is Fetch API in JavaScript?
-    answer: fetch, Response, JSON parsing, and basic error handling.
+    question: What does fetch return, and why is there a second await for the body?
+    answer: "fetch returns a promise that resolves to a Response object as soon as the headers arrive — the body has not been read yet. That's why you await twice: once for the response, once for response.json(). The body is a stream, so .json() is itself async, and you can only read it once."
     difficulty: easy
     followUps:
-      - When would you reach for this in production code?
-      - What breaks if you misuse it?
+      - What happens if you call response.json() twice?
+      - When would you use response.text() instead of .json()?
   - id: fetcha-2
-    question: What is a common interview trap around Fetch API?
-    answer: Interviewers often pair Fetch API with edge cases — state the rule, then walk through a short example.
+    question: Why doesn't try/catch around fetch catch a 404?
+    answer: "Because fetch only rejects when the request never produced a response — offline, DNS failure, CORS block, or an abort. A 404 is a perfectly good HTTP response, so the promise resolves and your catch never runs. The fix is to check response.ok yourself: it's true only for status 200–299, and if it's false, throw before you parse the body."
     difficulty: medium
     followUps:
-      - Can you show the fix in code?
+      - What does response.ok return for a 301 redirect?
+      - Where would you put the ok check in a shared API helper?
   - id: fetcha-3
-    question: How does Fetch API relate to other JS concepts you know?
-    answer: It connects to topics earlier in this track — mention scope, types, async, or the DOM where relevant.
+    question: How do you give a fetch request a timeout, and how do you cancel one?
+    answer: "fetch has no timeout option, so you bring your own signal. For a plain timeout, AbortSignal.timeout(5000) is the one-liner — pass it as the signal option and the request rejects with a TimeoutError after 5 seconds. For manual cancel, like a user typing a new search query, create an AbortController, pass controller.signal, and call controller.abort() when the old request is stale. In the catch, check err.name: 'AbortError' means a manual cancel, 'TimeoutError' means the deadline passed — neither one is a crash to report."
     difficulty: medium
     followUps:
-      - Which topic would you review first if you got this wrong?
+      - What happens to a request when its component unmounts?
+      - How do you combine a timeout signal with a manual cancel signal?
   - id: fetcha-4
-    question: How would you explain Fetch API to a junior developer?
-    answer: Use plain language, one analogy, and one line of code — avoid spec jargon until they ask.
-    difficulty: easy
+    question: What happens if you read a response body twice?
+    answer: "The second read rejects. The body is a stream that gets consumed on the first read, and the Response tracks that with bodyUsed. So response.json() followed by response.json() again fails — if you genuinely need the body twice, for logging and parsing say, call response.clone() first and read each copy once."
+    difficulty: medium
     followUps:
-      - What follow-up question would you ask them to check understanding?
+      - What does response.bodyUsed tell you?
+      - Why is the body a stream instead of a plain value?
+  - id: fetcha-5
+    question: When would you not use raw fetch?
+    answer: "When I need the things fetch deliberately doesn't do: upload progress, request/response interceptors, automatic JSON error handling, or retries. Then I either write one small wrapper around fetch that adds the ok check and timeout, or reach for a library. Raw fetch is the right default for simple calls; the wrapper is where the production behavior lives."
+    difficulty: hard
+    followUps:
+      - What would your wrapper add, in order?
+      - How do you handle a 401 differently from a 500 in that wrapper?
 ---
 
 <TopicTabs>
@@ -50,9 +62,9 @@ interviewQuestions:
 
 <TopicDefinition>
 
-fetch, Response, JSON parsing, and basic error handling.
+If someone asks me what fetch is, I'd say it's the browser's built-in way to make HTTP requests — you call `fetch(url)` and get back a promise that resolves to a Response. The part people miss is that the promise resolving does **not** mean the request succeeded. It only means the server answered.
 
-In interviews, lead with a clear one-liner, then add one example. Senior rounds go deeper on edge cases and trade-offs — have a short code snippet ready.
+Interviewers care about this topic because the error handling is backwards from what most people expect. A 404 or a 500 still resolves the promise — fetch only rejects when no response arrives at all, like being offline or hitting a CORS block. So the real skill is the two-step habit: check `response.ok` first, then read the body. And since fetch has no timeout option, senior rounds always ask how you'd stop a request that hangs — that's `AbortController`.
 
 </TopicDefinition>
 
@@ -64,13 +76,61 @@ In interviews, lead with a clear one-liner, then add one example. Senior rounds 
 
 <TopicTab value="examples">
 
-<CodeExample title="Quick example" language="javascript">
-{`// Fetch API — add your own variation in the playground
-console.log('Review the in-depth tab and Q&A for this topic');`}
+<CodeExample title="The shape of a correct fetch" language="javascript">
+{`async function getUser(id) {
+  const response = await fetch(\`/api/users/\${id}\`);
+  // Step 1: the promise resolved — but did the request SUCCEED?
+  if (!response.ok) {
+    throw new Error(\`HTTP \${response.status}\`);
+  }
+  // Step 2: only now read the body (this await is easy to forget)
+  return response.json();
+}
+
+// A 404 here throws from OUR check, not from fetch:
+// getUser(999) → Error: HTTP 404
+// Offline here rejects from fetch itself → caught by try/catch`}
 </CodeExample>
 
-<Callout type="tip">
-Re-read the key takeaways, then try explaining Fetch API out loud in under 30 seconds.
+<CodeExample title="POST with JSON, and reading the error body" language="javascript">
+{`async function createUser(name) {
+  const response = await fetch('/api/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }), // fetch does NOT stringify for you
+  });
+
+  if (!response.ok) {
+    // Error responses often carry a useful JSON message — read it before throwing
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody.message ?? \`HTTP \${response.status}\`);
+  }
+  return response.json();
+}`}
+</CodeExample>
+
+<CodeExample title="Timeout and manual cancel with AbortController" language="javascript">
+{`// One-liner timeout: rejects with TimeoutError after 5 seconds
+const response = await fetch('/api/slow', {
+  signal: AbortSignal.timeout(5000),
+});
+
+// Manual cancel: search-as-you-type, abort the stale request
+const controller = new AbortController();
+try {
+  const res = await fetch(\`/api/search?q=\${query}\`, { signal: controller.signal });
+  if (!res.ok) throw new Error(\`HTTP \${res.status}\`);
+  return res.json();
+} catch (err) {
+  if (err.name === 'AbortError') return; // cancelled on purpose, not a failure
+  throw err;
+}
+// When the user types the next character:
+controller.abort();`}
+</CodeExample>
+
+<Callout type="interview">
+When an interviewer says "fetch the user and handle errors," narrate the three steps out loud: **"await the response, check ok, then await the body."** Saying the order proves you know the 404 trap without them having to ask.
 </Callout>
 
 </TopicTab>
@@ -79,23 +139,33 @@ Re-read the key takeaways, then try explaining Fetch API out loud in under 30 se
 
 ### What to focus on
 
-- Definition and mental model
-- One gotcha interviewers love
-- How it connects to prerequisites in this track
+- The mental model: fetch resolving means "the server answered," not "the request succeeded"
+- The two-step habit: `response.ok` check first, body read second — in that order, every time
+- The three reject cases: network failure, CORS block, and abort — everything else resolves
+
+### Traps interviewers reach for
+
+- **"Why didn't my catch run on a 404?"** — because 404 resolves. The catch only sees network failures and aborts.
+- **"Why is my data undefined?"** — usually a missing second await: `const data = response.json()` without awaiting it, so `data` is still a promise and `data.name` is undefined.
+- **"Why did the second .json() fail?"** — the body stream is consumed on first read. Clone first if you need two reads.
+- **"Why does my request hang forever?"** — fetch has no timeout. A hung server means a hung request until you add an AbortSignal.
+- **CORS errors look like network errors** — a CORS block rejects with an opaque TypeError, and no frontend code can fix it; the server has to allow the origin.
 
 ### Senior follow-ups
 
-Be ready to compare alternatives and describe when **not** to use this feature.
+Be ready to describe your production wrapper: ok check, timeout signal, error-body parsing, and a 401 path that refreshes auth or redirects to login, distinct from a 500 path that just reports. Know that fetch can't report upload progress (no `onprogress` like XMLHttpRequest), that credentials default to same-origin, and that `AbortSignal.any()` combines a timeout signal with a manual cancel signal into one.
 
 </TopicTab>
 
 <TopicTab value="questions">
 
+<FlashcardDeck ids={['fetcha-1', 'fetcha-2', 'fetcha-3', 'fetcha-4', 'fetcha-5']} />
 
 <InterviewQuestionBlock id="fetcha-1" />
 <InterviewQuestionBlock id="fetcha-2" />
 <InterviewQuestionBlock id="fetcha-3" />
 <InterviewQuestionBlock id="fetcha-4" />
+<InterviewQuestionBlock id="fetcha-5" />
 
 </TopicTab>
 
@@ -103,30 +173,30 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicPlayground>
 
+<OutputPrediction
+  title="AbortController signal state"
+  expected="false true"
+  hint="What is signal.aborted before and after abort() is called?"
+  explanation="A fresh controller's signal is not aborted. After controller.abort(), signal.aborted flips to true — and any fetch using that signal rejects with an AbortError."
+  code={`const controller = new AbortController();
+console.log(controller.signal.aborted);
+controller.abort();
+console.log(controller.signal.aborted);`}
+/>
+
 <CodingChallenge
-  title="Load a user and handle a missing one"
-  prompt="The sandbox has no network, so this exercise runs against a mock fetch with the same shape as the real one: it returns a promise of a response with ok, status, and a json() method. Write loadUser(id) so it awaits the response, throws an Error naming the HTTP status when ok is false, and otherwise returns the parsed JSON. There are no automated tests for the async path: results arrive after the test block runs, so check the console output instead. Correct output is the user object for id 1, then Error: HTTP 404 for id 99, in that order."
-  hint="Await the response, check ok before touching the body, and throw on a bad status. Returning the response itself is not enough: the caller wants the parsed JSON."
-  starterCode={`function mockFetch(url) {
-  const users = { 1: { id: 1, name: 'Ada' } };
-  const id = Number(url.split('/').pop());
-  if (users[id]) {
-    return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(users[id]) });
-  }
-  return Promise.resolve({ ok: false, status: 404, json: () => Promise.resolve({ message: 'not found' }) });
-}
-
-// your code here: define loadUser(id) using mockFetch
-
-loadUser(1)
-  .then((user) => console.log('user: ' + JSON.stringify(user)))
-  .catch((e) => console.log('Error: ' + e.message))
-  .then(() => loadUser(99))
-  .then((user) => console.log('user: ' + JSON.stringify(user)))
-  .catch((e) => console.log('Error: ' + e.message));`}
+  title="Single-read body guard"
+  prompt="A real Response body can be read exactly once: the first .json() consumes the stream and the second rejects. Implement readOnce(jsonText), which returns a read() function. The first read() call returns the parsed object; every later call throws an Error with the message 'Body already used'. This models response.bodyUsed without needing a network request."
+  starterCode={`function readOnce(jsonText) {
+  // your code — return a read() function
+}`}
   tests={[
-    { label: 'loadUser is defined', code: `if (typeof loadUser !== 'function') throw new Error('expected a loadUser function');` },
+    { label: 'first read returns parsed data', code: `const read = readOnce('{"name": "Ada"}'); if (read().name !== 'Ada') throw new Error('expected Ada');` },
+    { label: 'second read throws Body already used', code: `const read = readOnce('{"a": 1}'); read(); let threw = false; try { read(); } catch (e) { threw = e.message === 'Body already used'; } if (!threw) throw new Error('second read must throw Body already used');` },
+    { label: 'instances are independent', code: `const r1 = readOnce('{"x": 1}'); const r2 = readOnce('{"x": 2}'); r1(); if (r2().x !== 2) throw new Error('second instance must still read');` },
+    { label: 'invalid JSON throws on first read', code: `const read = readOnce('not json'); let threw = false; try { read(); } catch (e) { threw = true; } if (!threw) throw new Error('invalid JSON must throw');` },
   ]}
+  hint="Keep a boolean flag in the closure. Parse with JSON.parse on the first call only, then flip the flag before returning — so even a throwing parse leaves the body 'used', like a real Response."
 />
 
 </TopicPlayground>

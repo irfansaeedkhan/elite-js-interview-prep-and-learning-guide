@@ -8,40 +8,36 @@ estimatedMinutes: 35
 prerequisites:
   - promises
 keyTakeaways:
-  - Core concepts for async/await interviews
-  - Know the definition and one concrete example
-  - Watch for common traps senior interviewers probe
-  - Tie answers back to real debugging experience
+  - An async function always returns a promise — a return value becomes the resolved value, a throw becomes the rejection.
+  - await pauses only your function; the rest of the program keeps running and your continuation resumes as a microtask.
+  - N independent awaits in a row run sequentially — kick them off together and await Promise.all for the parallel fix.
+  - async callbacks inside forEach don't wait — use for...of for serial work, Promise.all(items.map(...)) for parallel.
+  - try/catch is the natural error handler for await; a rejected promise you never await or catch becomes an unhandled rejection.
 masteryCriteria:
   minQuestionsCorrect: 3
-  requireChallenge: false
+  requireChallenge: true
 difficulty: hard
 interviewQuestions:
   - id: asynca-1
-    question: What is async/await in JavaScript?
-    answer: async functions, await, sequential vs parallel, and error handling.
+    question: What does the async keyword guarantee about a function's return value?
+    answer: An async function always returns a promise — even if you return a plain value. "return 42" gives you a promise resolved with 42; "throw err" gives you a promise rejected with err.
     difficulty: easy
-    followUps:
-      - When would you reach for this in production code?
-      - What breaks if you misuse it?
   - id: asynca-2
-    question: What is a common interview trap around async/await?
-    answer: Interviewers often pair async/await with edge cases — state the rule, then walk through a short example.
+    question: Does await block the whole program until the promise settles?
+    answer: No — it pauses only the enclosing async function. The event loop keeps running other work, and your function's remaining code resumes later as a microtask. That's why code after the async call often runs before the code after await.
     difficulty: medium
-    followUps:
-      - Can you show the fix in code?
   - id: asynca-3
-    question: How does async/await relate to other JS concepts you know?
-    answer: It connects to topics earlier in this track — mention scope, types, async, or the DOM where relevant.
+    question: You await three independent API calls in a loop and the endpoint is slow — what is wrong and how do you fix it?
+    answer: 'Each await waits for the previous request to finish, so three 200ms calls take 600ms. The calls are independent, so fire them all and wait together: "const [a, b, c] = await Promise.all([fetchA(), fetchB(), fetchC()])" — total time is the slowest call, not the sum.'
     difficulty: medium
-    followUps:
-      - Which topic would you review first if you got this wrong?
   - id: asynca-4
-    question: How would you explain async/await to a junior developer?
-    answer: Use plain language, one analogy, and one line of code — avoid spec jargon until they ask.
+    question: What happens if you await a value that is not a promise?
+    answer: It still works — the value is wrapped with Promise.resolve, so "await 42" evaluates to 42. No error, no extra delay.
     difficulty: easy
-    followUps:
-      - What follow-up question would you ask them to check understanding?
+  - id: asynca-5
+    question: Why does using an async callback inside forEach not wait for the work to finish?
+    answer: forEach ignores the promises your callbacks return — it fires all the callbacks and returns immediately. If you need the results, use "for...of" with await for serial work, or "await Promise.all(items.map(fn))" for parallel work.
+    difficulty: medium
 ---
 
 <TopicTabs>
@@ -50,9 +46,11 @@ interviewQuestions:
 
 <TopicDefinition>
 
-async functions, await, sequential vs parallel, and error handling.
+If someone asks what async/await is, I'd say it's syntactic sugar over promises — a way to write asynchronous code so it reads top to bottom. You mark a function `async`, and inside it you can `await` a promise, which means "pause here until this settles and give me the value."
 
-In interviews, lead with a clear one-liner, then add one example. Senior rounds go deeper on edge cases and trade-offs — have a short code snippet ready.
+The part interviewers care about most is the word **pause**. `await` pauses **your function**, not the whole program. The rest of the code keeps running, and your function resumes later as a microtask. That's the trick behind every output-order question they ask on this topic.
+
+For senior rounds, remember this: every `await` in a row adds up. Three awaits for three independent API calls means three sequential round trips. Interviewers will show you that waterfall and expect you to reach for `Promise.all`.
 
 </TopicDefinition>
 
@@ -64,38 +62,114 @@ In interviews, lead with a clear one-liner, then add one example. Senior rounds 
 
 <TopicTab value="examples">
 
-<CodeExample title="Quick example" language="javascript">
-{`// async/await — add your own variation in the playground
-console.log('Review the in-depth tab and Q&A for this topic');`}
+<CodeExample title="The basic shape" language="javascript">
+{`async function getUser(id) {
+  try {
+    const res = await fetch(\`/api/users/\${id}\`);
+    if (!res.ok) throw new Error(\`HTTP \${res.status}\`);
+    return await res.json();
+  } catch (err) {
+    console.error('Failed to load user:', err.message);
+    return null;
+  }
+}
+
+// async always returns a promise — even this:
+async function five() { return 5; }
+five().then(v => console.log(v)); // 5`}
 </CodeExample>
 
-<Callout type="tip">
-Re-read the key takeaways, then try explaining async/await out loud in under 30 seconds.
+<CodeExample title="The sequential trap and the parallel fix" language="javascript">
+{`// SLOW: 200ms + 200ms + 200ms = ~600ms
+async function slow(ids) {
+  const results = [];
+  for (const id of ids) {
+    results.push(await fetchStats(id)); // each await waits for the last
+  }
+  return results;
+}
+
+// FAST: all three start at once, ~200ms total
+async function fast(ids) {
+  return await Promise.all(ids.map(id => fetchStats(id)));
+}`}
+</CodeExample>
+
+<CodeExample title="The forEach trap" language="javascript">
+{`// BROKEN: forEach doesn't wait for async callbacks
+async function broken(ids) {
+  ids.forEach(async (id) => {
+    await saveItem(id); // fires, but nobody waits
+  });
+  console.log('done'); // prints before any save finishes
+}
+
+// FIXED — serial: for...of
+async function serial(ids) {
+  for (const id of ids) {
+    await saveItem(id);
+  }
+}
+
+// FIXED — parallel: Promise.all
+async function parallel(ids) {
+  await Promise.all(ids.map((id) => saveItem(id)));
+}`}
+</CodeExample>
+
+<Callout type="interview">
+Say it out loud in the interview: **"await pauses my function, not my thread."** Then draw the microtask continuation when they ask about ordering.
 </Callout>
 
 </TopicTab>
 
 <TopicTab value="indepth">
 
-### What to focus on
+### How await actually works
 
-- Definition and mental model
-- One gotcha interviewers love
-- How it connects to prerequisites in this track
+When execution reaches `await promise`, the function is suspended and its remaining code is scheduled as a **microtask**. Microtasks run after the current synchronous code finishes, before timers and I/O. That's why:
 
-### Senior follow-ups
+```js
+async function main() {
+  console.log('A');
+  await Promise.resolve();
+  console.log('B');
+}
+main();
+console.log('C');
+// A, C, B — 'B' waits for the microtask queue
+```
 
-Be ready to compare alternatives and describe when **not** to use this feature.
+### await on a non-promise
+
+`await 42` is legal and evaluates to `42` — the value is wrapped via `Promise.resolve`. It never throws for this reason.
+
+### Promise.all vs Promise.allSettled
+
+- `Promise.all` **rejects fast**: the first rejection wins, but the other promises keep running in the background — their results are just discarded.
+- `Promise.allSettled` waits for everything and hands you `{ status: 'fulfilled', value }` or `{ status: 'rejected', reason }` per item. Use it when every result matters even if some fail.
+
+### Where try/catch fits
+
+`await` throws the rejection reason inside the async function, so `try/catch` works naturally. But watch the reverse direction: an async function you call **without** await and **without** `.catch()` produces an unhandled rejection — in Node.js that can crash the process.
+
+### Senior follow-ups to rehearse
+
+- Convert a `.then()` chain into equivalent async/await (and back).
+- Add a timeout around a promise with `Promise.race`.
+- Why awaiting in a loop is sometimes correct — when each step genuinely depends on the previous one (e.g., paginated cursors).
 
 </TopicTab>
 
 <TopicTab value="questions">
 
+<FlashcardDeck ids={['asynca-1', 'asynca-2', 'asynca-3', 'asynca-4', 'asynca-5']} />
 
 <InterviewQuestionBlock id="asynca-1" />
 <InterviewQuestionBlock id="asynca-2" />
 <InterviewQuestionBlock id="asynca-3" />
 <InterviewQuestionBlock id="asynca-4" />
+<InterviewQuestionBlock id="asynca-5" />
 
 </TopicTab>
 
@@ -103,30 +177,52 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicPlayground>
 
-<SandpackPlayground
-  title="Fetch in parallel, not in sequence"
-  code={`// Each fake fetch takes about 100ms. Run this file and read the console.
-// Goal output: names in input order AND the 'parallel' bucket.
-// If you await each fetch inside a loop, the bucket flips to 'sequential'.
+<OutputPrediction
+  title="What prints, and in what order?"
+  expected="A, C, B"
+  hint="Type letters in order, e.g. A, C, B"
+  explanation="main() runs synchronously until its await — printing A — then suspends. console.log('C') runs next because the synchronous main stack finishes first. 'B' is a microtask, so it runs after C. await pauses the function, never the program."
+  code={`async function main() {
+  console.log('A');
+  await Promise.resolve();
+  console.log('B');
+}
+main();
+console.log('C');`}
+/>
 
-function fakeFetch(id) {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve('user-' + id), 100);
-  });
+<OutputPrediction
+  title="The un-awaited call"
+  expected="start, end, done"
+  hint="Type the printed words in order, comma-separated"
+  explanation="getData() is called without await, so the function body starts and pauses at its await — but nobody waits for it, so 'end' prints immediately. A second later the timer fires and 'done' prints. The promise result is simply discarded."
+  code={`async function getData() {
+  await new Promise(r => setTimeout(r, 1000));
+  console.log('done');
+}
+console.log('start');
+getData();
+console.log('end');`}
+/>
+
+<CodingChallenge
+  title="Implement promiseAll"
+  prompt="Implement promiseAll(promises) — same contract as Promise.all: resolve with an array of values in INPUT order (not completion order), reject as soon as ANY input rejects, and resolve [] for an empty array. Non-promise values must be accepted."
+  starterCode={`function delay(ms, value) {
+  return new Promise(resolve => setTimeout(() => resolve(value), ms));
 }
 
-async function loadUsers(ids) {
-  // your code here: fetch all ids and return their names in input order
-}
-
-(async () => {
-  const start = Date.now();
-  const names = await loadUsers(['a', 'b', 'c']);
-  const elapsed = Date.now() - start;
-  console.log('names: ' + names.join(','));
-  console.log('elapsed ms: ' + elapsed);
-  console.log('bucket: ' + (elapsed < 200 ? 'parallel' : 'sequential'));
-})();`}
+// YOUR CODE: resolve in input order, reject on first rejection
+function promiseAll(promises) {
+  // your code
+}`}
+  tests={[
+    { label: 'resolves values in input order, not completion order', code: `promiseAll([delay(30, 'a'), delay(5, 'b'), delay(15, 'c')]).then(v => { if (JSON.stringify(v) !== '["a","b","c"]') throw new Error('wrong order: ' + JSON.stringify(v)); console.log('✓ Test 1: resolves values in input order, not completion order'); }).catch(e => console.error('✗ Test 1: resolves values in input order, not completion order —', e.message));` },
+    { label: 'rejects when any input rejects', code: `promiseAll([delay(5, 1), Promise.reject(new Error('boom')), delay(30, 3)]).then(() => { throw new Error('should have rejected'); }, e => { if (e.message !== 'boom') throw new Error('wrong reason: ' + e.message); console.log('✓ Test 2: rejects when any input rejects'); }).catch(e => console.error('✗ Test 2: rejects when any input rejects —', e.message));` },
+    { label: 'empty array resolves to []', code: `promiseAll([]).then(v => { if (!Array.isArray(v) || v.length !== 0) throw new Error('expected [], got ' + JSON.stringify(v)); console.log('✓ Test 3: empty array resolves to []'); }).catch(e => console.error('✗ Test 3: empty array resolves to [] —', e.message));` },
+    { label: 'accepts non-promise values', code: `promiseAll([1, 'two', Promise.resolve(3)]).then(v => { if (JSON.stringify(v) !== '[1,"two",3]') throw new Error('wrong values: ' + JSON.stringify(v)); console.log('✓ Test 4: accepts non-promise values'); }).catch(e => console.error('✗ Test 4: accepts non-promise values —', e.message));` },
+  ]}
+  hint="Wrap each entry with Promise.resolve(entry). Track how many have settled, store results at their original index, and only resolve when the count reaches the array length."
 />
 
 </TopicPlayground>

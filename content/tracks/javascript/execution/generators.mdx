@@ -8,40 +8,51 @@ estimatedMinutes: 35
 prerequisites:
   - promises
 keyTakeaways:
-  - Core concepts for Generators interviews
-  - Know the definition and one concrete example
-  - Watch for common traps senior interviewers probe
-  - Tie answers back to real debugging experience
+  - Calling a generator function returns a paused generator object; the body does not run until the first next() call
+  - Each next() call runs the body up to the next yield and returns an object shaped like { value, done }
+  - next(value) sends a value into the paused yield expression; the argument to the very first next() call is ignored
+  - A generator return value arrives with done set to true, and for...of and spread never see it
+  - yield* delegates to another iterable and captures a delegated generator's return value; a finished generator stays finished, so call the function again for a fresh one
 masteryCriteria:
-  minQuestionsCorrect: 3
+  minQuestionsCorrect: 4
   requireChallenge: false
 difficulty: hard
 interviewQuestions:
   - id: genera-1
-    question: What is Generators in JavaScript?
-    answer: function*, yield, and iterable protocols.
+    question: What is a generator in JavaScript?
+    answer: "I'd say it's a function you can pause and resume. You write it with function* and yield inside it. Calling it does not run the body at all, it hands you back a generator object. Each time you call next() on that object, the body runs until the next yield, hands you that value, and pauses again."
     difficulty: easy
     followUps:
-      - When would you reach for this in production code?
-      - What breaks if you misuse it?
+      - What does each next() call return?
+      - Why would you want a function that pauses?
   - id: genera-2
-    question: What is a common interview trap around Generators?
-    answer: Interviewers often pair Generators with edge cases — state the rule, then walk through a short example.
+    question: When does a generator function's body actually run?
+    answer: "Not when you call it. That is the trap. Calling a generator function only creates the generator object, paused before the first line. The body starts on the first next() call, and it runs only as far as the first yield. That laziness is the whole point: nothing is computed until you ask for it."
     difficulty: medium
     followUps:
-      - Can you show the fix in code?
+      - How would you prove the body has not run yet?
+      - What happens if you never call next()?
   - id: genera-3
-    question: How does Generators relate to other JS concepts you know?
-    answer: It connects to topics earlier in this track — mention scope, types, async, or the DOM where relevant.
+    question: What does passing a value to next() do?
+    answer: "It sends that value into the generator, and it lands as the result of the yield expression where the generator is currently paused. So const name = yield 'ask' pauses with 'ask', and the next call's argument becomes name. One catch: the argument to the very first next() call is thrown away, because there is no paused yield for it to land in yet."
     difficulty: medium
     followUps:
-      - Which topic would you review first if you got this wrong?
+      - Why is the first next() argument ignored?
+      - How is this different from a function argument?
   - id: genera-4
-    question: How would you explain Generators to a junior developer?
-    answer: Use plain language, one analogy, and one line of code — avoid spec jargon until they ask.
-    difficulty: easy
+    question: What happens to a generator's return value when you use for...of?
+    answer: "It disappears. The return value shows up on the final next() call, paired with done set to true, but for...of and spread stop the moment they see done set to true, so they never look at that last value. If the return value matters, drive the generator by hand with next(), or capture it with yield* delegation."
+    difficulty: hard
     followUps:
-      - What follow-up question would you ask them to check understanding?
+      - How do you read a delegated generator's return value?
+      - Can you restart a finished generator?
+  - id: genera-5
+    question: When would you reach for a generator, and when would you not?
+    answer: "I reach for one when values should be produced lazily, one at a time: an infinite sequence, a paginated API you pull page by page, or a custom iterable without hand-writing next(). I would not use one for a plain list I already have, or for async work, where async generators and for await...of are the right shape instead. And a generator is single-use: once it is done, it stays done, so you call the function again for a fresh one."
+    difficulty: hard
+    followUps:
+      - How does a generator differ from an async function?
+      - What breaks if you reuse a finished generator?
 ---
 
 <TopicTabs>
@@ -50,9 +61,11 @@ interviewQuestions:
 
 <TopicDefinition>
 
-function*, yield, and iterable protocols.
+If someone asks me what a generator is, I'd say it's a function you can pause in the middle and pick up later. You write it with `function*` and `yield` inside it, and every `yield` is a stopping point where the function hands a value out and waits.
 
-In interviews, lead with a clear one-liner, then add one example. Senior rounds go deeper on edge cases and trade-offs — have a short code snippet ready.
+Interviewers care because generators test whether you really understand laziness and control flow, not just syntax. Calling the function does not run a single line of it. The body only starts when you call `next()`, and it only runs as far as the next `yield`. That surprises people who expect a function call to mean execution.
+
+The senior nuance is that communication runs both ways. `next()` does not just pull a value out. `next(value)` pushes a value back in, landing as the result of the paused `yield` expression. And a generator is single-use: once it reports `done: true`, it stays done, so a fresh sequence means calling the function again.
 
 </TopicDefinition>
 
@@ -64,38 +77,139 @@ In interviews, lead with a clear one-liner, then add one example. Senior rounds 
 
 <TopicTab value="examples">
 
-<CodeExample title="Quick example" language="javascript">
-{`// Generators — add your own variation in the playground
-console.log('Review the in-depth tab and Q&A for this topic');`}
+<CodeExample title="Pause and resume, step by step" language="javascript">
+{`function* countUp() {
+  yield 1;
+  yield 2;
+  yield 3;
+}
+
+const counter = countUp(); // nothing has run yet
+console.log(counter.next()); // { value: 1, done: false }
+console.log(counter.next()); // { value: 2, done: false }
+console.log(counter.next()); // { value: 3, done: false }
+console.log(counter.next()); // { value: undefined, done: true }
+
+// A finished generator stays finished.
+console.log(counter.next()); // { value: undefined, done: true }`}
 </CodeExample>
 
+<CodeExample title="Lazy sequences: infinite is fine when nobody asks for all of it" language="javascript">
+{`function* naturals() {
+  let n = 1;
+  while (true) {
+    yield n;
+    n += 1;
+  }
+}
+
+// This never builds an infinite array. Values are pulled one at a time,
+// so stopping after five is cheap.
+for (const n of naturals()) {
+  if (n > 5) break;
+  console.log(n); // 1, 2, 3, 4, 5
+}`}
+</CodeExample>
+
+<CodeExample title="Two-way traffic with next(value)" language="javascript">
+{`function* greet() {
+  const name = yield 'What is your name?';
+  yield 'Hello, ' + name + '!';
+}
+
+const g = greet();
+console.log(g.next('nobody').value); // 'What is your name?'
+// The first next() argument is ignored: no yield is paused yet.
+console.log(g.next('Ada').value); // 'Hello, Ada!'
+// 'Ada' landed as the result of the paused yield expression.`}
+</CodeExample>
+
+<CodeExample title="yield* delegates, and captures the return value" language="javascript">
+{`function* inner() {
+  yield 1;
+  return 'inner-done';
+}
+
+function* outer() {
+  // yield* yields every value from inner(), then evaluates to
+  // inner's return value. A plain for...of over inner() would
+  // never show you 'inner-done' at all.
+  const result = yield* inner();
+  yield result;
+}
+
+console.log([...outer()]); // [1, 'inner-done']`}
+</CodeExample>
+
+<OutputPrediction
+  title="The first next() argument goes nowhere"
+  expected="ask | hi Ada"
+  hint="Where is the generator paused when each next() call lands?"
+  explanation="The first next('nobody') starts the body and pauses at yield 'ask', so its argument has no paused yield to land in and is discarded. The second call sends 'Ada' into that paused yield, so name becomes 'Ada' and the next yield produces 'hi Ada'."
+  code={`function* greet() {
+  const name = yield 'ask';
+  yield 'hi ' + name;
+}
+const g = greet();
+const out = [];
+out.push(g.next('nobody').value);
+out.push(g.next('Ada').value);
+console.log(out.join(' | '));`}
+/>
+
+<OutputPrediction
+  title="The return value hides from for...of"
+  expected="2 1 lift off"
+  hint="Drive it by hand with next(): what does the third call return?"
+  explanation="Manual next() calls show the return value: after 2 and 1, the final call returns 'lift off' with done set to true. But for...of stops at done: true without reading that value, so [...countdown(2)] is just [2, 1]."
+  code={`function* countdown(n) {
+  while (n > 0) {
+    yield n;
+    n -= 1;
+  }
+  return 'lift off';
+}
+const g = countdown(2);
+const out = [];
+out.push(g.next().value);
+out.push(g.next().value);
+out.push(g.next().value);
+console.log(out.join(' '));`}
+/>
+
 <Callout type="tip">
-Re-read the key takeaways, then try explaining Generators out loud in under 30 seconds.
+Say it out loud in one breath: calling gives you a paused object, next() runs to the next yield, next(value) talks back, and done means finished forever.
 </Callout>
 
 </TopicTab>
 
 <TopicTab value="indepth">
 
-### What to focus on
+The mental model is pull, not push. An array hands you everything up front. A generator hands you one value each time you ask, and does no work between asks. That is why an infinite generator is safe: the loop inside it only advances when something calls `next()`, and a `for...of` with a `break` simply stops asking.
 
-- Definition and mental model
-- One gotcha interviewers love
-- How it connects to prerequisites in this track
+Three rules keep you out of trouble in interviews. First, a generator is single-use. Exhausting it does not reset it, and calling `next()` again just keeps returning `done: true`. A fresh sequence means a fresh call to the generator function. Second, `yield` only works directly inside the `function*` body. A `yield` inside a nested callback or a `forEach` is a syntax error, because that callback is an ordinary function, not the generator. Third, `yield` is an expression, not just a statement. That is the whole mechanism behind `next(value)`: the paused `yield` evaluates to whatever the caller sent in.
 
-### Senior follow-ups
+Two more tools round out the picture. `return(value)` on the generator object ends it early, as if the body had returned. `throw(error)` injects an exception at the paused `yield`, so a `try...catch` inside the generator can handle it. And for async work, the shape changes: `async function*` plus `for await...of` is the async counterpart, with promises instead of plain values. Do not mix the two up in an answer.
 
-Be ready to compare alternatives and describe when **not** to use this feature.
+<Callout type="interview">
+Lead with laziness, then prove it: "Calling it runs nothing. The first next() starts the body, each yield pauses it, and the argument to the first next() is ignored." Then name the trap: the return value vanishes in for...of.
+</Callout>
+
+<Callout type="gotcha">
+A finished generator does not rewind, and a return value paired with done: true is invisible to for...of and spread. If a test or an interviewer expects the return value, drive the generator by hand with next() or capture it through yield* delegation.
+</Callout>
 
 </TopicTab>
 
 <TopicTab value="questions">
 
+<FlashcardDeck ids={['genera-1', 'genera-2', 'genera-3', 'genera-4', 'genera-5']} />
 
 <InterviewQuestionBlock id="genera-1" />
 <InterviewQuestionBlock id="genera-2" />
 <InterviewQuestionBlock id="genera-3" />
 <InterviewQuestionBlock id="genera-4" />
+<InterviewQuestionBlock id="genera-5" />
 
 </TopicTab>
 
@@ -104,21 +218,18 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 <TopicPlayground>
 
 <CodingChallenge
-  title="Build a lazy range generator"
-  prompt="Finish function* range(start, end) so it yields start up to end - 1, one value at a time, lazily: nothing is produced until next() is called. The tests check the values, the lazy stepping, and the done state after exhaustion."
-  hint="yield each value inside a loop. Returning an array instead of yielding gives an empty spread and fails the stepping tests."
-  starterCode={`function* range(start, end) {
-  // your code here: yield start up to end - 1, lazily
-}
-
-const g = range(2, 5);
-const first = g.next();
-const second = g.next();
-const spread = [...range(0, 3)];`}
+  title="Write a lazy range generator"
+  prompt="Implement range(start, stop) as a generator function that yields start, start + 1, and so on up to but not including stop. It must be lazy: calling range() must not compute anything, so even range(0, 1000000000) is cheap until you pull values from it. Yield nothing when start is already at or past stop."
+  hint="function* with a for loop and yield. Check the loop bound: stop itself is never yielded."
+  starterCode={`function* range(start, stop) {
+  // your code here
+}`}
   tests={[
-    { label: 'first next() yields 2, not done', code: `if (first.value !== 2 || first.done !== false) throw new Error('expected 2/not done, got ' + first.value + '/' + first.done);` },
-    { label: 'second next() yields 3, not done', code: `if (second.value !== 3 || second.done !== false) throw new Error('expected 3/not done, got ' + second.value + '/' + second.done);` },
-    { label: 'spread collects exactly 0, 1, 2', code: `if (spread.length !== 3 || spread[0] !== 0 || spread[1] !== 1 || spread[2] !== 2) throw new Error('expected 0,1,2, got ' + spread.join(','));` },
+    { label: 'yields start up to but not including stop', code: `if ([...range(2, 5)].join(',') !== '2,3,4') throw new Error('expected 2,3,4');` },
+    { label: 'yields nothing when start is at or past stop', code: `if ([...range(5, 5)].length !== 0) throw new Error('expected empty'); if ([...range(7, 3)].length !== 0) throw new Error('expected empty');` },
+    { label: 'is lazy: a huge range costs nothing until pulled', code: `const g = range(0, 1000000000); const first = g.next(); if (first.value !== 0 || first.done !== false) throw new Error('expected first value 0, not done');` },
+    { label: 'reports done at the end and stays done', code: `const g = range(1, 2); g.next(); const end = g.next(); if (end.done !== true) throw new Error('expected done'); if (g.next().done !== true) throw new Error('expected still done');` },
+    { label: 'each call gives a fresh, independent generator', code: `const a = range(0, 2); const b = range(0, 2); a.next(); a.next(); a.next(); if (b.next().value !== 0) throw new Error('expected fresh generator to start at 0');` },
   ]}
 />
 

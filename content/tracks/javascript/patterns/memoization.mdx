@@ -8,40 +8,51 @@ estimatedMinutes: 30
 prerequisites:
   - closures
 keyTakeaways:
-  - Core concepts for Memoization interviews
-  - Know the definition and one concrete example
-  - Watch for common traps senior interviewers probe
-  - Tie answers back to real debugging experience
+  - "Memoization trades memory for speed: cache a pure function's result by its arguments, return the stored answer on repeat calls"
+  - "The cache key is the real design question: keep (1, 2) and (2, 1) apart, and remember objects key by reference, not by contents"
+  - "Check the cache with Map.has, never truthiness — a cached 0, '' or false is a real answer"
+  - "Only memoize pure, expensive functions: impure functions go stale, cheap ones cost more to cache than to run"
+  - "Unbounded caches leak: cap the cache with oldest-first eviction, expire with a TTL, or use a WeakMap for object keys"
 masteryCriteria:
   minQuestionsCorrect: 3
   requireChallenge: false
 difficulty: medium
 interviewQuestions:
   - id: memoiz-1
-    question: What is Memoization in JavaScript?
-    answer: Cache function results with a closure-backed Map.
+    question: What is memoization?
+    answer: "It's remembering a function's answers. You run an expensive pure function once for some inputs, store the result in a cache, and the next time the same inputs show up you return the stored answer instead of recomputing. You trade memory for speed."
     difficulty: easy
     followUps:
-      - When would you reach for this in production code?
-      - What breaks if you misuse it?
+      - What makes a function a good candidate for memoization?
+      - What does the cache cost you?
   - id: memoiz-2
-    question: What is a common interview trap around Memoization?
-    answer: Interviewers often pair Memoization with edge cases — state the rule, then walk through a short example.
+    question: Why is the cache key the hard part of memoize?
+    answer: "Because a bad key gives wrong answers, not just slow ones. Joining arguments into a string collides: ['a', 'b'] and ['a,b'] both become 'a,b'. And objects key by reference, not contents — two objects that look equal are different keys, so a mutated object can return a stale result. The safe shapes are nested Maps per argument, or a resolver the caller supplies."
     difficulty: medium
     followUps:
-      - Can you show the fix in code?
+      - How would you memoize a function of two arguments?
+      - Why is Map a better cache than a plain object?
   - id: memoiz-3
-    question: How does Memoization relate to other JS concepts you know?
-    answer: It connects to topics earlier in this track — mention scope, types, async, or the DOM where relevant.
+    question: When should you NOT memoize a function?
+    answer: "Three cases. Impure functions: anything reading Date.now, randomness, or outside state returns stale answers once cached. Cheap functions: building the key and doing a Map lookup can cost more than the function itself. And high-cardinality inputs: memoizing over user IDs or coordinates grows the cache forever, which is a slow memory leak wearing a speedup costume."
     difficulty: medium
     followUps:
-      - Which topic would you review first if you got this wrong?
+      - How do you bound a cache that has to live a long time?
+      - Does memoizing an async function change anything?
   - id: memoiz-4
-    question: How would you explain Memoization to a junior developer?
-    answer: Use plain language, one analogy, and one line of code — avoid spec jargon until they ask.
-    difficulty: easy
+    question: How do you keep a memo cache from leaking memory?
+    answer: "Give it a lifetime. For object keys, a WeakMap lets entries die when the key object is garbage collected — the cache can't outlive its keys. For primitive keys there's no weak option, so cap the size: Map keeps insertion order, so evicting the first key drops the oldest entry — delete and re-set on every hit and that becomes true LRU. For async results, add a TTL so entries expire."
+    difficulty: medium
     followUps:
-      - What follow-up question would you ask them to check understanding?
+      - Why can't you use a WeakMap for primitive keys?
+      - How does Map insertion order give you cheap eviction, and what makes it true LRU?
+  - id: memoiz-5
+    question: What does React's useMemo have to do with memoization?
+    answer: "Same idea, scoped to one component's renders: useMemo caches a computed value and only recomputes when its dependencies change. The trap is the same as the cache-key trap — dependencies compare by reference, so an object literal created fresh every render defeats it. And like any memoization, it's an optimization you reach for after profiling, not a default."
+    difficulty: medium
+    followUps:
+      - Why does a new object literal in deps break useMemo?
+      - When would you pick React.memo over useMemo?
 ---
 
 <TopicTabs>
@@ -50,9 +61,11 @@ interviewQuestions:
 
 <TopicDefinition>
 
-Cache function results with a closure-backed Map.
+If someone asks what memoization is, I'd say it's remembering a function's answers. You call an expensive function once with some inputs, store the result, and the next time the same inputs show up you return the stored answer instead of recomputing.
 
-In interviews, lead with a clear one-liner, then add one example. Senior rounds go deeper on edge cases and trade-offs — have a short code snippet ready.
+Interviewers almost always follow up with the **cache key**, because that's where memoization actually lives or dies. One primitive argument is easy — the argument is the key. Several arguments need something that keeps `(1, 2)` and `(2, 1)` apart, and objects key by **reference**, not contents: two objects that look equal are different keys.
+
+In senior rounds you hear about the price. The cache only grows, so memoizing over user IDs in a long-lived server is a slow memory leak. Real implementations cap the cache, expire entries, or use a `WeakMap` for object keys — and they only memoize functions that are pure and actually expensive.
 
 </TopicDefinition>
 
@@ -64,38 +77,111 @@ In interviews, lead with a clear one-liner, then add one example. Senior rounds 
 
 <TopicTab value="examples">
 
-<CodeExample title="Quick example" language="javascript">
-{`// Memoization — add your own variation in the playground
-console.log('Review the in-depth tab and Q&A for this topic');`}
-</CodeExample>
+<CodeExample title="The basic memoize, and why it pays off" language="javascript">
+{`function memoize(fn) {
+  const cache = new Map();
+  return function (...args) {
+    const key = args[0];
+    if (cache.has(key)) return cache.get(key);
+    const result = fn(...args);
+    cache.set(key, result);
+    return result;
+  };
+}
 
-<Callout type="tip">
-Re-read the key takeaways, then try explaining Memoization out loud in under 30 seconds.
-</Callout>
+let calls = 0;
+const fib = memoize((n) => {
+  calls++;
+  return n < 2 ? n : fib(n - 1) + fib(n - 2);
+});
+
+console.log(fib(10)); // 55
+console.log(calls);   // 11 — not 177. Each n computed once.`}</CodeExample>
+
+<CodeExample title="The falsy-result trap" language="javascript">
+{`// WRONG: truthiness check treats cached falsy results as misses
+function broken(fn) {
+  const cache = new Map();
+  return (x) => cache.get(x) || fn(x); // 0, '', false never stick
+}
+
+// RIGHT: Map.has asks "is there an entry?", not "is it truthy?"
+function fixed(fn) {
+  const cache = new Map();
+  return (x) => {
+    if (cache.has(x)) return cache.get(x);
+    const result = fn(x);
+    cache.set(x, result);
+    return result;
+  };
+}
+
+let calls = 0;
+const zero = fixed(() => { calls++; return 0; });
+zero(); zero();
+console.log(calls); // 1 — the cached 0 counts as a hit`}</CodeExample>
+
+<CodeExample title="The key-collision trap" language="javascript">
+{`// WRONG: joining arguments collides — ['a', 'b'] and ['a,b'] agree
+const key = (args) => args.join(',');
+console.log(key(['a', 'b'])); // 'a,b'
+console.log(key(['a,b']));    // 'a,b' — same key, different call
+
+// RIGHT: nested Maps keep every argument separate, no string tricks
+function memoizeMulti(fn) {
+  const root = new Map();
+  return function (...args) {
+    let node = root;
+    for (const arg of args) {
+      if (!node.has(arg)) node.set(arg, new Map());
+      node = node.get(arg);
+    }
+    if (node.has('result')) return node.get('result');
+    const result = fn(...args);
+    node.set('result', result);
+    return result;
+  };
+}
+
+const add = memoizeMulti((a, b) => a + b);
+console.log(add(1, 2)); // 3, computed
+console.log(add(2, 1)); // 3, computed separately — no collision`}</CodeExample>
 
 </TopicTab>
 
 <TopicTab value="indepth">
 
-### What to focus on
+### When not to memoize
 
-- Definition and mental model
-- One gotcha interviewers love
-- How it connects to prerequisites in this track
+Memoization is only sound for **pure** functions: same inputs, same output, no side effects. Memoize something that reads `Date.now()`, randomness, or outside state and you cache a stale answer. And don't memoize cheap functions — building a key plus a `Map` lookup can cost more than the function itself. Measure first.
 
-### Senior follow-ups
+### Bounding the cache
 
-Be ready to compare alternatives and describe when **not** to use this feature.
+One entry per distinct key, forever, is a leak. Three fixes, pick by key type:
+
+- **Object keys → `WeakMap`.** Entries disappear when the key object is garbage collected, so the cache can't outlive its keys by construction.
+- **Primitive keys → size cap.** `Map` keeps insertion order, so evicting `cache.keys().next().value` drops the oldest entry in one line; delete and re-set on every hit if you want true least-recently-used order.
+- **Async results → TTL.** Cache the promise immediately (so concurrent callers share one request), delete failed entries so retries work, and expire entries after a timeout.
+
+### The React connection
+
+`useMemo` is this same idea scoped to one component: cache a value, recompute only when dependencies change. Dependencies compare by reference, so an object literal rebuilt every render defeats it — the same reference-vs-value trap as the cache key. And like any memoization, it's a targeted optimization after profiling, not a default wrapper.
+
+<Callout type="gotcha">
+Every cache hit returns the **same object reference**. If one caller mutates the returned object, every later caller sees the mutation. Memoize values you treat as read-only, or return copies.
+</Callout>
 
 </TopicTab>
 
 <TopicTab value="questions">
 
+<FlashcardDeck ids={['memoiz-1', 'memoiz-2', 'memoiz-3', 'memoiz-4', 'memoiz-5']} />
 
 <InterviewQuestionBlock id="memoiz-1" />
 <InterviewQuestionBlock id="memoiz-2" />
 <InterviewQuestionBlock id="memoiz-3" />
 <InterviewQuestionBlock id="memoiz-4" />
+<InterviewQuestionBlock id="memoiz-5" />
 
 </TopicTab>
 
@@ -103,28 +189,40 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicPlayground>
 
-<CodingChallenge
-  title="Build memoize with a working cache"
-  prompt="Implement memoize(fn) so repeated calls with the same arguments reuse the cached result instead of recomputing. The cache key must cover every argument, not just the first. Count the underlying calls to prove it: the tests check how many times the original function actually ran, and that different arguments still compute fresh results."
-  hint="A Map keyed by a string built from all arguments works for numbers and strings. The topic warns this key strategy has limits: object key order and non-serializable values like functions can collide or break it."
-  starterCode={`function memoize(fn) {
-  // your code here: return a wrapped function with a cache
+<OutputPrediction
+  title="Does a cached 0 count as a hit?"
+  expected="1"
+  hint="The function returns 0. Does the cache treat that as a hit or a miss?"
+  explanation="Map.has checks for an entry, not a truthy value — so the cached 0 is a hit and the function runs only once."
+  code={`function memoize(fn) {
+  const cache = new Map();
+  return (x) => {
+    if (cache.has(x)) return cache.get(x);
+    const result = fn(x);
+    cache.set(x, result);
+    return result;
+  };
 }
-
 let calls = 0;
-function slowAdd(a, b) {
-  calls += 1;
-  return a + b;
-}
-const add = memoize(slowAdd);
-add(2, 3);
-add(2, 3);
-add(2, 4);`}
+const zero = memoize(() => { calls++; return 0; });
+zero(); zero();
+console.log(calls);`}
+/>
+
+<CodingChallenge
+  title="Implement memoize for any argument list"
+  prompt="Implement memoize(fn) so repeat calls with the same arguments return the cached result without re-running fn. Rules: cache by the full argument list (keep (1, 2) and (2, 1) apart), objects key by reference (a different object, even with the same shape, recomputes), and falsy results like 0 must still count as cache hits."
+  starterCode={`function memoize(fn) {
+  // your code
+}`}
   tests={[
-    { label: 'repeated args compute only once', code: `if (calls !== 2) throw new Error('expected 2 real calls, got ' + calls);` },
-    { label: 'cached result is correct', code: `if (add(2, 3) !== 5) throw new Error('expected cached 5');` },
-    { label: 'different args compute fresh', code: `if (add(2, 4) !== 6) throw new Error('expected 6'); if (calls !== 2) throw new Error('expected still 2 real calls, got ' + calls);` },
+    { label: 'caches a repeat single-arg call', code: `let calls = 0; const sq = memoize((n) => { calls++; return n * n; }); sq(4); sq(4); if (calls !== 1) throw new Error('expected 1 call, got ' + calls); if (sq(4) !== 16) throw new Error('expected 16');` },
+    { label: 'falsy results still hit the cache', code: `let calls = 0; const zero = memoize(() => { calls++; return 0; }); zero(); zero(); if (calls !== 1) throw new Error('expected 1 call, got ' + calls);` },
+    { label: 'argument order matters', code: `let calls = 0; const pair = memoize((a, b) => { calls++; return a + '-' + b; }); pair(1, 2); pair(2, 1); if (calls !== 2) throw new Error('expected 2 calls, got ' + calls); pair(1, 2); if (calls !== 2) throw new Error('repeat (1, 2) should hit the cache');` },
+    { label: 'same first argument, different second argument recomputes', code: `let calls = 0; const pair = memoize((a, b) => { calls++; return a + '-' + b; }); pair(1, 2); pair(1, 3); if (calls !== 2) throw new Error('expected 2 calls, got ' + calls); if (pair(1, 3) !== '1-3') throw new Error('expected 1-3');` },
+    { label: 'objects key by reference', code: `let calls = 0; const get = memoize((o) => { calls++; return o.x; }); const obj = { x: 7 }; get(obj); get(obj); if (calls !== 1) throw new Error('same object should hit'); get({ x: 7 }); if (calls !== 2) throw new Error('different object should recompute');` },
   ]}
+  hint="Nested Maps: walk one Map level per argument, then store the result under a 'result' key at the leaf. Check the leaf with .has so falsy results still hit."
 />
 
 </TopicPlayground>

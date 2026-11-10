@@ -8,40 +8,51 @@ estimatedMinutes: 30
 prerequisites:
   - generators
 keyTakeaways:
-  - Core concepts for Iterators & for...of interviews
-  - Know the definition and one concrete example
-  - Watch for common traps senior interviewers probe
-  - Tie answers back to real debugging experience
+  - "An iterable has a [Symbol.iterator]() method; an iterator has a next() method that returns { value, done }"
+  - "for...of gives you values from an iterable; for...in gives you string keys from an object"
+  - "Plain objects are not iterable — for...of on one throws a TypeError"
+  - "Iterators are single-use: once consumed, a second loop over the same iterator gives nothing"
+  - "Breaking out of for...of early calls the iterator's return() method, so cleanup code runs"
 masteryCriteria:
   minQuestionsCorrect: 3
-  requireChallenge: false
+  requireChallenge: true
 difficulty: medium
 interviewQuestions:
-  - id: iterat-1
-    question: What is Iterators & for...of in JavaScript?
-    answer: Iterable protocol, custom iterators, and spread with iterables.
+  - id: iter-1
+    question: What is the difference between an iterable and an iterator?
+    answer: "An iterable is an object with a [Symbol.iterator]() method — it knows how to hand out an iterator. An iterator is the object with the next() method that actually produces values, one { value, done } pair at a time. Arrays are iterable; the object you get from arr.values() is the iterator."
     difficulty: easy
     followUps:
-      - When would you reach for this in production code?
-      - What breaks if you misuse it?
-  - id: iterat-2
-    question: What is a common interview trap around Iterators & for...of?
-    answer: Interviewers often pair Iterators & for...of with edge cases — state the rule, then walk through a short example.
-    difficulty: medium
-    followUps:
-      - Can you show the fix in code?
-  - id: iterat-3
-    question: How does Iterators & for...of relate to other JS concepts you know?
-    answer: It connects to topics earlier in this track — mention scope, types, async, or the DOM where relevant.
-    difficulty: medium
-    followUps:
-      - Which topic would you review first if you got this wrong?
-  - id: iterat-4
-    question: How would you explain Iterators & for...of to a junior developer?
-    answer: Use plain language, one analogy, and one line of code — avoid spec jargon until they ask.
+      - How would you check whether something is iterable?
+      - Can one object be both iterable and an iterator?
+  - id: iter-2
+    question: Why can't you use for...of on a plain object?
+    answer: "Because a plain object has no [Symbol.iterator] method, so the engine has no default order to hand you values in. for...of throws a TypeError: object is not iterable. If you need the values, go through Object.values(obj) or Object.entries(obj) — both return arrays, which are iterable."
     difficulty: easy
     followUps:
-      - What follow-up question would you ask them to check understanding?
+      - What does for...in give you instead, and why is it risky on arrays?
+      - How would you make a custom object iterable?
+  - id: iter-3
+    question: What is the difference between for...of and for...in?
+    answer: "for...of walks values from an iterable — arrays, strings, Maps, Sets. for...in walks the enumerable string keys of an object, including inherited ones, and on an array that includes any extra properties you stuck on it. Short version: of is for values, in is for keys — and never use for...in on an array."
+    difficulty: easy
+    followUps:
+      - What does for...in return for an array with an added property?
+      - Which one works on a Map?
+  - id: iter-4
+    question: What happens if you break out of a for...of loop early?
+    answer: "The loop calls the iterator's return() method, which is your cleanup hook — closing a file, a connection, whatever the iterator was holding. With a generator that means the finally block runs. So break is safe, not a leak — as long as the iterator actually implements return()."
+    difficulty: medium
+    followUps:
+      - When would you implement return() yourself?
+      - Does the same cleanup happen with a plain array iterator?
+  - id: iter-5
+    question: How would you make a custom object iterable?
+    answer: "Add a [Symbol.iterator]() method that returns a fresh iterator object with a next() method. The fresh part matters: return a new iterator each call, with its own position variable, or the second loop over the same object finds the iterator already exhausted. If the object itself has next(), it can return this — that is what generators do — but then it is single-use."
+    difficulty: medium
+    followUps:
+      - Why must [Symbol.iterator]() return a new iterator each time?
+      - What breaks if you return this from a reusable object?
 ---
 
 <TopicTabs>
@@ -50,9 +61,11 @@ interviewQuestions:
 
 <TopicDefinition>
 
-Iterable protocol, custom iterators, and spread with iterables.
+If someone asks what iterators are, I'd say they're the quiet contract underneath `for...of`, spread, and destructuring. An **iterable** is anything with a `[Symbol.iterator]()` method — arrays, strings, Maps, Sets. An **iterator** is the thing that method hands back, with a `next()` that returns `{ value, done }` one pair at a time.
 
-In interviews, lead with a clear one-liner, then add one example. Senior rounds go deeper on edge cases and trade-offs — have a short code snippet ready.
+The trap interviewers love is the plain object: `for (const v of { a: 1 })` throws a `TypeError`, because objects have no default iteration order. If you want values from an object, you go through `Object.values()` or `Object.entries()` first.
+
+Senior rounds usually go to the single-use rule — an iterator is consumed once, and a second loop over the same iterator gives you nothing — and to `return()`, the cleanup hook that runs when you `break` out of a `for...of` early.
 
 </TopicDefinition>
 
@@ -64,38 +77,125 @@ In interviews, lead with a clear one-liner, then add one example. Senior rounds 
 
 <TopicTab value="examples">
 
-<CodeExample title="Quick example" language="javascript">
-{`// Iterators & for...of — add your own variation in the playground
-console.log('Review the in-depth tab and Q&A for this topic');`}
+<CodeExample title="An iterator, called by hand" language="javascript">
+{`const it = ['a', 'b'].values();
+
+console.log(it.next()); // { value: 'a', done: false }
+console.log(it.next()); // { value: 'b', done: false }
+console.log(it.next()); // { value: undefined, done: true }
+
+// for...of is just this loop, automated:
+// it calls [Symbol.iterator](), then next() until done is true.`}
 </CodeExample>
 
-<Callout type="tip">
-Re-read the key takeaways, then try explaining Iterators & for...of out loud in under 30 seconds.
+<CodeExample title="Making your own object iterable" language="javascript">
+{`const range = {
+  from: 1,
+  to: 3,
+  [Symbol.iterator]() {
+    let current = this.from;
+    return {
+      next: () =>
+        current <= this.to
+          ? { value: current++, done: false }
+          : { value: undefined, done: true },
+    };
+  },
+};
+
+console.log([...range]); // [1, 2, 3]
+console.log([...range]); // [1, 2, 3] again — a fresh iterator each time
+for (const n of range) console.log(n); // 1, 2, 3`}
+</CodeExample>
+
+<CodeExample title="for...of vs for...in — values vs keys" language="javascript">
+{`const arr = ['x', 'y'];
+arr.extra = '!';
+
+for (const v of arr) console.log('of:', v);
+// of: x / of: y — values only, extra property ignored
+
+for (const k in arr) console.log('in:', k);
+// in: 0 / in: 1 / in: extra — string keys, including the extra one
+
+const m = new Map([['a', 1], ['b', 2]]);
+for (const [k, v] of m) console.log('map:', k, v);
+// map: a 1 / map: b 2 — Maps iterate [key, value] pairs`}
+</CodeExample>
+
+<Callout type="interview">
+When they ask "iterable or iterator?", answer with the two contracts: **iterable** has `[Symbol.iterator]()`, **iterator** has `next()`. Then prove it with `arr.values().next()`.
 </Callout>
 
 </TopicTab>
 
 <TopicTab value="indepth">
 
-### What to focus on
+<CodeExample title="Trap 1: plain objects are not iterable" language="javascript">
+{`try {
+  for (const v of { a: 1 }) {
+    console.log(v);
+  }
+} catch (error) {
+  console.log(error.constructor.name); // TypeError — not iterable
+}
 
-- Definition and mental model
-- One gotcha interviewers love
-- How it connects to prerequisites in this track
+// The fix: turn it into an array first
+console.log(Object.values({ a: 1 })); // [1]
+console.log(Object.entries({ a: 1 })); // [['a', 1]]`}
+</CodeExample>
+
+<CodeExample title="Trap 2: an iterator is single-use" language="javascript">
+{`function* gen() {
+  yield 1;
+  yield 2;
+}
+
+const g = gen();
+console.log([...g]); // [1, 2]
+console.log([...g]); // [] — already consumed, nothing left
+
+// Same trap hides in a custom iterable that returns this:
+// [Symbol.iterator]() { return this; } shares one position,
+// so the second loop over the SAME object comes back empty.
+// Return a fresh iterator object each call instead.`}
+</CodeExample>
+
+<CodeExample title="Trap 3: break triggers cleanup via return()" language="javascript">
+{`function* withCleanup() {
+  try {
+    yield 1;
+    yield 2;
+    yield 3;
+  } finally {
+    console.log('cleaned up');
+  }
+}
+
+for (const v of withCleanup()) {
+  console.log(v); // 1
+  break;          // loop calls return() — finally runs
+}
+// cleaned up`}
+</CodeExample>
 
 ### Senior follow-ups
 
-Be ready to compare alternatives and describe when **not** to use this feature.
+- **Iterator helpers (ES2025, Baseline 2025):** `Iterator.from(iterable)` gives you `.map()`, `.filter()`, `.take()`, and `.drop()` directly on iterators — lazy pipelines without building an intermediate array. `Iterator.from([1, 2, 3, 4]).map(x => x * 2).take(2)` yields `2, 4` and never touches the rest.
+- **Async iteration:** `for await...of` and `[Symbol.asyncIterator]()` are the same two contracts, async — worth a sentence if the role involves streams or paginated APIs.
+- **When not to hand-roll an iterator:** if a generator function can express the sequence, use it — the engine writes `next()` and `return()` for you. Hand-write only when the iteration state lives outside the function (a cursor, a socket).
 
 </TopicTab>
 
 <TopicTab value="questions">
 
+<FlashcardDeck ids={['iter-1', 'iter-2', 'iter-3', 'iter-4', 'iter-5']} />
 
-<InterviewQuestionBlock id="iterat-1" />
-<InterviewQuestionBlock id="iterat-2" />
-<InterviewQuestionBlock id="iterat-3" />
-<InterviewQuestionBlock id="iterat-4" />
+<InterviewQuestionBlock id="iter-1" />
+<InterviewQuestionBlock id="iter-2" />
+<InterviewQuestionBlock id="iter-3" />
+<InterviewQuestionBlock id="iter-4" />
+<InterviewQuestionBlock id="iter-5" />
 
 </TopicTab>
 
@@ -103,18 +203,44 @@ Be ready to compare alternatives and describe when **not** to use this feature.
 
 <TopicPlayground>
 
+<OutputPrediction
+  title="The third next() call"
+  expected="{ value: undefined, done: true }"
+  hint="The array has two items. What does next() return once there is nothing left to give?"
+  explanation="next() returns { value, done } pairs. After 'a' and 'b' are handed out, the next call returns done: true with value undefined — that is the signal for...of uses to stop."
+  code={`const it = ['a', 'b'].values();
+it.next();
+it.next();
+console.log(it.next());`}
+/>
+
+<OutputPrediction
+  title="A generator, spread twice"
+  expected="[1, 2] then []"
+  hint="A generator object is an iterator. What happens the second time you consume the same one?"
+  explanation="Iterators are single-use. The first spread consumes both yields; the second spread finds the generator already finished and gives back an empty array."
+  code={`function* gen() {
+  yield 1;
+  yield 2;
+}
+const g = gen();
+console.log([...g]);
+console.log([...g]);`}
+/>
+
 <CodingChallenge
-  title="Build a re-iterable range iterator by hand"
-  prompt="Implement range(start, end) returning an iterable object: every call to Symbol.iterator must return a FRESH iterator with its own next() method, yielding start, start + 1, and so on up to but not including end. Write the iterator by hand, with next returning a value and done pair, not with a generator: the point is the protocol itself. A stale shared iterator is the classic bug: spreading the same range twice must give the same result both times."
-  hint="Symbol.iterator returns a new object each time it is called, with next() closing over its own current value. Done becomes true exactly when current reaches end."
-  starterCode={`function range(start, end) {
-  // your code here: return an iterable with Symbol.iterator
+  title="Make a countdown iterable"
+  prompt="Write a countdown(n) function that returns an object which is iterable: spreading it (or looping with for...of) yields n, n-1, ..., 1. The same object must work twice in a row — a second spread gives the same values again."
+  starterCode={`function countdown(n) {
+  // return an object with a [Symbol.iterator]() method
 }`}
   tests={[
-    { label: 'spread yields start up to but not including end', code: `const values = [...range(1, 4)]; if (values.join(',') !== '1,2,3') throw new Error('expected 1,2,3 got ' + values.join(','));` },
-    { label: 'next follows the protocol', code: `const it = range(5, 7)[Symbol.iterator](); const first = it.next(); const second = it.next(); const third = it.next(); if (first.value !== 5 || first.done !== false) throw new Error('expected first 5 not done'); if (second.value !== 6 || second.done !== false) throw new Error('expected second 6 not done'); if (third.done !== true) throw new Error('expected third done');` },
-    { label: 'spreading twice gives the same result', code: `const r = range(0, 2); if ([...r].join(',') !== '0,1') throw new Error('expected first spread 0,1'); if ([...r].join(',') !== '0,1') throw new Error('expected second spread 0,1');` },
+    { label: 'spreads down from n to 1', code: `const out = [...countdown(3)]; if (JSON.stringify(out) !== '[3,2,1]') throw new Error('expected [3,2,1], got ' + JSON.stringify(out));` },
+    { label: 'the same object works twice', code: `const c = countdown(3); const first = [...c]; const second = [...c]; if (JSON.stringify(first) !== JSON.stringify(second)) throw new Error('second spread gave ' + JSON.stringify(second) + ' instead of ' + JSON.stringify(first));` },
+    { label: 'works with for...of and Array.from', code: `let sum = 0; for (const v of countdown(4)) sum += v; if (sum !== 10) throw new Error('expected sum 10, got ' + sum); if (JSON.stringify(Array.from(countdown(2))) !== '[2,1]') throw new Error('Array.from gave the wrong values');` },
+    { label: 'countdown(1) yields a single value', code: `const out = [...countdown(1)]; if (JSON.stringify(out) !== '[1]') throw new Error('expected [1], got ' + JSON.stringify(out));` },
   ]}
+  hint="Add a [Symbol.iterator]() method that returns a NEW iterator object each time it is called, with its own position variable starting at n. If you return this, the second spread finds the position already at the end."
 />
 
 </TopicPlayground>
