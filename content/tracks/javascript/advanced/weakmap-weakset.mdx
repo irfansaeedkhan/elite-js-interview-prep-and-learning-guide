@@ -141,7 +141,9 @@ console.log(typeof wm.keys); // 'undefined'
 
 // 3. A WeakMap is not iterable.
 try {
-  for (const entry of wm) { /* never runs */ }
+  for (const entry of wm) {
+    // never runs
+  }
 } catch (e) {
   console.log(e instanceof TypeError); // true
 }`}</CodeExample>
