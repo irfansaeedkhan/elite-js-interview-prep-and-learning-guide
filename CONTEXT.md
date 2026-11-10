@@ -4,6 +4,17 @@
 
 ---
 
+## ⏸️ PAUSED — 2026-11-10 (Irfan's order)
+
+**No further pushes, deploys, or topic work until the Oct 31 usage-spike cause is found.**
+
+- **Last merge to main:** `926c903` (2026-11-10) — 18 reviewer-approved JavaScript topics upgraded to interview-ready, plus a one-line MDX fix in `weakmap-weakset.mdx`. `arrays.mdx` and `classes.mdx` are REJECTED — do NOT merge either.
+- **Spike:** ~595,345 function invocations in 30 days (45% of the whole Vercel team's total), ~470,000 of them in a single day around Oct 31. Cause NOT proven. Ruled out from repo + deployment evidence: no client-side polling/fetch loops, no ISR revalidation, no middleware, no image optimization, no server actions, no cron, no GitHub Actions hitting the live site, no in-repo loop mechanism of any kind. Still open: an external bot hammering dynamic endpoints (`/api/auth/get-session`, `/api/progress`, `/sitemap.xml`) or a misbehaving client/monitor. The Oct 31 14-commit push burst correlates in time but pushes/deployments do not themselves generate function invocations. Per-route evidence for Oct 31 no longer exists (Vercel Hobby retains 12 hours).
+- **Daily research + reviewer crons:** DISABLED (do not re-enable).
+- **Resume condition:** spike cause found first, then topic work resumes.
+
+---
+
 ## What we're building
 
 An **elite-level interview prep platform** that fills gaps in existing tools (GreatFrontEnd, LeetCode discuss, scattered blog posts). Learners master one topic completely — definition, examples, deep dive, interview Q&A — before moving to the next.
